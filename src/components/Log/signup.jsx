@@ -25,8 +25,8 @@ function SignUp() {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
+    <div className="sign-page">
+      <div className="sign-container">
         <h2>Sign Up</h2>
         <form onSubmit={handleSubmit}>
           <div className="input-group">
@@ -77,9 +77,9 @@ function SignUp() {
               onChange={handleChange}
             />
           </div>
-          <button type="submit" className="auth-button">Sign Up</button>
+          <button type="submit" className="sign-button">Sign Up</button>
         </form>
-        <p className="auth-link">
+        <p className="sign-link">
           Already have an account? <Link to="/signin">Sign In</Link>
         </p>
       </div>
