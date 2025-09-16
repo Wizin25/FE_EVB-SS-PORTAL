@@ -1,20 +1,90 @@
-import { Link } from 'react-router-dom'
+// components/Log/SignUp.jsx
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 function SignUp() {
-    return (
-        <div>
-            <h2>Sign Up</h2>
-            <form>
-                <input type="text" placeholder="Username" required /><br/>
-                <input type="email" placeholder="Email" required  /><br/>
-                <input type="password" placeholder="Password" required  /><br/>
-                <input type="text" placeholder="Phone" required /><br/>
-                <input type="text" placeholder="Address" /><br/>
-                <input type="submit" value="Sign In" />
-            </form>
-            <p>Already have an account? <Link to="/signin">Sign In</Link></p>
-        </div>
-    );
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    phone: '',
+    address: ''
+  });
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log('Sign Up Data:', formData);
+    alert('Sign Up functionality would be implemented here');
+  };
+
+  return (
+    <div className="auth-page">
+      <div className="auth-container">
+        <h2>Sign Up</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="input-group">
+            <input 
+              type="text" 
+              name="username"
+              placeholder="Username" 
+              value={formData.username}
+              onChange={handleChange}
+              required 
+            />
+          </div>
+          <div className="input-group">
+            <input 
+              type="email" 
+              name="email"
+              placeholder="Email" 
+              value={formData.email}
+              onChange={handleChange}
+              required 
+            />
+          </div>
+          <div className="input-group">
+            <input 
+              type="password" 
+              name="password"
+              placeholder="Password" 
+              value={formData.password}
+              onChange={handleChange}
+              required 
+            />
+          </div>
+          <div className="input-group">
+            <input 
+              type="text" 
+              name="phone"
+              placeholder="Phone" 
+              value={formData.phone}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="input-group">
+            <input 
+              type="text" 
+              name="address"
+              placeholder="Address" 
+              value={formData.address}
+              onChange={handleChange}
+            />
+          </div>
+          <button type="submit" className="auth-button">Sign Up</button>
+        </form>
+        <p className="auth-link">
+          Already have an account? <Link to="/signin">Sign In</Link>
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export default SignUp;

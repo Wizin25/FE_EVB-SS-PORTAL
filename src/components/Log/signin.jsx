@@ -1,21 +1,59 @@
-import { Link } from 'react-router-dom'
+// components/Log/SignIn.jsx
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
-function signin(){
-    return(
-        <div className="signin-page">
+function SignIn() {
+  const [formData, setFormData] = useState({
+    username: '',
+    password: ''
+  });
 
-        <div className="signin-container">
-            <h1>Sign In Page</h1>
-            <form>
-                <input type="text" placeholder="Username" required /><br/>
-                <input type="password" placeholder="Password" required  /><br/>
-                <input type="submit" value="Sign In" />
-            </form>
-            <p>Don't have an account? <Link to="/signup">Sign Up</Link></p>
-        </div>
-        
-        </div>
-    );
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log('Sign In Data:', formData);
+    alert('Sign In functionality would be implemented here');
+  };
+
+  return (
+    <div className="auth-page">
+      <div className="auth-container">
+        <h1>Sign In</h1>
+        <form onSubmit={handleSubmit}>
+          <div className="input-group">
+            <input 
+              type="text" 
+              name="username"
+              placeholder="Username" 
+              value={formData.username}
+              onChange={handleChange}
+              required 
+            />
+          </div>
+          <div className="input-group">
+            <input 
+              type="password" 
+              name="password"
+              placeholder="Password" 
+              value={formData.password}
+              onChange={handleChange}
+              required 
+            />
+          </div>
+          <button type="submit" className="auth-button">Sign In</button>
+        </form>
+        <p className="auth-link">
+          Don't have an account? <Link to="/signup">Sign Up</Link>
+        </p>
+      </div>
+    </div>
+  );
 }
 
-export default signin;
+export default SignIn;
