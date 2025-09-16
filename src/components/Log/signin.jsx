@@ -1,6 +1,6 @@
-// components/Log/SignIn.jsx
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import './sign.css';
 
 function SignIn() {
   const [formData, setFormData] = useState({
@@ -23,34 +23,48 @@ function SignIn() {
 
   return (
     <div className="sign-page">
-      <div className="sign-container">
-        <h1>Sign In</h1>
-        <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <input 
-              type="text" 
-              name="username"
-              placeholder="Username" 
-              value={formData.username}
-              onChange={handleChange}
-              required 
-            />
+      <div className="sign-main-container">
+        <div className="brand-panel">
+          <div className="brand-content">
+            <div className="brand-content">
+            <div className="brand-title">...</div>
+            <div className="brand-title">...</div>
+            <div className="brand-subtitle">...</div>
+            <div className="brand-title">...</div>
+            <div className="brand-logo">Logo</div>
           </div>
-          <div className="input-group">
-            <input 
-              type="password" 
-              name="password"
-              placeholder="Password" 
-              value={formData.password}
-              onChange={handleChange}
-              required 
-            />
           </div>
-          <button type="submit" className="sign-button">Sign In</button>
-        </form>
-        <p className="sign-link">
-          Don't have an account? <Link to="/signup">Sign Up</Link>
-        </p>
+        </div>
+
+        <div className="sign-container">
+          <h1>Sign In</h1>
+          <form onSubmit={handleSubmit}>
+            <div className="input-group">
+              <input 
+                type="text" 
+                name="username"
+                placeholder="Username" 
+                value={formData.username}
+                onChange={handleChange}
+                required 
+              />
+            </div>
+            <div className="input-group">
+              <input 
+                type="password" 
+                name="password"
+                placeholder="Password" 
+                value={formData.password}
+                onChange={handleChange}
+                required 
+              />
+            </div>
+            <button type="submit" className="sign-button">Sign In</button>
+          </form>
+          <p className="sign-link">
+            Don't have an account? <Link to="/signup">Sign Up</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
