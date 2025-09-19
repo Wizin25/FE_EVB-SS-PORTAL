@@ -77,6 +77,7 @@ function SignUp() {
                 placeholder="Phone" 
                 value={formData.phone}
                 onChange={handleChange}
+                required
               />
             </div>
             <div className="input-group">

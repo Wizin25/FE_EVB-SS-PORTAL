@@ -59,6 +59,8 @@ function SignIn() {
                 required 
               />
             </div>
+            <Link to="/forgot" className="forgot-link">Forgot Password?</Link>
+
             <button type="submit" className="sign-button">Sign In</button>
           </form>
           <p className="sign-link">
