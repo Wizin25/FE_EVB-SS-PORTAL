@@ -27,16 +27,24 @@ function SignIn() {
         <div className="brand-panel">
           <div className="brand-content">
             <div className="brand-content">
-            <div className="brand-title">...</div>
-            <div className="brand-title">...</div>
+            <div className="brand-title">Welcome</div>
+            <div className="brand-title">SwapX</div>
             <div className="brand-subtitle">...</div>
             <div className="brand-title">...</div>
-            <div className="brand-logo">Logo</div>
+            <div className="brand-logo">... </div>
           </div>
           </div>
         </div>
 
+        
         <div className="sign-container">
+        <div style={{ position: 'absolute', top: -40, right: 0, padding: '0px' }}>
+          <img 
+            src="https://res.cloudinary.com/dzht29nkq/image/upload/v1758274139/SwapX_1_-Photoroom_wvmglm.png" 
+            alt="Brand Logo" 
+            style={{ maxWidth: '150px', height: 'auto', display: 'block' }}
+          />
+        </div>
           <h1>Sign In</h1>
           <form onSubmit={handleSubmit}>
             <div className="input-group">
