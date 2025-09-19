@@ -66,9 +66,15 @@ body {
 }
 
 .brand-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   font-size: 2.5rem;
-  font-weight: 700;
-  margin-top: 30px;
+  margin-top: 0px;
+  /* Bao bọc content */
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 /* White Panel - Right Side - 60% */
@@ -274,7 +280,8 @@ body {
   
   .brand-logo {
     font-size: 1.6rem;
-    margin-top: 12px;
+    margin-top: 0px;
+    margin-bottom: 5px
   }
   
   .sign-container {
