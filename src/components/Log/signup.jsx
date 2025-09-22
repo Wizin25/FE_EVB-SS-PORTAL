@@ -29,11 +29,11 @@ function SignUp() {
       <div className="sign-main-container">
         <div className="brand-panel">
           <div className="brand-content">
-            <div className="brand-title">...</div>
-            <div className="brand-title">...</div>
-            <div className="brand-subtitle">...</div>
-            <div className="brand-title">...</div>
-            <div className="brand-logo">Logo</div>
+            <div className="brand-content">
+            <div className="brand-title">Welcome to</div>
+            <div className="brand-subtitle">SwapS</div>
+            <div className="brand-title">Please Sign Up</div>
+          </div>
           </div>
         </div>
 
