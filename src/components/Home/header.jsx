@@ -1,5 +1,3 @@
-
-
 function header(){
     return(
     <header className="header">
