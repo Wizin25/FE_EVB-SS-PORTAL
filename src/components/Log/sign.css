@@ -33,8 +33,8 @@ body {
   display: flex;
   width: 90%;
   max-width: 1200px;
-  height: 80vh;
-  min-height: 600px;
+  height: 85vh; /* Tăng height để chứa nhiều fields hơn */
+  min-height: 650px; /* Tăng min-height */
   background: white;
   border-radius: 20px;
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.15);
@@ -157,7 +157,6 @@ body {
   align-items: center;
   font-size: 2.5rem;
   margin-top: 0px;
-  /* Bao bọc content */
   width: 100%;
   height: 100%;
   box-sizing: border-box;
@@ -197,9 +196,10 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 50px 40px;
+  padding: 30px 40px; /* Giảm padding để có thêm không gian */
   position: relative;
   animation: formSlideIn 1s ease-out 0.2s both;
+  overflow-y: auto; /* Cho phép scroll nếu cần */
 }
 
 /* Form slide in animation */
@@ -219,19 +219,19 @@ body {
   max-width: 320px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  margin-top: 10px;
+  gap: 10px; /* Giảm gap giữa các elements */
+  margin-top: 5px;
 }
 
 /* Form Styles */
 .sign-container h1,
 .sign-container h2 {
-  font-size: 1.8rem;
+  font-size: 1.8rem; /* Tăng lại font size */
   font-weight: 700;
   color: black;
   text-align: center;
-  margin-bottom: 20px;
-  margin-top: 10px;
+  margin-bottom: 15px; /* Giảm margin */
+  margin-top: 5px;
   animation: titleBounce 0.6s ease-out 0.5s both;
 }
 
@@ -254,24 +254,24 @@ body {
 .social-buttons {
   display: flex;
   gap: 15px;
-  margin-bottom: 30px;
+  margin-bottom: 20px; /* Giảm margin */
   width: 100%;
 }
 
 .social-btn {
   flex: 1;
-  padding: 12px 20px;
+  padding: 10px 15px; /* Giảm padding */
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   background: white;
   color: #666;
-  font-size: 14px;
+  font-size: 14px; /* Tăng font size */
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   animation: socialBtnFadeIn 0.6s ease-out both;
 }
 
@@ -304,10 +304,10 @@ body {
 /* Divider */
 .divider {
   text-align: center;
-  margin: 20px 0;
+  margin: 15px 0; /* Giảm margin */
   position: relative;
   color: #999;
-  font-size: 14px;
+  font-size: 14px; /* Tăng font size */
   font-weight: 500;
   animation: dividerSlide 0.6s ease-out 0.8s both;
 }
@@ -346,14 +346,14 @@ body {
 
 .divider span {
   background: white;
-  padding: 0 20px;
+  padding: 0 15px; /* Giảm padding */
   position: relative;
   z-index: 2;
 }
 
 /* Input Groups */
 .input-group {
-  margin-bottom: 15px;
+  margin-bottom: 10px; /* Giảm margin */
   position: relative;
   animation: inputSlideIn 0.5s ease-out both;
 }
@@ -363,6 +363,7 @@ body {
 .input-group:nth-child(3) { animation-delay: 1.2s; }
 .input-group:nth-child(4) { animation-delay: 1.3s; }
 .input-group:nth-child(5) { animation-delay: 1.4s; }
+.input-group:nth-child(6) { animation-delay: 1.5s; }
 
 @keyframes inputSlideIn {
   0% {
@@ -377,11 +378,11 @@ body {
 
 .input-group input {
   width: 100%;
-  padding: 12px 0;
+  padding: 11px 0; /* Tăng padding */
   border: none;
   border-bottom: 1px solid #e0e0e0;
   background: transparent;
-  font-size: 14px;
+  font-size: 14px; /* Tăng font size */
   color: black;
   transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
   outline: none;
@@ -430,16 +431,16 @@ body {
 /* Submit Button */
 .sign-button {
   width: 100%;
-  padding: 16px;
+  padding: 14px; /* Tăng padding */
   background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 15px; /* Tăng font size */
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-top: 20px;
+  margin-top: 15px; /* Giảm margin */
   text-transform: uppercase;
   letter-spacing: 1px;
   position: relative;
@@ -501,6 +502,7 @@ body {
   transition: all 0.3s ease;
   animation: linkFadeIn 0.5s ease-out 1.6s both;
   position: relative;
+  font-size: 14px; /* Tăng font size */
 }
 
 .forgot-link::after {
@@ -521,9 +523,9 @@ body {
 /* Sign Link */
 .sign-link {
   text-align: center;
-  margin-top: 30px;
+  margin-top: 20px; /* Giảm margin */
   color: #666;
-  font-size: 14px;
+  font-size: 14px; /* Tăng font size */
   animation: linkFadeIn 0.5s ease-out 1.7s both;
 }
 
@@ -586,21 +588,21 @@ body {
   
   .brand-panel {
     width: 100%;
-    height: 180px;
-    padding: 25px 15px;
+    height: 140px; /* Giảm height cho mobile */
+    padding: 20px 15px;
     background: linear-gradient(135deg, rgba(255, 107, 53, 0.8) 0%, rgba(255, 140, 66, 0.8) 50%, rgba(255, 167, 38, 0.8) 100%);
   }
   
   .brand-content {
-    font-size: 1.1rem;
+    font-size: 1rem; /* Giảm font size */
   }
   
   .brand-subtitle {
-    font-size: 1.5rem;
+    font-size: 1.3rem; /* Giảm font size */
   }
   
   .brand-logo {
-    font-size: 1.6rem;
+    font-size: 1.4rem; /* Giảm font size */
     margin-top: 0px;
     margin-bottom: 5px
   }
@@ -608,41 +610,44 @@ body {
   .sign-container {
     width: 100%;
     height: auto;
-    padding: 25px 20px 20px 20px;
+    padding: 20px 20px 15px 20px; /* Giảm padding */
     justify-content: flex-start;
   }
   
   .sign-container h1,
   .sign-container h2 {
-    font-size: 1.3rem;
-    margin-bottom: 18px;
-    margin-top: 10px;
+    font-size: 1.2rem; /* Giảm font size */
+    margin-bottom: 15px;
+    margin-top: 5px;
   }
   
   .sign-container form {
     max-width: 100%;
+    gap: 8px; /* Giảm gap cho mobile */
   }
   
   .social-buttons {
     flex-direction: column;
+    margin-bottom: 15px;
   }
   
   .input-group {
-    margin-bottom: 12px;
+    margin-bottom: 8px; /* Giảm margin */
   }
   
   .input-group input {
-    padding: 10px 0;
+    padding: 8px 0; /* Giảm padding */
     font-size: 13px;
   }
   
   .sign-button {
     padding: 10px;
     font-size: 13px;
+    margin-top: 10px;
   }
   
   .sign-link {
-    margin-top: 15px;
+    margin-top: 12px; /* Giảm margin */
     margin-bottom: 10px;
     font-size: 12px;
   }
@@ -661,24 +666,39 @@ body {
   }
   
   .brand-panel {
-    padding: 20px;
-    height: 200px;
+    padding: 15px;
+    height: 120px; /* Giảm thêm height cho màn hình nhỏ */
   }
   
   .brand-content {
-    font-size: 1.1rem;
+    font-size: 0.9rem;
   }
   
   .brand-subtitle {
-    font-size: 1.6rem;
+    font-size: 1.2rem;
   }
   
   .sign-container {
-    padding: 30px 20px;
+    padding: 15px 20px;
   }
   
   .sign-container form {
     max-width: 100%;
+    gap: 6px;
+  }
+  
+  .input-group {
+    margin-bottom: 6px;
+  }
+  
+  .input-group input {
+    padding: 7px 0;
+    font-size: 12px;
+  }
+  
+  .sign-button {
+    padding: 8px;
+    font-size: 12px;
   }
 }
 

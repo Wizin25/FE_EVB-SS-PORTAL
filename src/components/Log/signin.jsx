@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { authAPI } from '../services/authAPI';
 import './sign.css';
 
 function SignIn() {
@@ -7,6 +8,8 @@ function SignIn() {
     username: '',
     password: ''
   });
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({
@@ -15,10 +18,31 @@ function SignIn() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Sign In Data:', formData);
-    alert('Sign In functionality would be implemented here');
+    setLoading(true);
+    
+    try {
+      const response = await authAPI.signIn(formData);
+      
+      localStorage.setItem('authToken', response.accessToken || response.token);
+      localStorage.setItem('user', JSON.stringify(response.user || response.account));
+      
+      const userRole = response.user?.role || response.account?.role;
+      if (userRole === 'Admin') {
+        navigate('/admin/dashboard');
+      } else if (userRole === 'Staff') {
+        navigate('/staff/dashboard');
+      } else {
+        navigate('/customer/dashboard');
+      }
+      
+    } catch (error) {
+      console.error('Sign in error:', error);
+      alert(`Sign in failed: ${error.message || 'Invalid credentials'}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -26,25 +50,13 @@ function SignIn() {
       <div className="sign-main-container">
         <div className="brand-panel">
           <div className="brand-content">
-            <div className="brand-content">
-            <div className="brand-title">Welcome</div>
-            <div className="brand-title">SwapX</div>
-            <div className="brand-subtitle">...</div>
-            <div className="brand-title">...</div>
-            <div className="brand-logo">... </div>
-          </div>
+            <div className="brand-title">Welcome to</div>
+            <div className="brand-subtitle">SwapS</div>
+            <div className="brand-title">Please Sign In</div>
           </div>
         </div>
 
-        
         <div className="sign-container">
-        <div style={{ position: 'absolute', top: -40, right: 0, padding: '0px' }}>
-          <img 
-            src="https://res.cloudinary.com/dzht29nkq/image/upload/v1758274139/SwapX_1_-Photoroom_wvmglm.png" 
-            alt="Brand Logo" 
-            style={{ maxWidth: '150px', height: 'auto', display: 'block' }}
-          />
-        </div>
           <h1>Sign In</h1>
           <form onSubmit={handleSubmit}>
             <div className="input-group">
@@ -55,6 +67,7 @@ function SignIn() {
                 value={formData.username}
                 onChange={handleChange}
                 required 
+                disabled={loading}
               />
             </div>
             <div className="input-group">
@@ -65,11 +78,14 @@ function SignIn() {
                 value={formData.password}
                 onChange={handleChange}
                 required 
+                disabled={loading}
               />
             </div>
             <Link to="/forgot" className="forgot-link">Forgot Password?</Link>
 
-            <button type="submit" className="sign-button">Sign In</button>
+            <button type="submit" className="sign-button" disabled={loading}>
+              {loading ? 'Signing In...' : 'Sign In'}
+            </button>
           </form>
           <p className="sign-link">
             Don't have an account? <Link to="/signup">Sign Up</Link>
