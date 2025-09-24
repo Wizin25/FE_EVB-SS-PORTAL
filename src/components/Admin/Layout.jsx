@@ -59,7 +59,7 @@ function ThemeToggle({ className = "" }) {
 }
 
 export default function AdminLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true); // Changed from false to true
   const location = useLocation();
   const navigate = useNavigate();
   const nodeRef = useRef(null);
@@ -116,15 +116,16 @@ export default function AdminLayout() {
         <aside
           className={`admin-sidebar ${sidebarOpen ? 'open' : 'closed'} bg-white dark:bg-gray-900 border-r border-orange-200 dark:border-gray-700 shadow-2xl flex flex-col fixed md:relative z-40`}
         >
-          <div className={`flex items-center gap-3 mb-8 mt-4 px-6 transition-all duration-300 ${sidebarOpen ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-xl">
-                <span className="text-white font-black text-2xl tracking-tight drop-shadow-sm select-none">S</span>
-              </div>
-              <div className="flex flex-col justify-center">
-                <span className="font-extrabold text-xl text-gray-900 dark:text-white tracking-wide leading-tight">SwapX</span>
-                <span className="font-semibold text-sm text-orange-500 dark:text-orange-400 tracking-wider mt-0.5">Admin</span>
-              </div>
+          <div className={`mb-8 mt-4 px-6 transition-all duration-300 ${sidebarOpen ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}>
+            <img
+              src="https://res.cloudinary.com/dzht29nkq/image/upload/v1758274139/SwapX_1_-Photoroom_wvmglm.png"
+              alt="SwapX Logo"
+              className="w-20 h-20 rounded-3xl shadow-2xl admin-brand-logo mx-auto mb-2"
+              style={{ display: 'block' }}
+            />
+            <div className="flex flex-col items-center justify-center">
+              {/* <span className="font-extrabold text-2xl text-gray-900 dark:text-white tracking-widest leading-tight drop-shadow-lg uppercase">SwapX</span> */}
+              <span className="font-extrabold text-base text-orange-600 dark:text-orange-400 tracking-widest mt-1 italic drop-shadow-md uppercase">Admin</span>
             </div>
           </div>
 
@@ -143,7 +144,7 @@ export default function AdminLayout() {
                   ].join(" ")
                 }
                 style={{ transitionDelay: `${index * 50}ms` }}
-                onClick={() => setSidebarOpen(false)}
+                // Removed onClick={() => setSidebarOpen(false)} to prevent auto-close
               >
                 <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-gray-700 flex items-center justify-center">
                   <span className="text-orange-600 dark:text-orange-400 font-bold text-sm">

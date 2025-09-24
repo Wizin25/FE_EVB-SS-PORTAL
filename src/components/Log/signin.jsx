@@ -143,6 +143,7 @@ function SignIn() {
                 onChange={handleChange}
                 required 
                 disabled={loading}
+                autoComplete='username'
               />
               {errors.username && <div className="input-error">{errors.username}</div>}
             </div>

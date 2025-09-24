@@ -190,6 +190,7 @@ function SignUp() {
                 onChange={handleChange}
                 required
                 disabled={loading}
+                autoComplete='name'
               />
               {errors.name && <div className="input-error">{errors.name}</div>}
             </div>
@@ -202,6 +203,7 @@ function SignUp() {
                 onChange={handleChange}
                 required
                 disabled={loading}
+                autoComplete='phone'
               />
               {errors.phone && <div className="input-error">{errors.phone}</div>}
             </div>
@@ -214,6 +216,7 @@ function SignUp() {
                 onChange={handleChange}
                 required
                 disabled={loading}
+                autoComplete='address'
               />
               {errors.address && <div className="input-error">{errors.address}</div>}
             </div>
