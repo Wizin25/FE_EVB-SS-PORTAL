@@ -18,43 +18,34 @@ function SignUp() {
   const [formError, setFormError] = useState('');
   const navigate = useNavigate();
 
-  // Validation function
-  const validateForm = () => {
-    const newErrors = {};
-    
-    // Name validation - no numbers or special characters
-    const nameRegex = /^[a-zA-ZÀ-ỹ\s]+$/;
-    if (!nameRegex.test(formData.name)) {
-      newErrors.name = 'Name must contain only letters and spaces';
-    }
-    
-    // Phone validation
-    const phoneRegex = /^\d{10,11}$/;
-    if (!phoneRegex.test(formData.phone)) {
-      newErrors.phone = 'Phone must be 10-11 digits';
-    }
-    
-    // Password validation
-    if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    // Không cho phép khoảng trắng ở đầu cho các trường text
+    let processedValue = value;
+    if (['username', 'name', 'phone', 'address', 'email'].includes(name)) {
+      processedValue = value.replace(/^\s+/, ''); // Remove leading spaces
+    }
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: processedValue
     });
-    setErrors((prev) => ({ ...prev, [e.target.name]: undefined }));
+    setErrors((prev) => ({ ...prev, [name]: undefined }));
     setFormError('');
   };
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.username.trim()) newErrors.username = 'Username is required';
+    
+    // Trim dữ liệu trước khi validate
+    const trimmedUsername = formData.username.trim();
+    const trimmedName = formData.name.trim();
+    const trimmedPhone = formData.phone.trim();
+    const trimmedAddress = formData.address.trim();
+    const trimmedEmail = formData.email.trim();
+    
+    if (!trimmedUsername) newErrors.username = 'Username is required';
     if (!formData.password) newErrors.password = 'Password is required';
     if (formData.password && formData.password.length < 3) newErrors.password = 'Mật khẩu phải có ít nhất 3 ký tự';
     if (!formData.confirmedPassword) newErrors.confirmedPassword = 'Confirmed password is required';
@@ -62,10 +53,29 @@ function SignUp() {
     if (formData.password && formData.confirmedPassword && formData.password !== formData.confirmedPassword) {
       newErrors.confirmedPassword = 'Passwords do not match';
     }
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
-    if (!formData.address.trim()) newErrors.address = 'Address is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
+    if (!trimmedName) newErrors.name = 'Name is required';
+    if (!trimmedPhone) newErrors.phone = 'Phone is required';
+    if (!trimmedAddress) newErrors.address = 'Address is required';
+    if (!trimmedEmail) newErrors.email = 'Email is required';
+    
+    // Name validation - no numbers or special characters
+    const nameRegex = /^[a-zA-ZÀ-ỹ\s]+$/;
+    if (trimmedName && !nameRegex.test(trimmedName)) {
+      newErrors.name = 'Name must contain only letters and spaces';
+    }
+    
+    // Phone validation
+    const phoneRegex = /^\d{10,11}$/;
+    if (trimmedPhone && !phoneRegex.test(trimmedPhone)) {
+      newErrors.phone = 'Phone must be 10-11 digits';
+    }
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (trimmedEmail && !emailRegex.test(trimmedEmail)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
     return newErrors;
   };
 
@@ -97,49 +107,55 @@ function SignUp() {
     e.preventDefault();
     setErrors({});
     setFormError('');
+    
+    // Trim tất cả dữ liệu trước khi gửi
+    const trimmedData = {
+      username: formData.username.trim(),
+      password: formData.password,
+      confirmedPassword: formData.confirmedPassword,
+      name: formData.name.trim(),
+      phone: formData.phone.trim(),
+      address: formData.address.trim(),
+      email: formData.email.trim()
+    };
+    
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
+    
     setLoading(true);
 
     try {
-      await authAPI.signUp({
-        username: formData.username,
-        password: formData.password,
-        confirmedPassword: formData.confirmedPassword,
-        name: formData.name,
-        phone: formData.phone,
-        address: formData.address,
-        email: formData.email
-      });
+      await authAPI.signUp(trimmedData);
+      alert('Sign up successful! Please sign in.');
       navigate('/signin');
     } catch (error) {
-     // ưu tiên hiển thị lỗi theo field từ backend trước
-    if (error?.errors && typeof error.errors === 'object') {
-      const mapped = mapBackendErrorsToFields(error.errors);
-      if (Object.keys(mapped).length > 0) {
-        setErrors(mapped);
+      // ưu tiên hiển thị lỗi theo field từ backend trước
+      if (error?.errors && typeof error.errors === 'object') {
+        const mapped = mapBackendErrorsToFields(error.errors);
+        if (Object.keys(mapped).length > 0) {
+          setErrors(mapped);
+        } else {
+          // không map được trường nào (key lạ) -> gom message hiển thị ở formError
+          const aggregated = Object.values(error.errors)
+            .flat()
+            .filter(Boolean)
+            .join(' - ');
+          if (aggregated) setFormError(aggregated);
+        }
+      } else if (error?.title) {
+        // chỉ dùng title nếu không có errors chi tiết
+        setFormError(error.title);
       } else {
-        // không map được trường nào (key lạ) -> gom message hiển thị ở formError
-        const aggregated = Object.values(error.errors)
-          .flat()
-          .filter(Boolean)
-          .join(' - ');
-        if (aggregated) setFormError(aggregated);
+        // get message lỗi ở đây
+        const msg = error?.message || error?.detail || error?.toString() || 'Sign up failed';
+        setFormError(msg);
       }
-    } else if (error?.title) {
-      // chỉ dùng title nếu không có errors chi tiết
-      setFormError(error.title);
-    } else {
-      // get message lỗi ở đây
-      const msg = error?.message || error?.detail || error?.toString() || 'Sign up failed';
-      setFormError(msg);
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
   };
 
   return (
@@ -228,7 +244,7 @@ function SignUp() {
                 onChange={handleChange}
                 required
                 disabled={loading}
-                autoComplete='phone'
+                autoComplete="tel"
               />
               {errors.phone && <div className="input-error">{errors.phone}</div>}
             </div>
@@ -241,7 +257,7 @@ function SignUp() {
                 onChange={handleChange}
                 required
                 disabled={loading}
-                autoComplete='address'
+                autoComplete="street-address"
               />
               {errors.address && <div className="input-error">{errors.address}</div>}
             </div>

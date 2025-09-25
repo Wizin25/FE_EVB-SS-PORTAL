@@ -15,17 +15,26 @@ function SignIn() {
   const navigate = useNavigate();
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    // Không cho phép khoảng trắng ở đầu
+    let processedValue = value;
+    if (name === 'username') {
+      processedValue = value.replace(/^\s+/, ''); // Remove leading spaces
+    }
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: processedValue
     });
-    setErrors((prev) => ({ ...prev, [e.target.name]: undefined }));
+    setErrors((prev) => ({ ...prev, [name]: undefined }));
     setFormError('');
   };
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.username.trim()) newErrors.username = 'Username is required';
+    const trimmedUsername = formData.username.trim();
+    if (!trimmedUsername) newErrors.username = 'Username is required';
     if (!formData.password) newErrors.password = 'Password is required';
     if (formData.password && formData.password.length < 3) newErrors.password = 'Mật khẩu phải có ít nhất 3 ký tự';
     return newErrors;
@@ -54,17 +63,22 @@ function SignIn() {
     e.preventDefault();
     setErrors({});
     setFormError('');
+    
+    // Trim dữ liệu trước khi validate
+    const trimmedData = {
+      username: formData.username.trim(),
+      password: formData.password
+    };
+    
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
+    
     setLoading(true);
     try {
-      const result = await authAPI.signIn({
-        username: formData.username,
-        password: formData.password
-      });
+      const result = await authAPI.signIn(trimmedData);
       const token = result?.token || result?.accessToken || result?.data?.token;
       if (token) {
         localStorage.setItem('authToken', token);
@@ -75,9 +89,9 @@ function SignIn() {
       // Role priority: Admin > BSS Staff > EV Driver; redirect accordingly
       if (roles.includes('Admin')) {
         navigate('/admin');
-      } else if (roles.includes('BSS Staff')) {
+      } else if (roles.includes('Bsstaff')) {
         navigate('/staff');
-      } else if (roles.includes('EV Driver')) {
+      } else if (roles.includes('EvDriver')) {
         navigate('/home');
       } else {
         // Default fallback
@@ -115,16 +129,12 @@ function SignIn() {
       <div className="sign-main-container">
         <div className="brand-panel">
           <div className="brand-content">
-            <div className="brand-content">
-              <div className="brand-title">Welcome to</div>
-              <div className="brand-subtitle">SWAP X</div>
-              <div className="brand-title">Join Us</div>
-              <div className="brand-logo">🔋</div>
-            </div>
+            <div className="brand-title">Welcome to</div>
+            <div className="brand-subtitle">SWAP X</div>
+            <div className="brand-title">Join Us</div>
+            <div className="brand-logo">🔋</div>
           </div>
         </div>
-
-        
 
         <div className="sign-container">
           <div style={{ position: 'absolute', top: -40, right: 0, padding: '0px' }}>
