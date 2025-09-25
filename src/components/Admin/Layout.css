@@ -1,3 +1,134 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* CSSTransition animation */
+.admin-fade-slide-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+.admin-fade-slide-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 400ms ease-in-out, transform 400ms ease-in-out;
+}
+.admin-fade-slide-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+.admin-fade-slide-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 400ms ease-in-out, transform 400ms ease-in-out;
+}
+
+/* Fade up animation for each item */
+@keyframes admin-fadeup {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Sidebar base */
+.admin-sidebar {
+  min-height: 100vh;
+  overflow: hidden;
+  transition: width 300ms ease-in-out, transform 300ms ease-in-out;
+  will-change: transform, width;
+}
+
+/* Closed / open states */
+.admin-sidebar.closed {
+  width: 0;
+  transform: translateX(-100%);
+}
+.admin-sidebar.open {
+  width: 288px; /* tương đương w-72 */
+  transform: translateX(0);
+}
+
+/* Sidebar item small appear animation helpers + fadeup */
+.admin-sidebar .sidebar-item-enter {
+  opacity: 0;
+  transform: translateY(24px);
+}
+.admin-sidebar .sidebar-item-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 400ms cubic-bezier(0.4,0,0.2,1), transform 400ms cubic-bezier(0.4,0,0.2,1);
+  animation: admin-fadeup 0.5s cubic-bezier(0.4,0,0.2,1) both;
+}
+
+/* Optionally, apply fadeup to all sidebar nav items for initial load */
+.admin-sidebar .admin-fadeup {
+  animation: admin-fadeup 0.5s cubic-bezier(0.4,0,0.2,1) both;
+}
+
+/* Overlay for mobile */
+.admin-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0,0,0,0.4);
+  z-index: 30;
+  transition: opacity 200ms ease;
+}
+
+/* Brand logo helper (move inline style here) */
+.admin-brand-logo,
+img.admin-brand-logo {
+  max-width: 150px;
+  height: auto;
+  display: block;
+  animation: admin-fadeup 0.6s cubic-bezier(0.4,0,0.2,1) both;
+}
+
+/* Hamburger lines and open state */
+.hamburger-line {
+  display: block;
+  position: absolute;
+  height: 2px;
+  width: 24px;
+  border-radius: 9999px;
+  background-color: white;
+  transition: all 250ms ease-in-out;
+  animation: admin-fadeup 0.5s cubic-bezier(0.4,0,0.2,1) both;
+}
+.hamburger-line.line1 { top: 6px; }
+.hamburger-line.line2 { top: 11px; }
+.hamburger-line.line3 { top: 16px; }
+
+/* when parent has class 'hamburger-open', transform lines */
+.hamburger-open .line1 {
+  transform: rotate(45deg) translateY(5px);
+  top: 11px;
+}
+.hamburger-open .line2 {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+.hamburger-open .line3 {
+  transform: rotate(-45deg) translateY(-5px);
+  top: 11px;
+}
+
+/* Header fallback */
+.admin-header {
+  height: 4rem; /* h-16 */
+  border-bottom-width: 1px;
+  animation: admin-fadeup 0.7s cubic-bezier(0.4,0,0.2,1) both;
+}
+
+/* Content card fallback */
+.admin-content-card {
+  border-radius: 1rem; /* rounded-xl */
+  padding: 1.5rem; /* p-6 */
+  min-height: 60vh;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+  animation: admin-fadeup 0.8s cubic-bezier(0.4,0,0.2,1) both;
+}
+
+/* Small helpers */
+.smooth-transform {
+  transition: transform 200ms ease, opacity 200ms ease;
+}
