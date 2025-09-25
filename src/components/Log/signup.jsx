@@ -13,18 +13,58 @@ function SignUp() {
     address: ''
   });
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
   const navigate = useNavigate();
+
+  // Validation function
+  const validateForm = () => {
+    const newErrors = {};
+    
+    // Name validation - no numbers or special characters
+    const nameRegex = /^[a-zA-ZÀ-ỹ\s]+$/;
+    if (!nameRegex.test(formData.name)) {
+      newErrors.name = 'Name must contain only letters and spaces';
+    }
+    
+    // Phone validation
+    const phoneRegex = /^\d{10,11}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      newErrors.phone = 'Phone must be 10-11 digits';
+    }
+    
+    // Password validation
+    if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+    // Clear error when user types
+    if (errors[e.target.name]) {
+      setErrors({
+        ...errors,
+        [e.target.name]: ''
+      });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate form before submission
+    if (!validateForm()) {
+      return;
+    }
+    
     setLoading(true);
+    setErrors({});
     
     try {
       await authAPI.signUp(formData);
@@ -32,7 +72,13 @@ function SignUp() {
       navigate('/signin');
     } catch (error) {
       console.error('Sign up error:', error);
-      alert(`Sign up failed: ${error.message || 'Please try again'}`);
+      
+      // Handle server validation errors
+      if (error.errors) {
+        setErrors(error.errors);
+      } else {
+        alert(`Sign up failed: ${error.message || 'Please try again'}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -44,7 +90,7 @@ function SignUp() {
         <div className="brand-panel">
           <div className="brand-content">
             <div className="brand-title">Welcome to</div>
-            <div className="brand-subtitle">SwapS</div>
+            <div className="brand-subtitle">SwapX</div>
             <div className="brand-title">Please Sign Up</div>
           </div>
         </div>
@@ -64,12 +110,14 @@ function SignUp() {
               <input 
                 type="text" 
                 name="name"
-                placeholder="Full Name" 
+                placeholder="Full Name (letters only)" 
                 value={formData.name}
                 onChange={handleChange}
                 required 
                 disabled={loading}
               />
+              {errors.name && <div className="error-message">{errors.name}</div>}
+              {errors.Name && <div className="error-message">{errors.Name[0]}</div>}
             </div>
             
             <div className="input-group">
@@ -100,24 +148,26 @@ function SignUp() {
               <input 
                 type="password" 
                 name="password"
-                placeholder="Password" 
+                placeholder="Password (min. 6 characters)" 
                 value={formData.password}
                 onChange={handleChange}
                 required 
                 disabled={loading}
               />
+              {errors.password && <div className="error-message">{errors.password}</div>}
             </div>
             
             <div className="input-group">
               <input 
                 type="text" 
                 name="phone"
-                placeholder="Phone" 
+                placeholder="Phone (10-11 digits)" 
                 value={formData.phone}
                 onChange={handleChange}
                 required
                 disabled={loading}
               />
+              {errors.phone && <div className="error-message">{errors.phone}</div>}
             </div>
             
             <div className="input-group">
