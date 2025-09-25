@@ -17,10 +17,10 @@ function SignIn() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     
-    // Không cho phép khoảng trắng ở đầu
+    // Không cho phép khoảng trắng trong username và password
     let processedValue = value;
-    if (name === 'username') {
-      processedValue = value.replace(/^\s+/, ''); // Remove leading spaces
+    if (name === 'username' || name === 'password') {
+      processedValue = value.replace(/\s/g, ''); // Remove all spaces
     }
     
     setFormData({
@@ -34,9 +34,14 @@ function SignIn() {
   const validate = () => {
     const newErrors = {};
     const trimmedUsername = formData.username.trim();
+    
     if (!trimmedUsername) newErrors.username = 'Username is required';
+    if (trimmedUsername.includes(' ')) newErrors.username = 'Username cannot contain spaces';
+    
     if (!formData.password) newErrors.password = 'Password is required';
     if (formData.password && formData.password.length < 3) newErrors.password = 'Mật khẩu phải có ít nhất 3 ký tự';
+    if (formData.password.includes(' ')) newErrors.password = 'Password cannot contain spaces';
+    
     return newErrors;
   };
 
@@ -130,7 +135,7 @@ function SignIn() {
         <div className="brand-panel">
           <div className="brand-content">
             <div className="brand-title">Welcome to</div>
-            <div className="brand-subtitle">SWAP X</div>
+            <div className="brand-subtitle">SwapX</div>
             <div className="brand-title">Join Us</div>
             <div className="brand-logo">🔋</div>
           </div>

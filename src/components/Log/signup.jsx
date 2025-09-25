@@ -21,10 +21,14 @@ function SignUp() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     
-    // Không cho phép khoảng trắng ở đầu cho các trường text
+    // Không cho phép khoảng trắng ở đầu cho các trường text thông thường
+    // Không cho phép khoảng trắng hoàn toàn trong username, password, phone, email
     let processedValue = value;
-    if (['username', 'name', 'phone', 'address', 'email'].includes(name)) {
-      processedValue = value.replace(/^\s+/, ''); // Remove leading spaces
+    
+    if (['username', 'password', 'confirmedPassword', 'phone', 'email'].includes(name)) {
+      processedValue = value.replace(/\s/g, ''); // Remove all spaces
+    } else if (['name', 'address'].includes(name)) {
+      processedValue = value.replace(/^\s+/, ''); // Remove leading spaces only
     }
     
     setFormData({
@@ -33,6 +37,19 @@ function SignUp() {
     });
     setErrors((prev) => ({ ...prev, [name]: undefined }));
     setFormError('');
+  };
+
+  // Thêm hàm xử lý khi paste vào email để loại bỏ khoảng trắng
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData('text');
+    const cleanedText = pastedText.replace(/\s/g, ''); // Remove all spaces
+    
+    const { name } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: cleanedText
+    }));
   };
 
   const validate = () => {
@@ -45,14 +62,23 @@ function SignUp() {
     const trimmedAddress = formData.address.trim();
     const trimmedEmail = formData.email.trim();
     
+    // Username validation - no spaces allowed
     if (!trimmedUsername) newErrors.username = 'Username is required';
+    if (trimmedUsername.includes(' ')) newErrors.username = 'Username cannot contain spaces';
+    
+    // Password validation - no spaces allowed
     if (!formData.password) newErrors.password = 'Password is required';
     if (formData.password && formData.password.length < 3) newErrors.password = 'Mật khẩu phải có ít nhất 3 ký tự';
+    if (formData.password.includes(' ')) newErrors.password = 'Password cannot contain spaces';
+    
+    // Confirmed Password validation - no spaces allowed
     if (!formData.confirmedPassword) newErrors.confirmedPassword = 'Confirmed password is required';
     if (formData.confirmedPassword && formData.confirmedPassword.length < 3) newErrors.confirmedPassword = 'Mật khẩu phải có ít nhất 3 ký tự';
+    if (formData.confirmedPassword.includes(' ')) newErrors.confirmedPassword = 'Password cannot contain spaces';
     if (formData.password && formData.confirmedPassword && formData.password !== formData.confirmedPassword) {
       newErrors.confirmedPassword = 'Passwords do not match';
     }
+    
     if (!trimmedName) newErrors.name = 'Name is required';
     if (!trimmedPhone) newErrors.phone = 'Phone is required';
     if (!trimmedAddress) newErrors.address = 'Address is required';
@@ -70,10 +96,13 @@ function SignUp() {
       newErrors.phone = 'Phone must be 10-11 digits';
     }
     
-    // Email validation
+    // Email validation - không cho phép khoảng trắng
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (trimmedEmail && !emailRegex.test(trimmedEmail)) {
       newErrors.email = 'Please enter a valid email address';
+    }
+    if (trimmedEmail.includes(' ')) {
+      newErrors.email = 'Email cannot contain spaces';
     }
     
     return newErrors;
@@ -188,6 +217,7 @@ function SignUp() {
                 placeholder="Username *"
                 value={formData.username}
                 onChange={handleChange}
+                onPaste={handlePaste}
                 required
                 disabled={loading}
                 autoComplete="username"
@@ -201,6 +231,7 @@ function SignUp() {
                 placeholder="Password *"
                 value={formData.password}
                 onChange={handleChange}
+                onPaste={handlePaste}
                 required
                 minLength={3}
                 disabled={loading}
@@ -215,6 +246,7 @@ function SignUp() {
                 placeholder="Confirmed Password *"
                 value={formData.confirmedPassword}
                 onChange={handleChange}
+                onPaste={handlePaste}
                 required
                 minLength={3}
                 disabled={loading}
@@ -242,6 +274,7 @@ function SignUp() {
                 placeholder="Phone *"
                 value={formData.phone}
                 onChange={handleChange}
+                onPaste={handlePaste}
                 required
                 disabled={loading}
                 autoComplete="tel"
@@ -268,6 +301,7 @@ function SignUp() {
                 placeholder="Email *"
                 value={formData.email}
                 onChange={handleChange}
+                onPaste={handlePaste}
                 required
                 disabled={loading}
                 autoComplete="email"
