@@ -143,7 +143,7 @@ export default function NewStaffPopup({ open = false, onClose, onSuccess }) {
       background: 'rgba(0,0,0,0.3)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center'
     }}>
       <div className="popup-content" style={{
-        background: '#fff', borderRadius: 12, padding: 32, minWidth: 1000, maxWidth: 5000, boxShadow: '0 8px 32px rgba(0,0,0,0.18)'
+        background: '#fff', borderRadius: 12, padding: 50, minWidth: 1000, maxWidth: 500, boxShadow: '0 8px 32px rgb(0, 0, 0)'
       }}>
         <h2 style={{ marginBottom: 16 }}>Create New Staff</h2>
         <form onSubmit={handleSubmit} autoComplete="off">
