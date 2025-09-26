@@ -275,9 +275,6 @@ export default function ControllerPage() {
         <table className="users-table">
           <thead>
             <tr>
-              <th onClick={() => handleSort('accountId')}>
-                Account ID {getSortIcon('accountId')}
-              </th>
               <th onClick={() => handleSort('role')}>
                 Role {getSortIcon('role')}
               </th>
@@ -315,8 +312,6 @@ export default function ControllerPage() {
             ) : (
               filteredUsers.map((user, index) => (
                 <tr key={user.accountId || index}>
-                  <td className="account-id">{user.accountId}</td>
-
                   <td>
                     <span className={`role-badge role-${user.role?.toLowerCase()}`}>
                       {user.role}
