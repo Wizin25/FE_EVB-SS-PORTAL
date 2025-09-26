@@ -46,8 +46,8 @@ export default function ControllerPage() {
       if (!checkAuth()) return;
 
       console.log('Controller: Starting to fetch users');
-
-      const res = await authAPI.getAllUsers();
+      
+        const res = await authAPI.getAllUsers();
       console.log('Controller: Raw API response:', res);
 
       const usersArray = Array.isArray(res?.data) ? res.data : [];
