@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { authAPI } from '../../services/authAPI';
 import { getCurrentUserPayload, extractRolesFromPayload } from '../../services/jwt';
+import NewStaffPopup from './NewStaffPopup';
 import './Controller.css';
 
 export default function ControllerPage() {
@@ -11,6 +12,7 @@ export default function ControllerPage() {
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
   const [error, setError] = useState('');
+  const [showNewStaffPopup, setShowNewStaffPopup] = useState(false);
 
   const checkAuth = () => {
     const token = localStorage.getItem('authToken');
@@ -206,7 +208,12 @@ export default function ControllerPage() {
         Total accounts: {users.length} | Showing: {filteredUsers.length}
       </p>
       </div>
-      <button className="Staff-button">New Staff</button>
+      <button
+        className="Staff-button"
+        onClick={() => setShowNewStaffPopup(true)}
+      >
+        New Staff
+      </button>
     </div>
 
       <div className="controller-tools">
@@ -306,7 +313,7 @@ export default function ControllerPage() {
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan="10" className="no-data">
+                <td colSpan="9" className="no-data">
                   {users.length === 0 ? 'No accounts found in system' : 'No accounts match your search'}
                 </td>
               </tr>
@@ -346,6 +353,12 @@ export default function ControllerPage() {
           Showing {filteredUsers.length} of {users.length} accounts
         </div>
       </div>
+
+      <NewStaffPopup
+        open={showNewStaffPopup}
+        onClose={() => setShowNewStaffPopup(false)}   // 👈 đóng popup
+        onSuccess={fetchUsers}                       // 👈 refresh lại user list khi tạo mới thành công
+      />
     </div>
   );
 }
