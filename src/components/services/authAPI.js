@@ -40,5 +40,17 @@ export const authAPI = {
     } catch (error) {
       throw new Error(error?.message || JSON.stringify(error) || 'Forgot password failed');
     }
+  },
+
+  getAllUsers: async () => {
+    try {
+      const response = await api.get('/api/Account/get_all_account_for_admin',);
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Get users failed');
+    }
   }
+
 };
+
+
