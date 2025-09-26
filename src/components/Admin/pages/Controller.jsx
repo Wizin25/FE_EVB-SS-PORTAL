@@ -48,28 +48,31 @@ export default function ControllerPage() {
 
       console.log('Controller: Starting to fetch users');
       
-      const usersData = await authAPI.getAllUsers();
-      console.log('Controller: Raw API response:', usersData);
-      
-      if (Array.isArray(usersData)) {
-        console.log(`Controller: Received ${usersData.length} users`);
-        
-        const formattedUsers = usersData.map(user => ({
-          role: user.role || 'N/A',
-          username: user.username || 'N/A',
-          name: user.name || 'N/A',
-          phone: user.phone || 'N/A',
-          address: user.address || 'N/A',
-          email: user.email || 'N/A',
-          status: user.status || 'Active',
-          startDate: user.startDate || 'N/A',
-          updateDate: user.updateDate || 'N/A'
+        const res = await authAPI.getAllUsers();
+      console.log('Controller: Raw API response:', res);
+
+      const usersArray = Array.isArray(res?.data) ? res.data : [];
+
+      if (usersArray.length > 0) {
+        console.log(`Controller: Received ${usersArray.length} users`);
+
+        const formattedUsers = usersArray.map(user => ({
+          accountId: user.accountId ?? 'N/A',
+          role: user.role ?? 'N/A',
+          username: user.username?.trim() || 'N/A',
+          name: user.name?.trim() || 'N/A',
+          phone: user.phone?.trim() || 'N/A',
+          address: user.address?.trim() || 'N/A',
+          email: user.email?.trim() || 'N/A',
+          status: user.status ?? 'Active',
+          startDate: user.startDate ?? 'N/A',
+          updateDate: user.updateDate ?? 'N/A'
         }));
-        
+
         setUsers(formattedUsers);
         setFilteredUsers(formattedUsers);
       } else {
-        console.warn('Controller: Expected array but received:', usersData);
+        console.warn('Controller: No users array found in response:', res);
         setUsers([]);
         setFilteredUsers([]);
       }
