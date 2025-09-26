@@ -131,7 +131,7 @@
 }
 
 /* Tiny Bar Loader Animation */
-@keyframes TinyBarLoader-anime {
+@keyframes tiny-bar-loader-anime {
   0% {
     opacity: 1;
   }
@@ -745,8 +745,8 @@ body {
 .neon-bounce-animation {
   animation: neon-bounce 0.3s ease-in-out infinite;
 }
-.TinyBarLoader {
-  animation: TinyBarLoader-anime 1s linear infinite;
+.tiny-bar-loader {
+  animation: tiny-bar-loader-anime 1s linear infinite;
 }
 .GlassMarqueeContainer {
   /* This class is also used for layout, but also for animation */
