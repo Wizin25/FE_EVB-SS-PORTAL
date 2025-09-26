@@ -32,7 +32,6 @@ export default function Header({
         <div className="notif" title={`${unreadCount} thông báo`}>
           <a href="/notifications">🔔{unreadCount>0 && <span className="badge">{unreadCount}</span>}</a>
         </div>
-
         {/*
           Khi người dùng bấm vào avatar mới hiện dropdown.
           Sử dụng useState để điều khiển trạng thái mở/đóng dropdown.
