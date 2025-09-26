@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { authAPI } from '../../services/authAPI';
 import { getCurrentUserPayload, extractRolesFromPayload } from '../../services/jwt';
-import './Controller.css'
+import './Controller.css';
 
 export default function ControllerPage() {
   const [users, setUsers] = useState([]);
@@ -55,7 +55,6 @@ export default function ControllerPage() {
         console.log(`Controller: Received ${usersData.length} users`);
         
         const formattedUsers = usersData.map(user => ({
-          accountId: user.accountId || 'N/A',
           role: user.role || 'N/A',
           username: user.username || 'N/A',
           name: user.name || 'N/A',
@@ -197,12 +196,15 @@ export default function ControllerPage() {
   return (
     <div className="controller-page">
       <div className="controller-header">
-        <h1>User Management</h1>
-        <p>Quản lý tài khoản người dùng hệ thống SwapX</p>
-        <p style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
-          Total accounts: {users.length} | Showing: {filteredUsers.length}
-        </p>
+    <div className="header-content">
+      <h1>User Management</h1>
+      <p>Quản lý tài khoản người dùng hệ thống SwapX</p>
+      <p style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
+        Total accounts: {users.length} | Showing: {filteredUsers.length}
+      </p>
       </div>
+      <button className="Staff-button">New Staff</button>
+    </div>
 
       <div className="controller-tools">
         <div className="search-box">
@@ -271,9 +273,6 @@ export default function ControllerPage() {
         <table className="users-table">
           <thead>
             <tr>
-              <th onClick={() => handleSort('accountId')}>
-                Account ID {getSortIcon('accountId')}
-              </th>
               <th onClick={() => handleSort('role')}>
                 Role {getSortIcon('role')}
               </th>
@@ -311,7 +310,6 @@ export default function ControllerPage() {
             ) : (
               filteredUsers.map((user, index) => (
                 <tr key={user.accountId || index}>
-                  <td className="account-id">{user.accountId}</td>
                   <td>
                     <span className={`role-badge role-${user.role?.toLowerCase()}`}>
                       {user.role}
