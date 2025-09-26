@@ -75,9 +75,9 @@ function SignIn() {
       // Role priority: Admin > BSS Staff > EV Driver; redirect accordingly
       if (roles.includes('Admin')) {
         navigate('/admin');
-      } else if (roles.includes('BSS Staff')) {
+      } else if (roles.includes('BssStaff')) {
         navigate('/staff');
-      } else if (roles.includes('EV Driver')) {
+      } else if (roles.includes('EVDriver')) {
         navigate('/home');
       } else {
         // Default fallback
