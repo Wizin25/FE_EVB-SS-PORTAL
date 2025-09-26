@@ -23,13 +23,12 @@ export default function ControllerPage() {
     try {
       const payload = getCurrentUserPayload();
       const roles = extractRolesFromPayload(payload);
-      
+
       if (!roles.includes('Admin')) {
         setError('Access denied. Admin role required.');
         setLoading(false);
         return false;
       }
-      
       return true;
     } catch (err) {
       setError('Invalid token. Please sign in again.');
@@ -43,7 +42,7 @@ export default function ControllerPage() {
     try {
       setLoading(true);
       setError('');
-      
+
       if (!checkAuth()) return;
 
       console.log('Controller: Starting to fetch users');
@@ -76,9 +75,10 @@ export default function ControllerPage() {
         setUsers([]);
         setFilteredUsers([]);
       }
+
     } catch (error) {
       console.error('Controller: Error fetching users:', error);
-      
+
       let errorMessage = 'Failed to fetch users: ';
       if (error.response) {
         errorMessage += `Server error ${error.response.status}: ${error.response.data?.message || error.response.statusText}`;
@@ -87,7 +87,6 @@ export default function ControllerPage() {
       } else {
         errorMessage += error.message || 'Unknown error';
       }
-      
       setError(errorMessage);
       setUsers([]);
       setFilteredUsers([]);
@@ -121,7 +120,7 @@ export default function ControllerPage() {
       results = [...results].sort((a, b) => {
         const aValue = a[sortField] || '';
         const bValue = b[sortField] || '';
-        
+
         if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
         if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
         return 0;
@@ -199,6 +198,7 @@ export default function ControllerPage() {
   return (
     <div className="controller-page">
       <div className="controller-header">
+
     <div className="header-content">
       <h1>User Management</h1>
       <p>Quản lý tài khoản người dùng hệ thống SwapX</p>
@@ -237,7 +237,6 @@ export default function ControllerPage() {
             <option value="startDate">Join Date</option>
             <option value="updateDate">Update Date</option>
           </select>
-          
           <button 
             onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
             className="sort-direction-btn"
@@ -276,6 +275,9 @@ export default function ControllerPage() {
         <table className="users-table">
           <thead>
             <tr>
+              <th onClick={() => handleSort('accountId')}>
+                Account ID {getSortIcon('accountId')}
+              </th>
               <th onClick={() => handleSort('role')}>
                 Role {getSortIcon('role')}
               </th>
@@ -313,6 +315,8 @@ export default function ControllerPage() {
             ) : (
               filteredUsers.map((user, index) => (
                 <tr key={user.accountId || index}>
+                  <td className="account-id">{user.accountId}</td>
+
                   <td>
                     <span className={`role-badge role-${user.role?.toLowerCase()}`}>
                       {user.role}
