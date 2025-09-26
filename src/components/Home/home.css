@@ -1,0 +1,225 @@
+/* Header styling - modern, more vibrant, with subtle shadow and rounded corners */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 32px;
+  background: linear-gradient(90deg, #f8fafc 0%, #e0f2fe 100%);
+  border-bottom: 1.5px solid #e0e7ef;
+  border-radius: 0 0 18px 18px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.04);
+  transition: background 0.3s;
+}
+
+.app-header.dark {
+  background: linear-gradient(90deg, #23272f 0%, #1e293b 100%);
+  color: #f1f1f1;
+  border-bottom: 1.5px solid #2d3748;
+}
+
+.app-header .left {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.app-header .logo img {
+  height: 72px;
+  width: auto;
+  max-height: 72px;
+  cursor: pointer;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.08));
+  transition: transform 0.15s;
+  display: block;
+  transform: scale(2);
+}
+.app-header .logo img:hover {
+  transform: scale(3) rotate(-2deg);
+}
+
+.app-header .main-nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-left: 32px;
+  position: static;
+  width: auto;
+  padding: 0;
+  background: none;
+  transform: none;
+}
+
+.app-header .main-nav a,
+.app-header .main-nav button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
+  min-height: 40px;
+  text-decoration: none;
+  color: #222;
+  font-weight: 600;
+  background: rgba(255,255,255,0.85);
+  border: none;
+  cursor: pointer;
+  padding: 8px 20px;
+  border-radius: 12px;
+  font-size: 1.08rem;
+  box-shadow: 0 2px 8px 0 rgba(0,123,255,0.04);
+  transition: 
+    background 0.22s cubic-bezier(.4,0,.2,1), 
+    color 0.18s cubic-bezier(.4,0,.2,1), 
+    box-shadow 0.18s cubic-bezier(.4,0,.2,1), 
+    transform 0.13s cubic-bezier(.4,0,.2,1);
+}
+
+.app-header .main-nav a:hover,
+.app-header .main-nav button:hover {
+  background: linear-gradient(90deg, #e0f2fe 0%, #bae6fd 100%);
+  color: #007bff;
+  transform: translateY(-2px) scale(1.07);
+  box-shadow: 0 4px 16px 0 rgba(0,123,255,0.10);
+}
+.app-header.dark .main-nav a,
+.app-header.dark .main-nav button {
+  background: rgba(30,41,59,0.92);
+  color: #f1f5f9;
+}
+.app-header.dark .main-nav a:hover,
+.app-header.dark .main-nav button:hover {
+  background: linear-gradient(90deg, #334155 0%, #1e293b 100%);
+  color: #38bdf8;
+}
+
+.app-header .main-nav .cta {
+  background: linear-gradient(90deg, #007bff 0%, #38bdf8 100%);
+  color: #fff;
+  padding: 10px 28px;
+  border-radius: 16px;
+  font-weight: 700;
+  font-size: 1.12rem;
+  box-shadow: 0 4px 16px 0 rgba(0,123,255,0.13);
+  letter-spacing: 0.02em;
+  border: none;
+  transition: 
+    background 0.18s cubic-bezier(.4,0,.2,1), 
+    box-shadow 0.18s cubic-bezier(.4,0,.2,1), 
+    transform 0.13s cubic-bezier(.4,0,.2,1);
+}
+.app-header .main-nav .cta:hover {
+  background: linear-gradient(90deg, #0056b3 0%, #0ea5e9 100%);
+  box-shadow: 0 6px 24px 0 rgba(0,123,255,0.18);
+  color: #fff;
+  transform: translateY(-3px) scale(1.09);
+}
+
+.app-header .right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.app-header .notif {
+  position: relative;
+}
+
+.app-header .notif .badge {
+  position: absolute;
+  top: -7px;
+  right: -10px;
+  background: linear-gradient(135deg, #ef4444 60%, #fbbf24 100%);
+  color: white;
+  border-radius: 50%;
+  padding: 2px 7px;
+  font-size: 12px;
+  font-weight: bold;
+  box-shadow: 0 1px 4px 0 rgba(239,68,68,0.15);
+  border: 2px solid #fff;
+}
+
+.app-header .account-dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Avatar button for toggling dropdown */
+.app-header .account-dropdown .avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: #cbd5e1;
+  cursor: pointer;
+  border: 2px solid #e0e7ef;
+  transition: box-shadow 0.18s, border 0.18s;
+  box-shadow: 0 1px 6px 0 rgba(0,0,0,0.07);
+}
+.app-header .account-dropdown .avatar:active,
+.app-header .account-dropdown .avatar:focus {
+  border: 2px solid #38bdf8;
+  box-shadow: 0 2px 12px 0 rgba(56,189,248,0.13);
+  outline: none;
+}
+
+/* Dropdown menu: controlled by .open class, not hover */
+.app-header .account-dropdown .dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 8px;
+  min-width: 170px;
+  background: #fff;
+  border: 1.5px solid #e0e7ef;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.13);
+  z-index: 100;
+  animation: fadeInDropdown 0.18s;
+  transition: opacity 0.2s ease-in-out;
+}
+@keyframes fadeInDropdown {
+  from { opacity: 0; transform: translateY(-8px);}
+  to { opacity: 1; transform: translateY(0);}
+}
+
+/* Show dropdown when .open class is present */
+.app-header .account-dropdown.open .dropdown {
+  display: block;
+  opacity: 1;
+}
+
+.app-header .account-dropdown .dropdown a,
+.app-header .account-dropdown .dropdown button {
+  display: block;
+  padding: 10px 18px;
+  text-decoration: none;
+  color: #334155;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-size: 15px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.app-header .account-dropdown .dropdown a:hover,
+.app-header .account-dropdown .dropdown button:hover {
+  background-color: #f1f5f9;
+  color: #007bff;
+}
+.app-header.dark .account-dropdown .dropdown {
+  background: #23272f;
+  border-color: #334155;
+}
+.app-header.dark .account-dropdown .dropdown a,
+.app-header.dark .account-dropdown .dropdown button {
+  color: #e0e7ef;
+}
+.app-header.dark .account-dropdown .dropdown a:hover,
+.app-header.dark .account-dropdown .dropdown button:hover {
+  background: #334155;
+  color: #38bdf8;
+}

@@ -4,7 +4,6 @@ import { decodeJwt, extractRolesFromPayload } from '../services/jwt';
 import { CSSTransition } from 'react-transition-group';
 import './Layout.css';
 
-
 const navItems = [
   { to: '/admin/dashboard', label: 'Dashboard' },
   { to: '/admin/form', label: 'Form' },
@@ -60,13 +59,18 @@ function ThemeToggle({ className = "" }) {
 }
 
 export default function AdminLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(true); // Changed from false to true
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
   const nodeRef = useRef(null);
 
   const [isAdmin, setIsAdmin] = useState(null);
   const [show, setShow] = useState(false);
+
+  // Scroll to top when route changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   useEffect(() => {
     try {
@@ -112,10 +116,14 @@ export default function AdminLayout() {
       unmountOnExit={false}
       appear
     >
-      <div ref={nodeRef} className="flex min-h-screen font-sans transition-colors bg-white dark:bg-gray-900">
+      <div
+        ref={nodeRef}
+        className="flex min-h-screen font-sans bg-white dark:bg-gray-900 transition-colors"
+        style={{ height: '100vh', overflow: 'auto' }} // enable scroll for the whole layout
+      >
         {/* Sidebar */}
         <aside
-          className={`admin-sidebar ${sidebarOpen ? 'open' : 'closed'} bg-white dark:bg-gray-900 border-r border-orange-200 dark:border-gray-700 shadow-2xl flex flex-col fixed md:relative z-40`}
+          className={`admin-sidebar ${sidebarOpen ? 'open' : 'closed'} bg-white dark:bg-gray-900 border-r border-orange-200 dark:border-gray-700 shadow-2xl flex flex-col fixed md:relative z-40 overflow-y-auto`}
         >
           <div className={`mb-8 mt-4 px-6 transition-all duration-300 ${sidebarOpen ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}>
             <img
@@ -179,7 +187,9 @@ export default function AdminLayout() {
         )}
 
         {/* Main Content Area */}
-        <div className="flex flex-col flex-1 min-h-screen">
+
+        <div className="flex-1 flex flex-col min-h-screen" style={{ overflow: 'auto' }}>
+
           {/* Header */}
           <header className="flex items-center justify-between h-16 px-4 bg-white border-b border-orange-100 admin-header dark:bg-gray-900 dark:border-gray-800">
             <div className="flex items-center gap-2">
@@ -222,10 +232,10 @@ export default function AdminLayout() {
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 transition-colors bg-white dark:bg-gray-900">
+          <main className="flex-1 bg-white dark:bg-gray-900 transition-colors overflow-y-auto">
             <div className="p-8">
-              <div className="pb-2 mb-6 border-b border-orange-200 dark:border-gray-800" />
-              <div className="admin-content-card rounded-xl bg-white dark:bg-gray-800 shadow-lg p-6 min-h-[60vh] transition-colors">
+              <div className="mb-6 border-b border-orange-200 dark:border-gray-800 pb-2" />
+              <div className="admin-content-card rounded-xl bg-white dark:bg-gray-800 shadow-lg p-6 min-h-[60vh] transition-colors overflow-y-auto">
                 <Outlet />
               </div>
             </div>
