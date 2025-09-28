@@ -15,10 +15,15 @@ export default function ControllerPage() {
   const [roleFilter, setRoleFilter] = useState('All');
   const [error, setError] = useState('');
   const [showNewStaffPopup, setShowNewStaffPopup] = useState(false);
+  const [exchangeHistory, setExchangeHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   // 👇 detail popup
   const [showDetailPopup, setShowDetailPopup] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+
+  const [customerDetails, setCustomerDetails] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const checkAuth = () => {
     const token = localStorage.getItem('authToken');
@@ -92,6 +97,48 @@ export default function ControllerPage() {
       setFilteredUsers([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleShowDetail = async (user) => {
+    setSelectedUser(user);
+    setShowDetailPopup(true);
+    setCustomerDetails(null);
+    setExchangeHistory([]);
+
+    // Nếu là EvDriver, lấy thông tin chi tiết
+    if (user.role === 'EvDriver') {
+      setDetailLoading(true);
+      try {
+        const res = await authAPI.getAllCustomers();
+        const customers = Array.isArray(res?.data) ? res.data : [];
+        
+        // Tìm customer theo accountId
+        const customer = customers.find(c => 
+          c.accountID === user.accountId || c.accountId === user.accountId
+        );
+        
+        if (customer) {
+          setCustomerDetails(customer);
+
+          // Lấy exchange history
+          setHistoryLoading(true);
+          try {
+            const historyRes = await authAPI.getExchangeHistory(customer.customerID);
+            const historyData = Array.isArray(historyRes?.data) ? historyRes.data : [];
+            setExchangeHistory(historyData);
+          } catch (historyError) {
+            console.error('Failed to fetch exchange history:', historyError);
+            setExchangeHistory([]);
+          } finally {
+            setHistoryLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch customer details:', error);
+      } finally {
+        setDetailLoading(false);
+      }
     }
   };
 
@@ -268,7 +315,6 @@ export default function ControllerPage() {
             <option value="Admin">Admin</option>
             <option value="Bsstaff">Bsstaff</option>
             <option value="EvDriver">EvDriver</option>
-            <option value="N/A">N/A</option>
           </select>
         </div>
       </div>
@@ -365,10 +411,7 @@ export default function ControllerPage() {
                   <td>
                     <button 
                       className="detail-button"
-                      onClick={() => {
-                        setSelectedUser(user);
-                        setShowDetailPopup(true);
-                      }}
+                      onClick={() => handleShowDetail(user)}
                     >
                       Show
                     </button>
@@ -396,8 +439,16 @@ export default function ControllerPage() {
       {/* Popup detail user */}
       <UserDetailPopup
         open={showDetailPopup}
-        onClose={() => setShowDetailPopup(false)}
+        onClose={() => {
+          setShowDetailPopup(false);
+          setCustomerDetails(null);
+          setExchangeHistory([]);
+        }}
         user={selectedUser}
+        customerDetails={customerDetails}
+        detailLoading={detailLoading}
+        exchangeHistory={exchangeHistory}
+        historyLoading={historyLoading}
         onEdit={(u) => alert(`Edit user: ${u.username}`)}
         onDelete={(u) => alert(`Delete user: ${u.username}`)}
       />

@@ -71,7 +71,33 @@ export const authAPI = {
       throw error;
     }
   },
+getAllCustomers: async () => {
+    try {
+      const response = await api.get('/api/Account/get_all_customer_for_admin');
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Get customers failed');
+    }
+  },
 
+  getCustomerById: async (accountId) => {
+    try {
+      const response = await api.get(`/api/Account/get_account_by_id/${accountId}_for_admin`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Get customer failed');
+    }
+  },
+
+   getExchangeHistory: async (customerId) => {
+    try {
+      // Giả sử endpoint này trả về lịch sử trao đổi pin của customer
+      const response = await api.get(`/api/ExchangeBattery/get_by_customer/${customerId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Get exchange history failed');
+    }
+  },
 };
 
 
