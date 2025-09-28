@@ -742,3 +742,240 @@
 .popup-content {
   animation: fadeInPopup 0.35s cubic-bezier(.4,1.4,.6,1) both;
 }
+/* Detail button in table */
+.detail-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.detail-button:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* User Detail Popup Styles */
+.user-detail-popup {
+  min-width: 600px;
+  max-width: 700px;
+  border-radius: 16px;
+  position: relative;
+  padding: 40px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.user-detail-popup h2 {
+  color: white;
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 30px;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
+}
+
+.user-detail-info {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 30px;
+  margin-bottom: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background 0.3s ease;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 15px;
+  min-width: 120px;
+}
+
+.detail-value {
+  font-weight: 500;
+  color: white;
+  font-size: 15px;
+  text-align: right;
+  flex: 1;
+  padding-left: 20px;
+}
+
+/* Special styling for role badge in detail popup */
+.detail-value .role-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Status styling in detail popup */
+.detail-value .status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value .status-active {
+  background: rgba(0, 184, 148, 0.2);
+  color: #00e6b8;
+  border: 1px solid rgba(0, 230, 184, 0.3);
+}
+
+.detail-value .status-inactive {
+  background: rgba(214, 48, 49, 0.2);
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+/* Action buttons styling */
+.popup-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.center-actions {
+  justify-content: center;
+}
+
+.end-actions {
+  justify-content: flex-end;
+}
+
+.edit-btn, .delete-btn, .cancel-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 100px;
+}
+
+.edit-btn {
+  background: linear-gradient(135deg, #4CAF50, #45a049) !important;
+  color: white !important;
+  border: 2px solid rgba(76, 175, 80, 0.3) !important;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3) !important;
+}
+
+.edit-btn:hover {
+  background: linear-gradient(135deg, #45a049, #4CAF50) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5) !important;
+}
+
+.delete-btn {
+  background: linear-gradient(135deg, #f44336, #d32f2f) !important;
+  color: white !important;
+  border: 2px solid rgba(244, 67, 54, 0.3) !important;
+  box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3) !important;
+}
+
+.delete-btn:hover {
+  background: linear-gradient(135deg, #d32f2f, #f44336) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(244, 67, 54, 0.5) !important;
+}
+
+.cancel-btn {
+  background: linear-gradient(135deg, #9E9E9E, #757575) !important;
+  color: white !important;
+  border: 2px solid rgba(158, 158, 158, 0.3) !important;
+  box-shadow: 0 4px 15px rgba(158, 158, 158, 0.3) !important;
+}
+
+.cancel-btn:hover {
+  background: linear-gradient(135deg, #757575, #9E9E9E) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(158, 158, 158, 0.5) !important;
+}
+
+/* Responsive design for detail popup */
+@media (max-width: 768px) {
+  .user-detail-popup {
+    min-width: 90vw;
+    max-width: 90vw;
+    padding: 25px;
+    margin: 20px;
+  }
+  
+  .user-detail-popup h2 {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+  }
+  
+  .user-detail-info {
+    padding: 20px;
+  }
+  
+  .detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 15px 0;
+  }
+  
+  .detail-label {
+    min-width: auto;
+    font-size: 14px;
+  }
+  
+  .detail-value {
+    text-align: left;
+    padding-left: 0;
+    font-size: 14px;
+  }
+  
+  .popup-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .center-actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+  
+  .edit-btn, .delete-btn, .cancel-btn {
+    padding: 12px;
+    font-size: 14px;
+  }
+}
