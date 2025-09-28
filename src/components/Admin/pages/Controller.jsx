@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { authAPI } from '../../services/authAPI';
 import { getCurrentUserPayload, extractRolesFromPayload } from '../../services/jwt';
+import NewStaffPopup from './NewStaffPopup';
 import './Controller.css';
 
 export default function ControllerPage() {
@@ -11,6 +12,7 @@ export default function ControllerPage() {
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
   const [error, setError] = useState('');
+  const [showNewStaffPopup, setShowNewStaffPopup] = useState(false);
 
   const checkAuth = () => {
     const token = localStorage.getItem('authToken');
@@ -23,12 +25,13 @@ export default function ControllerPage() {
     try {
       const payload = getCurrentUserPayload();
       const roles = extractRolesFromPayload(payload);
-
+      
       if (!roles.includes('Admin')) {
         setError('Access denied. Admin role required.');
         setLoading(false);
         return false;
       }
+      
       return true;
     } catch (err) {
       setError('Invalid token. Please sign in again.');
@@ -42,7 +45,7 @@ export default function ControllerPage() {
     try {
       setLoading(true);
       setError('');
-
+      
       if (!checkAuth()) return;
 
       console.log('Controller: Starting to fetch users');
@@ -75,10 +78,9 @@ export default function ControllerPage() {
         setUsers([]);
         setFilteredUsers([]);
       }
-
     } catch (error) {
       console.error('Controller: Error fetching users:', error);
-
+      
       let errorMessage = 'Failed to fetch users: ';
       if (error.response) {
         errorMessage += `Server error ${error.response.status}: ${error.response.data?.message || error.response.statusText}`;
@@ -87,6 +89,7 @@ export default function ControllerPage() {
       } else {
         errorMessage += error.message || 'Unknown error';
       }
+      
       setError(errorMessage);
       setUsers([]);
       setFilteredUsers([]);
@@ -120,7 +123,7 @@ export default function ControllerPage() {
       results = [...results].sort((a, b) => {
         const aValue = a[sortField] || '';
         const bValue = b[sortField] || '';
-
+        
         if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
         if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
         return 0;
@@ -198,7 +201,6 @@ export default function ControllerPage() {
   return (
     <div className="controller-page">
       <div className="controller-header">
-
     <div className="header-content">
       <h1>User Management</h1>
       <p>Quản lý tài khoản người dùng hệ thống SwapX</p>
@@ -206,7 +208,12 @@ export default function ControllerPage() {
         Total accounts: {users.length} | Showing: {filteredUsers.length}
       </p>
       </div>
-      <button className="Staff-button">New Staff</button>
+      <button
+        className="Staff-button"
+        onClick={() => setShowNewStaffPopup(true)}
+      >
+        New Staff
+      </button>
     </div>
 
       <div className="controller-tools">
@@ -237,6 +244,7 @@ export default function ControllerPage() {
             <option value="startDate">Join Date</option>
             <option value="updateDate">Update Date</option>
           </select>
+          
           <button 
             onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
             className="sort-direction-btn"
@@ -305,7 +313,7 @@ export default function ControllerPage() {
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan="10" className="no-data">
+                <td colSpan="9" className="no-data">
                   {users.length === 0 ? 'No accounts found in system' : 'No accounts match your search'}
                 </td>
               </tr>
@@ -345,6 +353,12 @@ export default function ControllerPage() {
           Showing {filteredUsers.length} of {users.length} accounts
         </div>
       </div>
+
+      <NewStaffPopup
+        open={showNewStaffPopup}
+        onClose={() => setShowNewStaffPopup(false)}   // 👈 đóng popup
+        onSuccess={fetchUsers}                       // 👈 refresh lại user list khi tạo mới thành công
+      />
     </div>
   );
 }

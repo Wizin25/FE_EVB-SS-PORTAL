@@ -49,7 +49,28 @@ export const authAPI = {
     } catch (error) {
       throw new Error(error?.message || JSON.stringify(error) || 'Get users failed');
     }
-  }
+  },
+  createStaff: async (staffData) => {
+    try {
+      // Build multipart/form-data payload matching BE keys (PascalCase)
+      const form = new FormData();
+      form.append('Username', staffData.username);
+      form.append('Password', staffData.password);
+      form.append('ConfirmedPassword', staffData.confirmedPassword);
+      form.append('Name', staffData.name);
+      form.append('Phone', staffData.phone);
+      form.append('Address', staffData.address ?? '');
+      form.append('Email', staffData.email);
+
+      const response = await api.post('/api/Account/create_staff_for_admin', form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      // Không wrap, trả về đúng payload của BE để UI lấy message từ Swagger
+      throw error;
+    }
+  },
 
 };
 
