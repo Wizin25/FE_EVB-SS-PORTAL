@@ -35,10 +35,19 @@ export const authAPI = {
 
   forgotPassword: async (email) => {
     try {
-      const response = await api.post('/auth/forgot-password', { email });
+      const response = await api.post('/api/Account/forgot-password', { email });
       return response.data;
     } catch (error) {
       throw new Error(error?.message || JSON.stringify(error) || 'Forgot password failed');
+    }
+  },
+
+  verifyOtp: async (email, otp) => {
+    try {
+      const response = await api.post(`/api/Account/verify-otp?email=${email}&otp=${otp}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'OTP verification failed');
     }
   },
 
