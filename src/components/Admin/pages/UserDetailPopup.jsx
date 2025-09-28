@@ -11,6 +11,10 @@ export default function UserDetailPopup({ open, onClose, user, onEdit, onDelete 
 
         <div className="user-detail-info">
           <div className="detail-row">
+            <span className="detail-label">Account ID:</span>
+            <span className="detail-value">{user.accountId}</span>
+          </div>
+          <div className="detail-row">
             <span className="detail-label">Role:</span>
             <span className="detail-value">{user.role}</span>
           </div>

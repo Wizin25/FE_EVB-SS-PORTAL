@@ -66,7 +66,7 @@ export default function ControllerPage() {
           phone: user.phone?.trim() || 'N/A',
           address: user.address?.trim() || 'N/A',
           email: user.email?.trim() || 'N/A',
-          status: user.status ?? 'Active',
+          status: user.status ?? 'Null',
           startDate: user.startDate ?? 'N/A',
           updateDate: user.updateDate ?? 'N/A'
         }));
@@ -355,10 +355,11 @@ export default function ControllerPage() {
                   <td>{user.address}</td>
                   <td>{user.email}</td>
                   <td>
-                    <span className={`status-${user.status ? user.status.toLowerCase() : 'active'}`}>
-                      {user.status}
+                    <span className={`status-${user.status ? user.status.toLowerCase() : 'null'}`}>
+                    {user.status}
                     </span>
                   </td>
+
                   <td>{formatDate(user.startDate)}</td>
                   <td>{formatDate(user.updateDate)}</td>
                   <td>
