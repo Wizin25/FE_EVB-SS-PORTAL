@@ -104,60 +104,20 @@ export const authAPI = {
     }
   },
 
-  // THÊM CÁC HÀM MỚI CHO EDIT VÀ DELETE
-  updateStaff: async (staffData) => {
+  getCurrent: async () => {
     try {
-      const form = new FormData();
-      form.append('AccountID', staffData.accountId);
-      form.append('Name', staffData.name);
-      form.append('Phone', staffData.phone);
-      form.append('Address', staffData.address ?? '');
-      form.append('Email', staffData.email);
-      form.append('Status', staffData.status);
-
-      const response = await api.put('/api/Account/update_staff_for_admin', form, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      return response.data;
+      const res = await api.get('/api/Account/get-currrent');
+      // backend trả wrapper { isSuccess, data, ... } -> trả về data trực tiếp
+      if (res?.data?.isSuccess) {
+        return res.data.data || null;
+      }
+      // nếu backend trả 200 nhưng isSuccess false thì trả null
+      console.warn('authAPI.getCurrent: isSuccess false', res?.data);
+      return null;
     } catch (error) {
-      throw error;
-    }
-  },
-
-  updateCustomer: async (customerData) => {
-    try {
-      const form = new FormData();
-      form.append('AccountID', customerData.accountId);
-      form.append('Name', customerData.name);
-      form.append('Phone', customerData.phone);
-      form.append('Address', customerData.address ?? '');
-      form.append('Email', customerData.email);
-      form.append('Status', customerData.status);
-
-      const response = await api.put('/api/Account/update_customer_for_admin', form, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  deleteStaff: async (accountId) => {
-    try {
-      const response = await api.put(`/api/Account/delete_staff_for_admin/${accountId}`);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  deleteCustomer: async (accountId) => {
-    try {
-      const response = await api.put(`/api/Account/delete_customer_for_admin/${accountId}`);
-      return response.data;
-    } catch (error) {
-      throw error;
+      console.error('authAPI.getCurrent error:', error);
     }
   },
 };
+
+
