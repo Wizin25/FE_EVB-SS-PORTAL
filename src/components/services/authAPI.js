@@ -103,8 +103,6 @@ export const authAPI = {
       throw new Error(error?.message || JSON.stringify(error) || 'Get exchange history failed');
     }
   },
-<<<<<<< HEAD
-=======
 
   getCurrent: async () => {
     try {
@@ -120,8 +118,6 @@ export const authAPI = {
       console.error('authAPI.getCurrent error:', error);
     }
   },
-};
->>>>>>> main
 
   // CÁC HÀM CHO EDIT VÀ DELETE
   updateStaff: async (staffData) => {
