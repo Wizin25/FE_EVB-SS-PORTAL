@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { authAPI } from '../../services/authAPI';
 import { getCurrentUserPayload, extractRolesFromPayload } from '../../services/jwt';
 import NewStaffPopup from './NewStaffPopup';
+import UserDetailPopup from './UserDetailPopup';
 import './Controller.css';
 
 export default function ControllerPage() {
@@ -11,8 +12,18 @@ export default function ControllerPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
+  const [roleFilter, setRoleFilter] = useState('All');
   const [error, setError] = useState('');
   const [showNewStaffPopup, setShowNewStaffPopup] = useState(false);
+  const [exchangeHistory, setExchangeHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  // 👇 detail popup
+  const [showDetailPopup, setShowDetailPopup] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  const [customerDetails, setCustomerDetails] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const checkAuth = () => {
     const token = localStorage.getItem('authToken');
@@ -40,7 +51,7 @@ export default function ControllerPage() {
     }
   };
 
-  // Fetch all users using authAPI
+  // Fetch all users
   const fetchUsers = async () => {
     try {
       setLoading(true);
@@ -48,16 +59,10 @@ export default function ControllerPage() {
       
       if (!checkAuth()) return;
 
-      console.log('Controller: Starting to fetch users');
-      
-        const res = await authAPI.getAllUsers();
-      console.log('Controller: Raw API response:', res);
-
+      const res = await authAPI.getAllUsers();
       const usersArray = Array.isArray(res?.data) ? res.data : [];
 
       if (usersArray.length > 0) {
-        console.log(`Controller: Received ${usersArray.length} users`);
-
         const formattedUsers = usersArray.map(user => ({
           accountId: user.accountId ?? 'N/A',
           role: user.role ?? 'N/A',
@@ -66,7 +71,7 @@ export default function ControllerPage() {
           phone: user.phone?.trim() || 'N/A',
           address: user.address?.trim() || 'N/A',
           email: user.email?.trim() || 'N/A',
-          status: user.status ?? 'Active',
+          status: user.status ?? 'Null',
           startDate: user.startDate ?? 'N/A',
           updateDate: user.updateDate ?? 'N/A'
         }));
@@ -74,13 +79,10 @@ export default function ControllerPage() {
         setUsers(formattedUsers);
         setFilteredUsers(formattedUsers);
       } else {
-        console.warn('Controller: No users array found in response:', res);
         setUsers([]);
         setFilteredUsers([]);
       }
     } catch (error) {
-      console.error('Controller: Error fetching users:', error);
-      
       let errorMessage = 'Failed to fetch users: ';
       if (error.response) {
         errorMessage += `Server error ${error.response.status}: ${error.response.data?.message || error.response.statusText}`;
@@ -98,6 +100,48 @@ export default function ControllerPage() {
     }
   };
 
+  const handleShowDetail = async (user) => {
+    setSelectedUser(user);
+    setShowDetailPopup(true);
+    setCustomerDetails(null);
+    setExchangeHistory([]);
+
+    // Nếu là EvDriver, lấy thông tin chi tiết
+    if (user.role === 'EvDriver') {
+      setDetailLoading(true);
+      try {
+        const res = await authAPI.getAllCustomers();
+        const customers = Array.isArray(res?.data) ? res.data : [];
+        
+        // Tìm customer theo accountId
+        const customer = customers.find(c => 
+          c.accountID === user.accountId || c.accountId === user.accountId
+        );
+        
+        if (customer) {
+          setCustomerDetails(customer);
+
+          // Lấy exchange history
+          setHistoryLoading(true);
+          try {
+            const historyRes = await authAPI.getExchangeHistory(customer.customerID);
+            const historyData = Array.isArray(historyRes?.data) ? historyRes.data : [];
+            setExchangeHistory(historyData);
+          } catch (historyError) {
+            console.error('Failed to fetch exchange history:', historyError);
+            setExchangeHistory([]);
+          } finally {
+            setHistoryLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch customer details:', error);
+      } finally {
+        setDetailLoading(false);
+      }
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -107,6 +151,7 @@ export default function ControllerPage() {
 
     let results = users;
 
+    // Search
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       results = results.filter(user =>
@@ -119,6 +164,12 @@ export default function ControllerPage() {
       );
     }
 
+    // Role filter
+    if (roleFilter !== 'All') {
+      results = results.filter(user => user.role === roleFilter);
+    }
+
+    // Sort
     if (sortField) {
       results = [...results].sort((a, b) => {
         const aValue = a[sortField] || '';
@@ -131,7 +182,7 @@ export default function ControllerPage() {
     }
 
     setFilteredUsers(results);
-  }, [users, searchTerm, sortField, sortDirection]);
+  }, [users, searchTerm, sortField, sortDirection, roleFilter]);
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -201,20 +252,20 @@ export default function ControllerPage() {
   return (
     <div className="controller-page">
       <div className="controller-header">
-    <div className="header-content">
-      <h1>User Management</h1>
-      <p>Quản lý tài khoản người dùng hệ thống SwapX</p>
-      <p style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
-        Total accounts: {users.length} | Showing: {filteredUsers.length}
-      </p>
+        <div className="header-content">
+          <h1>User Management</h1>
+          <p>Quản lý tài khoản người dùng hệ thống SwapX</p>
+          <p style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>
+            Total accounts: {users.length} | Showing: {filteredUsers.length}
+          </p>
+        </div>
+        <button
+          className="Staff-button"
+          onClick={() => setShowNewStaffPopup(true)}
+        >
+          New Staff
+        </button>
       </div>
-      <button
-        className="Staff-button"
-        onClick={() => setShowNewStaffPopup(true)}
-      >
-        New Staff
-      </button>
-    </div>
 
       <div className="controller-tools">
         <div className="search-box">
@@ -251,6 +302,20 @@ export default function ControllerPage() {
           >
             {sortDirection === 'asc' ? '↑ Ascending' : '↓ Descending'}
           </button>
+        </div>
+
+        <div className="role-filter">
+          <label>Filter by Role: </label>
+          <select 
+            value={roleFilter} 
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="sort-select"
+          >
+            <option value="All">All</option>
+            <option value="Admin">Admin</option>
+            <option value="Bsstaff">Bsstaff</option>
+            <option value="EvDriver">EvDriver</option>
+          </select>
         </div>
       </div>
 
@@ -308,12 +373,13 @@ export default function ControllerPage() {
               <th onClick={() => handleSort('updateDate')}>
                 Update Date {getSortIcon('updateDate')}
               </th>
+              <th>Detail</th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan="9" className="no-data">
+                <td colSpan="10" className="no-data">
                   {users.length === 0 ? 'No accounts found in system' : 'No accounts match your search'}
                 </td>
               </tr>
@@ -335,12 +401,21 @@ export default function ControllerPage() {
                   <td>{user.address}</td>
                   <td>{user.email}</td>
                   <td>
-                    <span className={`status-${user.status ? user.status.toLowerCase() : 'active'}`}>
-                      {user.status}
+                    <span className={`status-${user.status ? user.status.toLowerCase() : 'null'}`}>
+                    {user.status}
                     </span>
                   </td>
+
                   <td>{formatDate(user.startDate)}</td>
                   <td>{formatDate(user.updateDate)}</td>
+                  <td>
+                    <button 
+                      className="detail-button"
+                      onClick={() => handleShowDetail(user)}
+                    >
+                      Show
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
@@ -354,10 +429,28 @@ export default function ControllerPage() {
         </div>
       </div>
 
+      {/* Popup create staff */}
       <NewStaffPopup
         open={showNewStaffPopup}
-        onClose={() => setShowNewStaffPopup(false)}   // 👈 đóng popup
-        onSuccess={fetchUsers}                       // 👈 refresh lại user list khi tạo mới thành công
+        onClose={() => setShowNewStaffPopup(false)}
+        onSuccess={fetchUsers}
+      />
+
+      {/* Popup detail user */}
+      <UserDetailPopup
+        open={showDetailPopup}
+        onClose={() => {
+          setShowDetailPopup(false);
+          setCustomerDetails(null);
+          setExchangeHistory([]);
+        }}
+        user={selectedUser}
+        customerDetails={customerDetails}
+        detailLoading={detailLoading}
+        exchangeHistory={exchangeHistory}
+        historyLoading={historyLoading}
+        onEdit={(u) => alert(`Edit user: ${u.username}`)}
+        onDelete={(u) => alert(`Delete user: ${u.username}`)}
       />
     </div>
   );
