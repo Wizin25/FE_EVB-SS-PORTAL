@@ -12,6 +12,7 @@ import StationPage from './components/Admin/pages/Station.jsx';
 import HomePage from './components/Home/homePage.jsx';
 import StaffPage from './components/Admin/pages/Staff.jsx';
 import ControllerPage from './components/Admin/pages/Controller.jsx';
+import Profile from './components/Profile/Profile.jsx';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
             <Route path="station" element={<StationPage />} />
             <Route path="controller" element={<ControllerPage />} />
           </Route>
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </div>
     </Router>

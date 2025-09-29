@@ -103,6 +103,25 @@ export const authAPI = {
       throw new Error(error?.message || JSON.stringify(error) || 'Get exchange history failed');
     }
   },
+<<<<<<< HEAD
+=======
+
+  getCurrent: async () => {
+    try {
+      const res = await api.get('/api/Account/get-currrent');
+      // backend trả wrapper { isSuccess, data, ... } -> trả về data trực tiếp
+      if (res?.data?.isSuccess) {
+        return res.data.data || null;
+      }
+      // nếu backend trả 200 nhưng isSuccess false thì trả null
+      console.warn('authAPI.getCurrent: isSuccess false', res?.data);
+      return null;
+    } catch (error) {
+      console.error('authAPI.getCurrent error:', error);
+    }
+  },
+};
+>>>>>>> main
 
   // CÁC HÀM CHO EDIT VÀ DELETE
   updateStaff: async (staffData) => {

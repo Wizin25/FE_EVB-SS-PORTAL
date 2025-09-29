@@ -1105,6 +1105,7 @@
   }
 }
 
+<<<<<<< HEAD
 /* Admin notice styling */
 .admin-notice {
   color: rgba(255, 255, 255, 0.8);
@@ -1116,6 +1117,229 @@
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
+
+=======
+/* Edit Form Styles */
+.popup-content select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 7px;
+  border: 1.5px solid #e0e0e0;
+  font-size: 1rem;
+  background: #fafbfc;
+  transition: border 0.2s;
+  outline: none;
+}
+
+.popup-content select:focus {
+  border-color: #ff9800;
+  background: #fffbe7;
+}
+
+.form-group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 2px;
+  font-size: 1rem;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 7px;
+  border: 1.5px solid #e0e0e0;
+  font-size: 1rem;
+  background: #fafbfc;
+  transition: border 0.2s;
+  outline: none;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #ff9800;
+  background: #fffbe7;
+}
+
+/* Edit Field Styles for UserDetailPopup */
+.edit-field {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 15px;
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+
+.edit-field:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+.edit-field::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Select field specific styles */
+.edit-field[type="select"],
+.edit-field select {
+  cursor: pointer;
+}
+
+.edit-field option {
+  background: #667eea;
+  color: rgb(0, 0, 0);
+  padding: 8px;
+}
+
+/* Disable history section when editing */
+.user-detail-popup form:has(.edit-field:focus) .dropdown-section,
+.user-detail-popup form:has(.edit-field) .dropdown-section {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* History tabs styling */
+.history-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.history-tab {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.history-tab:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.history-tab.active {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.history-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.history-item {
+  padding: 12px 0;
+}
+
+.history-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.history-label {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+}
+
+.history-value {
+  color: white;
+  font-size: 13px;
+  text-align: right;
+}
+
+.history-divider {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 12px 0;
+}
+
+.rating-stars {
+  color: #ffd700;
+  font-size: 14px;
+  margin-right: 5px;
+}
+
+/* Loading state for edit */
+.edit-btn:disabled,
+.delete-btn:disabled,
+.cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* Thêm vào cuối file Controller.css */
+
+>>>>>>> main
+/* Edit Field Styles - Màu chữ đen */
+.edit-field {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #000000; /* Đổi màu chữ thành đen */
+  font-size: 15px;
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+
+.edit-field:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+.edit-field::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+/* Select field specific styles */
+.edit-field[type="select"],
+.edit-field select {
+  cursor: pointer;
+  color: #000000;
+}
+
+.edit-field option {
+  background: #ffffff;
+  color: #000000;
+  padding: 8px;
+}
+
+/* Đảm bảo text trong input có màu đen */
+.edit-field input {
+  color: #000000 !important;
+}
+
+/* Đảm bảo khi hover vẫn thấy rõ chữ */
+.edit-field:hover {
+  background: rgba(255, 255, 255, 0.95);
+}
+<<<<<<< HEAD
+=======
+
+/* Thêm vào cuối file Controller.css */
 
 /* Edit Field Styles - Màu chữ đen */
 .edit-field {
@@ -1163,3 +1387,16 @@
 .edit-field:hover {
   background: rgba(255, 255, 255, 0.95);
 }
+
+/* Admin notice styling */
+.admin-notice {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  font-style: italic;
+  text-align: center;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+>>>>>>> main

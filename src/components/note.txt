@@ -1,0 +1,154 @@
+{/* Dropdown cho Vehicle Information */}
+              {user.role === 'EvDriver' && customerDetails && (
+                <div className="dropdown-section">
+                  <div 
+                    className={`dropdown-header ${activeDropdown === 'vehicle' ? 'active' : ''}`}
+                    onClick={() => toggleDropdown('vehicle')}
+                  >
+                    <span className="dropdown-title">Vehicle Information</span>
+                    <span className="dropdown-arrow">
+                      {activeDropdown === 'vehicle' ? '▲' : '▼'}
+                    </span>
+                  </div>
+                  {activeDropdown === 'vehicle' && (
+                    <div className="dropdown-content">
+                      <div className="detail-row">
+                        <span className="detail-label">Customer ID:</span>
+                        <span className="detail-value">{customerDetails.customerID || 'N/A'}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">VIN:</span>
+                        <span className="detail-value">{customerDetails.vin || 'N/A'}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Vehicle Name:</span>
+                        <span className="detail-value">{customerDetails.vehicleName || 'N/A'}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Vehicle Type:</span>
+                        <span className="detail-value">{customerDetails.vehicleType || 'N/A'}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Battery ID:</span>
+                        <span className="detail-value">{customerDetails.batteryID || 'N/A'}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Package ID:</span>
+                        <span className="detail-value">{customerDetails.packageID || 'N/A'}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Dropdown cho History với tabs - Chỉ hiển thị khi không editing */}
+              {!isEditing && user.role === 'EvDriver' && customerDetails && (
+                <div className="dropdown-section">
+                  <div 
+                    className={`dropdown-header ${activeDropdown === 'history' ? 'active' : ''}`}
+                    onClick={() => toggleDropdown('history')}
+                  >
+                    <span className="dropdown-title">History</span>
+                    <span className="dropdown-arrow">
+                      {activeDropdown === 'history' ? '▲' : '▼'}
+                    </span>
+                  </div>
+                  {activeDropdown === 'history' && (
+                    <div className="dropdown-content">
+                      {hasHistoryData ? (
+                        <div className="history-container">
+                          {/* History Tabs */}
+                          <div className="history-tabs">
+                            {exchangeBatteries.length > 0 && (
+                              <button 
+                                className={`history-tab ${activeHistoryTab === 'exchangeBatteries' ? 'active' : ''}`}
+                                onClick={() => setActiveHistoryTab('exchangeBatteries')}
+                              >
+                                Battery Exchange ({exchangeBatteries.length})
+                              </button>
+                            )}
+                            {forms.length > 0 && (
+                              <button 
+                                className={`history-tab ${activeHistoryTab === 'forms' ? 'active' : ''}`}
+                                onClick={() => setActiveHistoryTab('forms')}
+                              >
+                                Forms ({forms.length})
+                              </button>
+                            )}
+                            {orders.length > 0 && (
+                              <button 
+                                className={`history-tab ${activeHistoryTab === 'orders' ? 'active' : ''}`}
+                                onClick={() => setActiveHistoryTab('orders')}
+                              >
+                                Orders ({orders.length})
+                              </button>
+                            )}
+                            {ratings.length > 0 && (
+                              <button 
+                                className={`history-tab ${activeHistoryTab === 'ratings' ? 'active' : ''}`}
+                                onClick={() => setActiveHistoryTab('ratings')}
+                              >
+                                Ratings ({ratings.length})
+                              </button>
+                            )}
+                            {reports.length > 0 && (
+                              <button 
+                                className={`history-tab ${activeHistoryTab === 'reports' ? 'active' : ''}`}
+                                onClick={() => setActiveHistoryTab('reports')}
+                              >
+                                Reports ({reports.length})
+                              </button>
+                            )}
+                          </div>
+
+                          {/* History Content */}
+                          <div className="history-content">
+                            {/* Exchange Batteries */}
+                            {activeHistoryTab === 'exchangeBatteries' && exchangeBatteries.length > 0 && (
+                              <div className="history-list">
+                                {exchangeBatteries.map((exchange, index) => (
+                                  <div key={exchange.exchangeBatteryID || index} className="history-item">
+                                    <div className="history-row">
+                                      <span className="history-label">Exchange ID:</span>
+                                      <span className="history-value">{exchange.exchangeBatteryID}</span>
+                                    </div>
+                                    <div className="history-row">
+                                      <span className="history-label">Date:</span>
+                                      <span className="history-value">{formatHistoryDate(exchange.actionDate)}</span>
+                                    </div>
+                                    <div className="history-row">
+                                      <span className="history-label">Old Battery:</span>
+                                      <span className="history-value">{exchange.oldBatteryID}</span>
+                                    </div>
+                                    <div className="history-row">
+                                      <span className="history-label">New Battery:</span>
+                                      <span className="history-value">{exchange.newBatteryID}</span>
+                                    </div>
+                                    <div className="history-row">
+                                      <span className="history-label">Station:</span>
+                                      <span className="history-value">{exchange.stationID}</span>
+                                    </div>
+                                    <div className="history-row">
+                                    </div>
+                                    {exchange.notes && (
+                                      <div className="history-row">
+                                        <span className="history-label">Notes:</span>
+                                        <span className="history-value">{exchange.notes}</span>
+                                      </div>
+                                    )}
+                                    {index < exchangeBatteries.length - 1 && <hr className="history-divider" />}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="history-placeholder">
+                          <p>No history data available</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}

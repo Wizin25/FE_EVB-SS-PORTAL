@@ -168,6 +168,7 @@ export default function ControllerPage() {
       console.log('Save response:', response);
       
       if (response && response.statusCode === 200) {
+<<<<<<< HEAD
         // Tạo updateDate từ client (real-time)
         const currentDate = new Date().toISOString();
         
@@ -180,6 +181,10 @@ export default function ControllerPage() {
           )
         );
         
+=======
+        // Cập nhật local state và fetch lại dữ liệu từ server
+        await fetchUsers();
+>>>>>>> main
         setShowDetailPopup(false);
         alert('User updated successfully!');
       } else {

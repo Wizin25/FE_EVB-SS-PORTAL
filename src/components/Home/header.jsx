@@ -1,13 +1,16 @@
 // HeaderDriver.jsx (skeleton)
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './home.css';
-
+import Profile from '../Profile/Profile';
 
 export default function Header({
   onToggleTheme, theme,
   user, unreadCount, nextBooking,
   onOpenBooking
 }) {
+  const navigate = useNavigate();
+
   return (
     <header className="app-header">
       <div className="left">
@@ -68,14 +71,35 @@ export default function Header({
               />
               {open && (
                 <div className="dropdown">
-                  <a href="/profile">Hồ sơ</a>
-                  <a href="/my-bookings">Lịch của tôi</a>
-                  <a href="/profile/paymenthistory">Lịch sử thanh toán</a>
-                  <a href="/settings">Cài đặt</a>
+                  <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => { navigate('/profile'); setOpen(false); }}>Hồ sơ</button>
                   <button
+                    type="button"
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => { navigate('/my-bookings'); setOpen(false); }}
+                  >
+                    Lịch của tôi
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => { navigate('/profile/paymenthistory'); setOpen(false); }}
+                  >
+                    Lịch sử thanh toán
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => { navigate('/settings'); setOpen(false); }}
+                  >
+                    Cài đặt
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={e => e.preventDefault()}
                     onClick={() => {
                       localStorage.removeItem("authToken");
-                      window.location.href = "/signin";
+                      navigate('/signin');
+                      setOpen(false);
                     }}
                   >
                     Đăng xuất

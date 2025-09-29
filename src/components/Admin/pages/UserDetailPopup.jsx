@@ -24,6 +24,7 @@ export default function UserDetailPopup({
   });
   const [loading, setLoading] = useState(false);
   
+<<<<<<< HEAD
   // Lưu trữ dữ liệu gốc để so sánh
   const [originalData, setOriginalData] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
@@ -31,6 +32,12 @@ export default function UserDetailPopup({
   // Kiểm tra nếu user là Admin
   const isAdminUser = user?.role === 'Admin';
 
+=======
+  // THÊM: Lưu trữ dữ liệu gốc để so sánh
+  const [originalData, setOriginalData] = useState(null);
+  const [hasChanges, setHasChanges] = useState(false);
+
+>>>>>>> main
   useEffect(() => {
     if (user) {
       const userData = {
@@ -49,20 +56,34 @@ export default function UserDetailPopup({
     }
   }, [user]);
 
+<<<<<<< HEAD
   // Kiểm tra thay đổi
+=======
+  // THÊM: Kiểm tra thay đổi
+>>>>>>> main
   useEffect(() => {
     if (originalData) {
       const changed = JSON.stringify(formData) !== JSON.stringify(originalData);
       setHasChanges(changed);
     }
   }, [formData, originalData]);
+<<<<<<< HEAD
+=======
+
+  // THÊM: Kiểm tra nếu user là Admin
+  const isAdminUser = user?.role === 'Admin';
+>>>>>>> main
 
   if (!open || !user) return null;
 
   const handleSave = async (e) => {
     e.preventDefault();
     
+<<<<<<< HEAD
     // Kiểm tra nếu không có thay đổi
+=======
+    // THÊM: Kiểm tra nếu không có thay đổi
+>>>>>>> main
     if (!hasChanges) {
       alert('No changes detected.');
       setIsEditing(false);
@@ -74,7 +95,11 @@ export default function UserDetailPopup({
     try {
       await onSave(user.accountId, formData);
       setIsEditing(false);
+<<<<<<< HEAD
       // Reset original data sau khi save thành công
+=======
+      // CẬP NHẬT: Reset original data sau khi save thành công
+>>>>>>> main
       setOriginalData({...formData});
     } catch (error) {
       console.error('Failed to save user:', error);
@@ -85,7 +110,11 @@ export default function UserDetailPopup({
 
   const handleCancel = () => {
     setIsEditing(false);
+<<<<<<< HEAD
     // Reset form data về dữ liệu gốc
+=======
+    // THÊM: Reset form data về dữ liệu gốc
+>>>>>>> main
     if (originalData) {
       setFormData({...originalData});
     } else {
@@ -107,7 +136,11 @@ export default function UserDetailPopup({
   };
 
   const handleEditClick = () => {
+<<<<<<< HEAD
     // Reset original data khi bắt đầu edit
+=======
+    // THÊM: Reset original data khi bắt đầu edit
+>>>>>>> main
     setOriginalData({...formData});
     setIsEditing(true);
   };
