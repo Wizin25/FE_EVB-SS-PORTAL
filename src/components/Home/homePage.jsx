@@ -137,16 +137,16 @@ export default function HomePage() {
         onOpenBooking={handleOpenBooking}
       />
 
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
+      <main className="container px-4 py-8 mx-auto max-w-7xl">
         {/* Welcome Section */}
         <div className={`rounded-2xl p-8 mb-8 shadow-xl ${
           theme === 'dark'
             ? 'bg-gradient-to-r from-gray-800 to-gray-700 border border-gray-600'
             : 'bg-gradient-to-r from-blue-600 to-green-600 text-white'
         }`}>
-          <div className="flex flex-col md:flex-row items-center justify-between">
+          <div className="flex flex-col items-center justify-between md:flex-row">
             <div className="mb-4 md:mb-0">
-              <h1 className="text-4xl font-bold mb-2">
+              <h1 className="mb-2 text-4xl font-bold">
                 Welcome back, {user?.name || 'Driver'}! 👋
               </h1>
               <p className="text-lg opacity-90">
@@ -179,7 +179,7 @@ export default function HomePage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
           {[
             {
               title: "Total Bookings",
@@ -249,7 +249,7 @@ export default function HomePage() {
               <span className="mr-2">🚗</span>
               Your Next Booking
             </h2>
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                   Station
@@ -281,7 +281,7 @@ export default function HomePage() {
           }`}>
             Quick Actions
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {[
               { action: 'findStation', icon: '🔍', title: 'Find Stations', desc: 'Locate nearby charging stations' },
               { action: 'history', icon: '📊', title: 'Trip History', desc: 'View your past bookings' },
@@ -297,7 +297,7 @@ export default function HomePage() {
                     : 'bg-gray-50 hover:bg-gray-100 border border-gray-200'
                 }`}
               >
-                <div className="text-2xl mb-2">{item.icon}</div>
+                <div className="mb-2 text-2xl">{item.icon}</div>
                 <h3 className={`font-semibold mb-1 ${
                   theme === 'dark' ? 'text-white' : 'text-gray-900'
                 }`}>
