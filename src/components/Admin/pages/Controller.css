@@ -1105,20 +1105,6 @@
   }
 }
 
-<<<<<<< HEAD
-/* Admin notice styling */
-.admin-notice {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 14px;
-  font-style: italic;
-  text-align: center;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-=======
 /* Edit Form Styles */
 .popup-content select {
   width: 100%;
@@ -1289,7 +1275,6 @@
 
 /* Thêm vào cuối file Controller.css */
 
->>>>>>> main
 /* Edit Field Styles - Màu chữ đen */
 .edit-field {
   width: 100%;
@@ -1336,8 +1321,6 @@
 .edit-field:hover {
   background: rgba(255, 255, 255, 0.95);
 }
-<<<<<<< HEAD
-=======
 
 /* Thêm vào cuối file Controller.css */
 
@@ -1399,4 +1382,3 @@
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
->>>>>>> main
