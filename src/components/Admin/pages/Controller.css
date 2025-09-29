@@ -1105,3 +1105,61 @@
   }
 }
 
+/* Admin notice styling */
+.admin-notice {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  font-style: italic;
+  text-align: center;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Edit Field Styles - Màu chữ đen */
+.edit-field {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #000000; /* Đổi màu chữ thành đen */
+  font-size: 15px;
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+
+.edit-field:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+.edit-field::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+/* Select field specific styles */
+.edit-field[type="select"],
+.edit-field select {
+  cursor: pointer;
+  color: #000000;
+}
+
+.edit-field option {
+  background: #ffffff;
+  color: #000000;
+  padding: 8px;
+}
+
+/* Đảm bảo text trong input có màu đen */
+.edit-field input {
+  color: #000000 !important;
+}
+
+/* Đảm bảo khi hover vẫn thấy rõ chữ */
+.edit-field:hover {
+  background: rgba(255, 255, 255, 0.95);
+}

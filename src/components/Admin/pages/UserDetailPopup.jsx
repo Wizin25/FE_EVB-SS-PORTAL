@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Controller.css';
 
 export default function UserDetailPopup({ 
@@ -7,13 +7,110 @@ export default function UserDetailPopup({
   user, 
   customerDetails, 
   detailLoading, 
-  onEdit, 
+  exchangeHistory,
+  historyLoading,
+  onSave,
   onDelete 
 }) {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeHistoryTab, setActiveHistoryTab] = useState('exchangeBatteries');
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    address: '',
+    email: '',
+    status: ''
+  });
+  const [loading, setLoading] = useState(false);
+  
+  // Lưu trữ dữ liệu gốc để so sánh
+  const [originalData, setOriginalData] = useState(null);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Kiểm tra nếu user là Admin
+  const isAdminUser = user?.role === 'Admin';
+
+  useEffect(() => {
+    if (user) {
+      const userData = {
+        name: user.name || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        email: user.email || '',
+        status: user.status || 'Active'
+      };
+      
+      setFormData(userData);
+      // LƯU dữ liệu gốc
+      if (!originalData) {
+        setOriginalData(userData);
+      }
+    }
+  }, [user]);
+
+  // Kiểm tra thay đổi
+  useEffect(() => {
+    if (originalData) {
+      const changed = JSON.stringify(formData) !== JSON.stringify(originalData);
+      setHasChanges(changed);
+    }
+  }, [formData, originalData]);
 
   if (!open || !user) return null;
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    
+    // Kiểm tra nếu không có thay đổi
+    if (!hasChanges) {
+      alert('No changes detected.');
+      setIsEditing(false);
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      await onSave(user.accountId, formData);
+      setIsEditing(false);
+      // Reset original data sau khi save thành công
+      setOriginalData({...formData});
+    } catch (error) {
+      console.error('Failed to save user:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    // Reset form data về dữ liệu gốc
+    if (originalData) {
+      setFormData({...originalData});
+    } else {
+      setFormData({
+        name: user.name || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        email: user.email || '',
+        status: user.status || 'Active'
+      });
+    }
+  };
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleEditClick = () => {
+    // Reset original data khi bắt đầu edit
+    setOriginalData({...formData});
+    setIsEditing(true);
+  };
 
   const toggleDropdown = (dropdown) => {
     setActiveDropdown(activeDropdown === dropdown ? null : dropdown);
@@ -50,405 +147,169 @@ export default function UserDetailPopup({
   return (
     <div className="popup-overlay">
       <div className="popup-content user-detail-popup">
-        <h2>User Detail</h2>
+        <h2>{isEditing ? 'Edit User' : 'User Detail'}</h2>
 
         {detailLoading ? (
           <div className="loading">Loading customer details...</div>
         ) : (
-          <div className="user-detail-info">
-            {/* Basic User Info - giữ nguyên */}
-            <div className="detail-row">
-              <span className="detail-label">Account ID:</span>
-              <span className="detail-value">{user.accountId}</span>
-            </div>
-            <div className="detail-row">
-              <span className="detail-label">Role:</span>
-              <span className="detail-value">
-                <span className={`role-badge role-${user.role?.toLowerCase()}`}>
-                  {user.role}
-                </span>
-              </span>
-            </div>
-            <div className="detail-row">
-              <span className="detail-label">Username:</span>
-              <span className="detail-value">{user.username}</span>
-            </div>
-            <div className="detail-row">
-              <span className="detail-label">Name:</span>
-              <span className="detail-value">{user.name}</span>
-            </div>
-            <div className="detail-row">
-              <span className="detail-label">Phone:</span>
-              <span className="detail-value">{user.phone}</span>
-            </div>
-            <div className="detail-row">
-              <span className="detail-label">Address:</span>
-              <span className="detail-value">{user.address}</span>
-            </div>
-            <div className="detail-row">
-              <span className="detail-label">Email:</span>
-              <span className="detail-value">{user.email}</span>
-            </div>
-            <div className="detail-row">
-              <span className="detail-label">Status:</span>
-              <span className="detail-value">
-                <span className={`status-badge status-${user.status ? user.status.toLowerCase() : 'null'}`}>
-                  {user.status}
-                </span>
-              </span>
-            </div>
-            <div className="detail-row">
-              <span className="detail-label">Start Date:</span>
-              <span className="detail-value">
-                {user.startDate && user.startDate !== 'N/A' 
-                  ? new Date(user.startDate).toLocaleDateString('vi-VN') 
-                  : 'N/A'
-                }
-              </span>
-            </div>
-            <div className="detail-row">
-              <span className="detail-label">Update Date:</span>
-              <span className="detail-value">
-                {user.updateDate && user.updateDate !== 'N/A' 
-                  ? new Date(user.updateDate).toLocaleDateString('vi-VN') 
-                  : 'N/A'
-                }
-              </span>
-            </div>
-
-            {/* Dropdown cho Vehicle Information */}
-            {user.role === 'EvDriver' && customerDetails && (
-              <div className="dropdown-section">
-                <div 
-                  className={`dropdown-header ${activeDropdown === 'vehicle' ? 'active' : ''}`}
-                  onClick={() => toggleDropdown('vehicle')}
-                >
-                  <span className="dropdown-title">Vehicle Information</span>
-                  <span className="dropdown-arrow">
-                    {activeDropdown === 'vehicle' ? '▲' : '▼'}
-                  </span>
-                </div>
-                {activeDropdown === 'vehicle' && (
-                  <div className="dropdown-content">
-                    <div className="detail-row">
-                      <span className="detail-label">Customer ID:</span>
-                      <span className="detail-value">{customerDetails.customerID || 'N/A'}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">VIN:</span>
-                      <span className="detail-value">{customerDetails.vin || 'N/A'}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Vehicle Name:</span>
-                      <span className="detail-value">{customerDetails.vehicleName || 'N/A'}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Vehicle Type:</span>
-                      <span className="detail-value">{customerDetails.vehicleType || 'N/A'}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Battery ID:</span>
-                      <span className="detail-value">{customerDetails.batteryID || 'N/A'}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Package ID:</span>
-                      <span className="detail-value">{customerDetails.packageID || 'N/A'}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Dropdown cho History với tabs */}
-            {user.role === 'EvDriver' && customerDetails && (
-              <div className="dropdown-section">
-                <div 
-                  className={`dropdown-header ${activeDropdown === 'history' ? 'active' : ''}`}
-                  onClick={() => toggleDropdown('history')}
-                >
-                  <span className="dropdown-title">History</span>
-                  <span className="dropdown-arrow">
-                    {activeDropdown === 'history' ? '▲' : '▼'}
-                  </span>
-                </div>
-                {activeDropdown === 'history' && (
-                  <div className="dropdown-content">
-                    {hasHistoryData ? (
-                      <div className="history-container">
-                        {/* History Tabs */}
-                        <div className="history-tabs">
-                          {exchangeBatteries.length > 0 && (
-                            <button 
-                              className={`history-tab ${activeHistoryTab === 'exchangeBatteries' ? 'active' : ''}`}
-                              onClick={() => setActiveHistoryTab('exchangeBatteries')}
-                            >
-                              Battery Exchange ({exchangeBatteries.length})
-                            </button>
-                          )}
-                          {forms.length > 0 && (
-                            <button 
-                              className={`history-tab ${activeHistoryTab === 'forms' ? 'active' : ''}`}
-                              onClick={() => setActiveHistoryTab('forms')}
-                            >
-                              Forms ({forms.length})
-                            </button>
-                          )}
-                          {orders.length > 0 && (
-                            <button 
-                              className={`history-tab ${activeHistoryTab === 'orders' ? 'active' : ''}`}
-                              onClick={() => setActiveHistoryTab('orders')}
-                            >
-                              Orders ({orders.length})
-                            </button>
-                          )}
-                          {ratings.length > 0 && (
-                            <button 
-                              className={`history-tab ${activeHistoryTab === 'ratings' ? 'active' : ''}`}
-                              onClick={() => setActiveHistoryTab('ratings')}
-                            >
-                              Ratings ({ratings.length})
-                            </button>
-                          )}
-                          {reports.length > 0 && (
-                            <button 
-                              className={`history-tab ${activeHistoryTab === 'reports' ? 'active' : ''}`}
-                              onClick={() => setActiveHistoryTab('reports')}
-                            >
-                              Reports ({reports.length})
-                            </button>
-                          )}
-                        </div>
-
-                        {/* History Content */}
-                        <div className="history-content">
-                          {/* Exchange Batteries */}
-                          {activeHistoryTab === 'exchangeBatteries' && exchangeBatteries.length > 0 && (
-                            <div className="history-list">
-                              {exchangeBatteries.map((exchange, index) => (
-                                <div key={exchange.exchangeBatteryID || index} className="history-item">
-                                  <div className="history-row">
-                                    <span className="history-label">Exchange ID:</span>
-                                    <span className="history-value">{exchange.exchangeBatteryID}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Date:</span>
-                                    <span className="history-value">{formatHistoryDate(exchange.actionDate)}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Old Battery:</span>
-                                    <span className="history-value">{exchange.oldBatteryID}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">New Battery:</span>
-                                    <span className="history-value">{exchange.newBatteryID}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Station:</span>
-                                    <span className="history-value">{exchange.stationID}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Status:</span>
-                                    <span className="history-value">
-                                      <span className={`status-badge status-${exchange.status ? exchange.status.toLowerCase() : 'unknown'}`}>
-                                        {exchange.status}
-                                      </span>
-                                    </span>
-                                  </div>
-                                  {exchange.notes && (
-                                    <div className="history-row">
-                                      <span className="history-label">Notes:</span>
-                                      <span className="history-value">{exchange.notes}</span>
-                                    </div>
-                                  )}
-                                  {index < exchangeBatteries.length - 1 && <hr className="history-divider" />}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Forms */}
-                          {activeHistoryTab === 'forms' && forms.length > 0 && (
-                            <div className="history-list">
-                              {forms.map((form, index) => (
-                                <div key={form.formID || index} className="history-item">
-                                  <div className="history-row">
-                                    <span className="history-label">Form ID:</span>
-                                    <span className="history-value">{form.formID}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Title:</span>
-                                    <span className="history-value">{form.title}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Description:</span>
-                                    <span className="history-value">{form.description}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Date:</span>
-                                    <span className="history-value">{formatHistoryDate(form.date)}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Status:</span>
-                                    <span className="history-value">
-                                      <span className={`status-badge status-${form.status ? form.status.toLowerCase() : 'unknown'}`}>
-                                        {form.status}
-                                      </span>
-                                    </span>
-                                  </div>
-                                  {index < forms.length - 1 && <hr className="history-divider" />}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Orders */}
-                          {activeHistoryTab === 'orders' && orders.length > 0 && (
-                            <div className="history-list">
-                              {orders.map((order, index) => (
-                                <div key={order.orderID || index} className="history-item">
-                                  <div className="history-row">
-                                    <span className="history-label">Order ID:</span>
-                                    <span className="history-value">{order.orderID}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Total:</span>
-                                    <span className="history-value">${order.total?.toFixed(2)}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Date:</span>
-                                    <span className="history-value">{formatHistoryDate(order.date)}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Battery ID:</span>
-                                    <span className="history-value">{order.batteryID}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Status:</span>
-                                    <span className="history-value">
-                                      <span className={`status-badge status-${order.status ? order.status.toLowerCase() : 'unknown'}`}>
-                                        {order.status}
-                                      </span>
-                                    </span>
-                                  </div>
-                                  {index < orders.length - 1 && <hr className="history-divider" />}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Ratings */}
-                          {activeHistoryTab === 'ratings' && ratings.length > 0 && (
-                            <div className="history-list">
-                              {ratings.map((rating, index) => (
-                                <div key={rating.ratingID || index} className="history-item">
-                                  <div className="history-row">
-                                    <span className="history-label">Rating ID:</span>
-                                    <span className="history-value">{rating.ratingID}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Rating:</span>
-                                    <span className="history-value">
-                                      <span className="rating-stars">
-                                        {'★'.repeat(rating.rating || 0)}{'☆'.repeat(5 - (rating.rating || 0))}
-                                      </span>
-                                      ({rating.rating}/5)
-                                    </span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Description:</span>
-                                    <span className="history-value">{rating.description}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Station:</span>
-                                    <span className="history-value">{rating.stationID}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Status:</span>
-                                    <span className="history-value">
-                                      <span className={`status-badge status-${rating.status ? rating.status.toLowerCase() : 'unknown'}`}>
-                                        {rating.status}
-                                      </span>
-                                    </span>
-                                  </div>
-                                  {index < ratings.length - 1 && <hr className="history-divider" />}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Reports */}
-                          {activeHistoryTab === 'reports' && reports.length > 0 && (
-                            <div className="history-list">
-                              {reports.map((report, index) => (
-                                <div key={report.reportID || index} className="history-item">
-                                  <div className="history-row">
-                                    <span className="history-label">Report ID:</span>
-                                    <span className="history-value">{report.reportID}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Name:</span>
-                                    <span className="history-value">{report.name}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Description:</span>
-                                    <span className="history-value">{report.description}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Station:</span>
-                                    <span className="history-value">{report.stationID}</span>
-                                  </div>
-                                  <div className="history-row">
-                                    <span className="history-label">Status:</span>
-                                    <span className="history-value">
-                                      <span className={`status-badge status-${report.status ? report.status.toLowerCase() : 'unknown'}`}>
-                                        {report.status}
-                                      </span>
-                                    </span>
-                                  </div>
-                                  {index < reports.length - 1 && <hr className="history-divider" />}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="history-placeholder">
-                        <p>No history data available</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Hiển thị thông báo nếu là EvDriver nhưng không có customer details */}
-            {user.role === 'EvDriver' && !customerDetails && !detailLoading && (
+          <form onSubmit={handleSave}>
+            <div className="user-detail-info">
+              {/* Basic User Info */}
               <div className="detail-row">
-                <span className="detail-label">Vehicle Info:</span>
-                <span className="detail-value" style={{ color: '#ff6b6b' }}>
-                  No vehicle information found
+                <span className="detail-label">Account ID:</span>
+                <span className="detail-value">{user.accountId}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Role:</span>
+                <span className="detail-value">
+                  <span className={`role-badge role-${user.role?.toLowerCase()}`}>
+                    {user.role}
+                  </span>
                 </span>
               </div>
+              <div className="detail-row">
+                <span className="detail-label">Username:</span>
+                <span className="detail-value">{user.username}</span>
+              </div>
+              
+              {/* Editable Fields */}
+              <div className="detail-row">
+                <span className="detail-label">Name:</span>
+                <span className="detail-value">
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      className="edit-field"
+                      required
+                    />
+                  ) : (
+                    user.name
+                  )}
+                </span>
+              </div>
+              
+              <div className="detail-row">
+                <span className="detail-label">Phone:</span>
+                <span className="detail-value">
+                  {isEditing ? (
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className="edit-field"
+                      required
+                    />
+                  ) : (
+                    user.phone
+                  )}
+                </span>
+              </div>
+              
+              <div className="detail-row">
+                <span className="detail-label">Email:</span>
+                <span className="detail-value">
+                  {isEditing ? (
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="edit-field"
+                      required
+                    />
+                  ) : (
+                    user.email
+                  )}
+                </span>
+              </div>
+              
+              <div className="detail-row">
+                <span className="detail-label">Address:</span>
+                <span className="detail-value">
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      name="address"
+                      value={formData.address}
+                      onChange={handleChange}
+                      className="edit-field"
+                    />
+                  ) : (
+                    user.address
+                  )}
+                </span>
+              </div>
+
+              <div className="detail-row">
+                <span className="detail-label">Status:</span>
+                <span className="detail-value">
+                  {isEditing ? (
+                    <select
+                      name="status"
+                      value={formData.status}
+                      onChange={handleChange}
+                      className="edit-field"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  ) : (
+                    <span className={`status-badge status-${user.status ? user.status.toLowerCase() : 'null'}`}>
+                      {user.status}
+                    </span>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="popup-actions center-actions">
+              {isEditing ? (
+                <>
+                  <button type="button" className="cancel-btn" onClick={handleCancel} disabled={loading}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="edit-btn" disabled={loading}>
+                    {loading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* Ẩn nút Edit và Delete nếu user là Admin */}
+                  {!isAdminUser && (
+                    <>
+                      <button type="button" className="edit-btn" onClick={handleEditClick}>
+                        Edit
+                      </button>
+                      <button type="button" className="delete-btn" onClick={() => onDelete(user)}>
+                        Delete
+                      </button>
+                    </>
+                  )}
+                  {/* Hiển thị thông báo nếu là Admin */}
+                  {isAdminUser && (
+                    <div className="admin-notice">
+                      Admin users cannot be edited or deleted
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Nút Close - chỉ hiển thị khi KHÔNG ở chế độ edit */}
+            {!isEditing && (
+              <div className="popup-actions end-actions">
+                <button type="button" className="cancel-btn" onClick={onClose} disabled={loading}>
+                  Close
+                </button>
+              </div>
             )}
-          </div>
+          </form>
         )}
-
-        {/* Action buttons */}
-        <div className="popup-actions center-actions">
-          <button type="button" className="edit-btn" onClick={() => onEdit(user)}>
-            Edit
-          </button>
-          <button type="button" className="delete-btn" onClick={() => onDelete(user)}>
-            Delete
-          </button>
-        </div>
-
-        <div className="popup-actions end-actions">
-          <button type="button" className="cancel-btn" onClick={onClose}>
-            Cancel
-          </button>
-        </div>
       </div>
     </div>
   );

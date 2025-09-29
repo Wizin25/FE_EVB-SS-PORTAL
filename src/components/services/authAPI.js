@@ -6,14 +6,12 @@ export const authAPI = {
       const response = await api.post('/api/Account/login', credentials);
       return response.data;
     } catch (error) {
-      // trả về Error object có message
       throw new Error(error?.message || JSON.stringify(error) || 'Sign in failed');
     }
   },
 
   signUp: async (userData) => {
     try {
-      // Build multipart/form-data payload matching BE keys (PascalCase)
       const form = new FormData();
       form.append('Username', userData.username);
       form.append('Password', userData.password);
@@ -28,7 +26,6 @@ export const authAPI = {
       });
       return response.data;
     } catch (errors) {
-      // Không wrap, trả về đúng payload của BE để UI lấy message từ Swagger
       throw errors;
     }
   },
@@ -53,15 +50,15 @@ export const authAPI = {
 
   getAllUsers: async () => {
     try {
-      const response = await api.get('/api/Account/get_all_account_for_admin',);
+      const response = await api.get('/api/Account/get_all_account_for_admin');
       return response.data;
     } catch (error) {
       throw new Error(error?.message || JSON.stringify(error) || 'Get users failed');
     }
   },
+
   createStaff: async (staffData) => {
     try {
-      // Build multipart/form-data payload matching BE keys (PascalCase)
       const form = new FormData();
       form.append('Username', staffData.username);
       form.append('Password', staffData.password);
@@ -76,11 +73,11 @@ export const authAPI = {
       });
       return response.data;
     } catch (error) {
-      // Không wrap, trả về đúng payload của BE để UI lấy message từ Swagger
       throw error;
     }
   },
-getAllCustomers: async () => {
+  
+  getAllCustomers: async () => {
     try {
       const response = await api.get('/api/Account/get_all_customer_for_admin');
       return response.data;
@@ -98,15 +95,69 @@ getAllCustomers: async () => {
     }
   },
 
-   getExchangeHistory: async (customerId) => {
+  getExchangeHistory: async (customerId) => {
     try {
-      // Giả sử endpoint này trả về lịch sử trao đổi pin của customer
       const response = await api.get(`/api/ExchangeBattery/get_by_customer/${customerId}`);
       return response.data;
     } catch (error) {
       throw new Error(error?.message || JSON.stringify(error) || 'Get exchange history failed');
     }
   },
+
+  // CÁC HÀM CHO EDIT VÀ DELETE
+  updateStaff: async (staffData) => {
+    try {
+      const form = new FormData();
+      form.append('AccountID', staffData.accountId);
+      form.append('Name', staffData.name);
+      form.append('Phone', staffData.phone);
+      form.append('Address', staffData.address ?? '');
+      form.append('Email', staffData.email);
+      form.append('Status', staffData.status);
+
+      const response = await api.put('/api/Account/update_staff_for_admin', form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateCustomer: async (customerData) => {
+    try {
+      const form = new FormData();
+      form.append('AccountID', customerData.accountId);
+      form.append('Name', customerData.name);
+      form.append('Phone', customerData.phone);
+      form.append('Address', customerData.address ?? '');
+      form.append('Email', customerData.email);
+      form.append('Status', customerData.status);
+
+      const response = await api.put('/api/Account/update_customer_for_admin', form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteStaff: async (accountId) => {
+    try {
+      const response = await api.put(`/api/Account/delete_staff_for_admin/${accountId}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteCustomer: async (accountId) => {
+    try {
+      const response = await api.put(`/api/Account/delete_customer_for_admin/${accountId}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
-
-

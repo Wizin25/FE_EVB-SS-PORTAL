@@ -60,6 +60,8 @@ export default function ControllerPage() {
       if (!checkAuth()) return;
 
       const res = await authAPI.getAllUsers();
+      console.log('API Response:', res); // Debug API response
+      
       const usersArray = Array.isArray(res?.data) ? res.data : [];
 
       if (usersArray.length > 0) {
@@ -76,6 +78,8 @@ export default function ControllerPage() {
           updateDate: user.updateDate ?? 'N/A'
         }));
 
+        console.log('Formatted users:', formattedUsers); // Debug formatted data
+        
         setUsers(formattedUsers);
         setFilteredUsers(formattedUsers);
       } else {
@@ -106,14 +110,12 @@ export default function ControllerPage() {
     setCustomerDetails(null);
     setExchangeHistory([]);
 
-    // Nếu là EvDriver, lấy thông tin chi tiết
     if (user.role === 'EvDriver') {
       setDetailLoading(true);
       try {
         const res = await authAPI.getAllCustomers();
         const customers = Array.isArray(res?.data) ? res.data : [];
         
-        // Tìm customer theo accountId
         const customer = customers.find(c => 
           c.accountID === user.accountId || c.accountId === user.accountId
         );
@@ -121,7 +123,6 @@ export default function ControllerPage() {
         if (customer) {
           setCustomerDetails(customer);
 
-          // Lấy exchange history
           setHistoryLoading(true);
           try {
             const historyRes = await authAPI.getExchangeHistory(customer.customerID);
@@ -142,6 +143,86 @@ export default function ControllerPage() {
     }
   };
 
+  // HÀM LƯU THÔNG TIN USER SAU KHI CHỈNH SỬA
+  const handleSaveUser = async (accountId, updatedData) => {
+    try {
+      console.log('Saving user:', { accountId, updatedData, selectedUser });
+      
+      let response;
+      
+      if (selectedUser.role === 'Bsstaff') {
+        response = await authAPI.updateStaff({ 
+          accountId, 
+          ...updatedData 
+        });
+      } else if (selectedUser.role === 'EvDriver') {
+        response = await authAPI.updateCustomer({ 
+          accountId, 
+          ...updatedData 
+        });
+      } else {
+        alert('Cannot edit Admin users');
+        return;
+      }
+
+      console.log('Save response:', response);
+      
+      if (response && response.statusCode === 200) {
+        // Tạo updateDate từ client (real-time)
+        const currentDate = new Date().toISOString();
+        
+        // Cập nhật local state ngay lập tức
+        setUsers(prevUsers => 
+          prevUsers.map(user => 
+            user.accountId === accountId 
+              ? { ...user, ...updatedData, updateDate: currentDate }
+              : user
+          )
+        );
+        
+        setShowDetailPopup(false);
+        alert('User updated successfully!');
+      } else {
+        alert('Failed to update user. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to update user:', error);
+      alert(`Failed to update user: ${error.message || 'Please try again.'}`);
+    }
+  };
+
+  // HÀM XÓA USER - GỌI API THỰC TẾ
+  const handleDeleteUser = async (user) => {
+    if (!window.confirm(`Are you sure you want to delete user: ${user.name}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      let response;
+      
+      if (user.role === 'Bsstaff') {
+        response = await authAPI.deleteStaff(user.accountId);
+      } else if (user.role === 'EvDriver') {
+        response = await authAPI.deleteCustomer(user.accountId);
+      } else {
+        alert('Cannot delete Admin users');
+        return;
+      }
+
+      if (response && response.statusCode === 200) {
+        // Xóa thành công, fetch lại dữ liệu từ server
+        await fetchUsers();
+        setShowDetailPopup(false);
+        alert(`User ${user.name} has been deleted successfully`);
+      } else {
+        alert('Failed to delete user. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      alert('Failed to delete user. Please try again.');
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -151,7 +232,6 @@ export default function ControllerPage() {
 
     let results = users;
 
-    // Search
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       results = results.filter(user =>
@@ -164,12 +244,10 @@ export default function ControllerPage() {
       );
     }
 
-    // Role filter
     if (roleFilter !== 'All') {
       results = results.filter(user => user.role === roleFilter);
     }
 
-    // Sort
     if (sortField) {
       results = [...results].sort((a, b) => {
         const aValue = a[sortField] || '';
@@ -210,12 +288,19 @@ export default function ControllerPage() {
   const formatDate = (dateString) => {
     if (!dateString || dateString === 'N/A') return 'N/A';
     try {
-      return new Date(dateString).toLocaleDateString('vi-VN', {
+      const date = new Date(dateString);
+      
+      // Kiểm tra nếu date không hợp lệ
+      if (isNaN(date.getTime())) return 'N/A';
+      
+      // Sử dụng toLocaleString để bao gồm cả thời gian
+      return date.toLocaleString('vi-VN', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        timeZone: 'Asia/Ho_Chi_Minh' // Chỉ định rõ múi giờ Việt Nam
       });
     } catch {
       return dateString;
@@ -449,8 +534,8 @@ export default function ControllerPage() {
         detailLoading={detailLoading}
         exchangeHistory={exchangeHistory}
         historyLoading={historyLoading}
-        onEdit={(u) => alert(`Edit user: ${u.username}`)}
-        onDelete={(u) => alert(`Delete user: ${u.username}`)}
+        onSave={handleSaveUser}
+        onDelete={handleDeleteUser}
       />
     </div>
   );
