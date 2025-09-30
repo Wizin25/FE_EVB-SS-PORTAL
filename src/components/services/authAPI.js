@@ -204,4 +204,93 @@ export const authAPI = {
       throw error;
     }
   },
+
+  getAllStations: async () => {
+    try {
+      const res = await api.get('/api/Station/get_all_stations');
+      if (res?.data?.isSuccess) {
+        return res.data.data || [];
+      }
+      throw new Error(res?.data?.responseCode || 'Failed to fetch stations');
+    } catch (error) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.responseCode ||
+        error?.message ||
+        JSON.stringify(error);
+      throw new Error(msg);
+    }
+  },
+
+  createStation: async ({ batteryNumber, location }) => {
+    try {
+      const form = new FormData();
+      // Backend yêu cầu field name exactly as docs: BatteryNumber, Location
+      form.append("BatteryNumber", batteryNumber ?? 0);
+      form.append("Location", location ?? "");
+
+      const res = await api.post("/api/Station/add_station_for_admin", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (res?.data?.isSuccess) {
+        return res.data;
+      }
+      throw new Error(res?.data?.responseCode || "Failed to create station");
+    } catch (error) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.responseCode ||
+        error?.message ||
+        JSON.stringify(error);
+      throw new Error(msg);
+    }
+  },
+
+  deleteStation: async (stationId) => {
+    try {
+      // dùng PUT với params
+      const res = await api.put(
+        "/api/Station/delete_station_for_admin",
+        null,
+        { params: { stationId } }
+      );
+      if (res?.data?.isSuccess) {
+        return res.data;
+      }
+      throw new Error(res?.data?.responseCode || "Failed to delete station");
+    } catch (error) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.responseCode ||
+        error?.message ||
+        JSON.stringify(error);
+      throw new Error(msg);
+    }
+  },
+
+  updateStation: async ({ stationId, batteryNumber, location }) => {
+    try {
+      const form = new FormData();
+      form.append("StationId", stationId ?? ""); // giữ theo docs
+      form.append("BatteryNumber", batteryNumber ?? 0);
+      form.append("Location", location ?? "");
+
+      const res = await api.put("/api/Station/update_station_for_admin", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (res?.data?.isSuccess) {
+        return res.data;
+      }
+      throw new Error(res?.data?.responseCode || "Failed to update station");
+    } catch (error) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.responseCode ||
+        error?.message ||
+        JSON.stringify(error);
+      throw new Error(msg);
+    }
+  },
 };
