@@ -101,7 +101,7 @@ export const authAPI = {
     }
   },
 
-  // CÁC HÀM ADMIN (giữ nguyên)
+  // CÁC HÀM ADMIN 
   getAllUsers: async () => {
     try {
       const response = await api.get('/api/Account/get_all_account_for_admin');
@@ -293,4 +293,77 @@ export const authAPI = {
       throw new Error(msg);
     }
   },
+  // Battery APIs
+getAllBatteries: async () => {
+  try {
+    const res = await api.get("api/Battery/get-all-batteries");
+    if (res.data?.isSuccess) {
+      return res.data.data;
+    }
+    return [];
+  } catch (err) {
+    throw new Error(err?.message || "Lỗi khi lấy danh sách pin");
+  }
+},
+
+getBatteryById: async (batteryId) => {
+  try {
+    const res = await api.get(`/api/Battery/get-battery-by-id?batteryId=${batteryId}`);
+    if (res.data?.isSuccess) {
+      return res.data.data;
+    }
+    return null;
+  } catch (err) {
+    throw new Error(err?.message || "Không tìm thấy pin");
+  }
+},
+
+createBattery: async (formData) => {
+  try {
+    const res = await api.post("/api/Battery/add-battery", formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return res.data;
+  } catch (err) {
+    throw new Error(err?.message || "Tạo pin thất bại");
+  }
+},
+
+updateBattery: async (formData) => {
+  try {
+    const res = await api.put("/api/Battery/update-battery", formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return res.data;
+  } catch (err) {
+    throw new Error(err?.message || "Cập nhật pin thất bại");
+  }
+},
+
+deleteBattery: async (batteryId) => {
+  try {
+    const formData = new FormData();
+    formData.append("batteryId", batteryId);
+    const res = await api.put("/api/Battery/delete-battery", formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return res.data;
+  } catch (err) {
+    throw new Error(err?.message || "Xóa pin thất bại");
+  }
+},
+
+addBatteryToStation: async (batteryId, stationId) => {
+  try {
+    const formData = new FormData();
+    formData.append("BatteryId", batteryId);
+    formData.append("StationId", stationId);
+    const res = await api.put("/api/Battery/add-battery-in-station", formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return res.data;
+  } catch (err) {
+    throw new Error(err?.message || "Gán pin vào trạm thất bại");
+  }
+},
 };
