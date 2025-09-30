@@ -48,6 +48,60 @@ export const authAPI = {
     }
   },
 
+  // THÊM CÁC HÀM MỚI CHO PROFILE
+  updateProfile: async (profileData) => {
+    try {
+      const form = new FormData();
+      form.append('Name', profileData.name);
+      form.append('Phone', profileData.phone);
+      form.append('Address', profileData.address ?? '');
+      form.append('Email', profileData.email);
+
+      const response = await api.put('/api/Account/update_current_profile', form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      // Trả về toàn bộ response data để xử lý
+      return response.data;
+    } catch (error) {
+      // Ném lỗi để component bắt được
+      throw error.response?.data || error;
+    }
+  },
+
+  changePassword: async (passwordData) => {
+  try {
+    const response = await api.put('/api/Account/change-password', {
+      oldPassword: passwordData.oldPassword,
+      newPassword: passwordData.newPassword,
+      confirmPassword: passwordData.confirmPassword  // THÊM TRƯỜNG NÀY
+    });
+    
+    // Trả về toàn bộ response data để xử lý
+    return response.data;
+  } catch (error) {
+    // Ném lỗi để component bắt được
+    throw error.response?.data || error;
+  }
+},
+
+  getCurrent: async () => {
+    try {
+      const res = await api.get('/api/Account/get-currrent');
+      // backend trả wrapper { isSuccess, data, ... } -> trả về data trực tiếp
+      if (res?.data?.isSuccess) {
+        return res.data.data || null;
+      }
+      // nếu backend trả 200 nhưng isSuccess false thì trả null
+      console.warn('authAPI.getCurrent: isSuccess false', res?.data);
+      return null;
+    } catch (error) {
+      console.error('authAPI.getCurrent error:', error);
+      throw error;
+    }
+  },
+
+  // CÁC HÀM ADMIN (giữ nguyên)
   getAllUsers: async () => {
     try {
       const response = await api.get('/api/Account/get_all_account_for_admin');
@@ -95,31 +149,6 @@ export const authAPI = {
     }
   },
 
-  getExchangeHistory: async (customerId) => {
-    try {
-      const response = await api.get(`/api/ExchangeBattery/get_by_customer/${customerId}`);
-      return response.data;
-    } catch (error) {
-      throw new Error(error?.message || JSON.stringify(error) || 'Get exchange history failed');
-    }
-  },
-
-  getCurrent: async () => {
-    try {
-      const res = await api.get('/api/Account/get-currrent');
-      // backend trả wrapper { isSuccess, data, ... } -> trả về data trực tiếp
-      if (res?.data?.isSuccess) {
-        return res.data.data || null;
-      }
-      // nếu backend trả 200 nhưng isSuccess false thì trả null
-      console.warn('authAPI.getCurrent: isSuccess false', res?.data);
-      return null;
-    } catch (error) {
-      console.error('authAPI.getCurrent error:', error);
-    }
-  },
-
-  // CÁC HÀM CHO EDIT VÀ DELETE
   updateStaff: async (staffData) => {
     try {
       const form = new FormData();

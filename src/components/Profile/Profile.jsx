@@ -108,7 +108,7 @@ function Profile({ theme = "light" }) {
       return <div className="text-sm opacity-70">Không có</div>;
     }
     return (
-      <ul className="list-none p-0 m-0 space-y-1">
+      <ul className="p-0 m-0 space-y-1 list-none">
         {arr.slice(0, 3).map((it, idx) => {
           let label;
           if (labelKey) {
@@ -142,14 +142,28 @@ function Profile({ theme = "light" }) {
     setEditLoading(true);
     setEditError(null);
     try {
-      const updated = await authAPI.updateProfile?.({
+      // Gọi API update profile
+      const response = await authAPI.updateProfile({
         name: editData.name,
         phone: editData.phone,
         address: editData.address,
         email: editData.email,
-      }) ?? {};
-      setUser((prev) => ({ ...prev, ...updated }));
-      setEditMode(false);
+      });
+      
+      // Kiểm tra response và cập nhật state
+      if (response && response.isSuccess) {
+        // Cập nhật user data với dữ liệu mới
+        setUser(prev => ({
+          ...prev,
+          name: editData.name,
+          phone: editData.phone,
+          address: editData.address,
+          email: editData.email
+        }));
+        setEditMode(false);
+      } else {
+        throw new Error(response?.message || "Cập nhật thất bại");
+      }
     } catch (err) {
       setEditError(err?.message || "Lỗi khi cập nhật hồ sơ");
     } finally {
@@ -176,36 +190,45 @@ function Profile({ theme = "light" }) {
   };
 
   const handlePasswordSubmit = async (e) => {
-    e.preventDefault();
-    setPasswordError(null);
-    setPasswordSuccess(null);
+  e.preventDefault();
+  setPasswordError(null);
+  setPasswordSuccess(null);
 
-    if (!passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
-      setPasswordError("Vui lòng điền đầy đủ thông tin.");
-      return;
-    }
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setPasswordError("Mật khẩu mới và xác nhận không khớp.");
-      return;
-    }
-    setPasswordLoading(true);
-    try {
-      await authAPI.changePassword?.({
-        oldPassword: passwordData.oldPassword,
-        newPassword: passwordData.newPassword,
-      });
+  if (!passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+    setPasswordError("Vui lòng điền đầy đủ thông tin.");
+    return;
+  }
+  if (passwordData.newPassword !== passwordData.confirmPassword) {
+    setPasswordError("Mật khẩu mới và xác nhận không khớp.");
+    return;
+  }
+  
+  setPasswordLoading(true);
+  try {
+    // Gọi API change password với đủ 3 trường
+    const response = await authAPI.changePassword({
+      oldPassword: passwordData.oldPassword,
+      newPassword: passwordData.newPassword,
+      confirmPassword: passwordData.confirmPassword  // THÊM TRƯỜNG NÀY
+    });
+
+    // Kiểm tra response
+    if (response && response.isSuccess) {
       setPasswordSuccess("Đổi mật khẩu thành công!");
       setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
       setTimeout(() => {
-        setShowPasswordModal(false);
+        setActiveSidebar("profile");
         setPasswordSuccess(null);
       }, 1200);
-    } catch (err) {
-      setPasswordError(err?.message || "Lỗi khi đổi mật khẩu");
-    } finally {
-      setPasswordLoading(false);
+    } else {
+      throw new Error(response?.message || "Đổi mật khẩu thất bại");
     }
-  };
+  } catch (err) {
+    setPasswordError(err?.message || "Lỗi khi đổi mật khẩu");
+  } finally {
+    setPasswordLoading(false);
+  }
+};
 
   const handlePasswordCancel = () => {
     setShowPasswordModal(false);
@@ -214,12 +237,19 @@ function Profile({ theme = "light" }) {
     setPasswordSuccess(null);
   };
 
+  // Cập nhật sidebarItems với nút trở về trang chủ thay vì đăng xuất
   const sidebarItems = [
     { key: "profile", label: "Hồ sơ", icon: "👤", onClick: () => setActiveSidebar("profile") },
     { key: "bookHistory", label: "Lịch sử Book lịch", icon: "📅", onClick: () => setActiveSidebar("bookHistory") },
     { key: "paymentHistory", label: "Lịch sử thanh toán", icon: "💳", onClick: () => setActiveSidebar("paymentHistory") },
     { key: "changePassword", label: "Thay đổi mật khẩu", icon: "🔒", onClick: () => setActiveSidebar("changePassword") },
-    { key: "home", label: "Quay về trang chủ", icon: "🏠", onClick: () => navigate('/home') },
+    { 
+      key: "home", 
+      label: "Trở về trang chủ", 
+      icon: "🏠", 
+      onClick: () => navigate('/home'),
+      isHome: true // Thêm flag để style riêng
+    },
   ];
 
   const renderBookHistory = () => (
@@ -289,26 +319,51 @@ function Profile({ theme = "light" }) {
         {sidebarItems.map((item) => (
           <button
             key={item.key}
-            className={`profile-sidebar-btn${activeSidebar === item.key ? " active" : ""}`}
+            className={`profile-sidebar-btn${activeSidebar === item.key ? " active" : ""}${item.isHome ? " profile-home-btn" : ""}`}
             style={{
               display: "flex",
               alignItems: "center",
               gap: 12,
               width: "100%",
               padding: isMobile ? "10px 12px" : "14px 24px",
-              background: activeSidebar === item.key ? (theme === "dark" ? "#2563eb22" : "#bae6fd") : "none",
+              background: item.isHome 
+                ? "linear-gradient(to right, #10b981, #059669)" 
+                : activeSidebar === item.key 
+                  ? (theme === "dark" ? "#2563eb22" : "#bae6fd") 
+                  : "none",
               border: "none",
-              borderRight: activeSidebar === item.key && !isMobile ? "4px solid #2563eb" : "none",
-              color: activeSidebar === item.key ? (theme === "dark" ? "#38bdf8" : "#2563eb") : (theme === "dark" ? "#e0e7ef" : "#1e293b"),
-              fontWeight: activeSidebar === item.key ? 600 : 500,
+              borderRight: activeSidebar === item.key && !isMobile && !item.isHome ? "4px solid #2563eb" : "none",
+              color: item.isHome 
+                ? "white" 
+                : activeSidebar === item.key 
+                  ? (theme === "dark" ? "#38bdf8" : "#2563eb") 
+                  : (theme === "dark" ? "#e0e7ef" : "#1e293b"),
+              fontWeight: activeSidebar === item.key || item.isHome ? 600 : 500,
               fontSize: 16,
               cursor: "pointer",
               outline: "none",
-              transition: "background 0.2s",
-              textAlign: "left"
+              transition: item.isHome ? "all 0.3s" : "background 0.2s",
+              textAlign: "left",
+              marginTop: item.isHome ? "auto" : "0",
+              marginBottom: item.isHome && isMobile ? "16px" : item.isHome ? "32px" : "0",
+              boxShadow: item.isHome ? "0 4px 12px 0 rgba(16, 185, 129, 0.3)" : "none",
             }}
             onClick={item.onClick}
             type="button"
+            onMouseEnter={(e) => {
+              if (item.isHome) {
+                e.target.style.background = "linear-gradient(to right, #059669, #047857)";
+                e.target.style.transform = "translateY(-2px) scale(1.05)";
+                e.target.style.boxShadow = "0 6px 20px 0 rgba(5, 150, 105, 0.4)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (item.isHome) {
+                e.target.style.background = "linear-gradient(to right, #10b981, #059669)";
+                e.target.style.transform = "translateY(0) scale(1)";
+                e.target.style.boxShadow = "0 4px 12px 0 rgba(16, 185, 129, 0.3)";
+              }
+            }}
           >
             <span style={{ fontSize: 20 }}>{item.icon}</span>
             {item.label}
