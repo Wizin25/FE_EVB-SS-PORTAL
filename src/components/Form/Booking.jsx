@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
 import { authAPI } from '../services/authAPI';
 import { formAPI } from '../services/formAPI';
 import './form.css';
@@ -22,6 +23,8 @@ const Form = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+
+  const navigate = useNavigate();
 
   // Lấy thông tin user hiện tại và danh sách trạm
   useEffect(() => {
@@ -68,61 +71,139 @@ const Form = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  if (!currentUser) {
+    setMessage({ type: 'error', text: 'Bạn cần đăng nhập để gửi form' });
+    return;
+  }
+
+  const errors = validateForm();
+  if (errors.length > 0) {
+    setMessage({ type: 'error', text: errors[0] });
+    return;
+  }
+  
+  // Validate form
+  if (!formData.title || !formData.description || !formData.date || !formData.stationId) {
+    setMessage({ type: 'error', text: 'Vui lòng điền đầy đủ thông tin' });
+    return;
+  }
+
+  setLoading(true);
+  setMessage({ type: '', text: '' });
+
+  try {
+    // Format date properly for backend
+    const submitData = new FormData();
+    submitData.append('AccountId', currentUser.accountId);
+    submitData.append('Title', formData.title);
+    submitData.append('Description', formData.description);
+    submitData.append('Date', formData.date);
+    submitData.append('StationId', formData.stationId);
+
+    const response = await formAPI.createForm(submitData);
     
-    if (!currentUser) {
-      setMessage({ type: 'error', text: 'Bạn cần đăng nhập để gửi form' });
-      return;
-    }
-
-    // Validate form
-    if (!formData.title || !formData.description || !formData.date || !formData.stationId) {
-      setMessage({ type: 'error', text: 'Vui lòng điền đầy đủ thông tin' });
-      return;
-    }
-
-    setLoading(true);
-    setMessage({ type: '', text: '' });
-
-    try {
-      const submitData = {
-        ...formData,
-        accountId: currentUser.accountId
-      };
-
-      const response = await formAPI.createForm(submitData);
+    if (response.isSuccess) {
+      setMessage({ 
+        type: 'success', 
+        text: 'Gửi form thành công!' 
+      });
+      // Reset form
+      setFormData({
+        title: '',
+        description: '',
+        date: '',
+        stationId: ''
+      });
       
-      if (response.isSuccess) {
-        setMessage({ 
-          type: 'success', 
-          text: 'Gửi form thành công!' 
-        });
-        // Reset form
-        setFormData({
-          title: '',
-          description: '',
-          date: '',
-          stationId: ''
-        });
-      } else {
-        setMessage({ 
-          type: 'error', 
-          text: response.message || 'Gửi form thất bại' 
-        });
-      }
-    } catch (error) {
+      // Optional: Redirect after success
+      setTimeout(() => {
+        navigate('/forms'); // or wherever you want to redirect
+      }, 2000);
+    } else {
       setMessage({ 
         type: 'error', 
-        text: error.message || 'Có lỗi xảy ra khi gửi form' 
+        text: response.message || 'Gửi form thất bại' 
       });
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (error) {
+    console.error('Form submission error:', error);
+    setMessage({ 
+      type: 'error', 
+      text: error.message || 'Có lỗi xảy ra khi gửi form' 
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
+const validateForm = () => {
+  const errors = [];
+  
+  if (!formData.title.trim()) {
+    errors.push('Tiêu đề không được để trống');
+  }
+  
+  if (!formData.description.trim()) {
+    errors.push('Mô tả không được để trống');
+  }
+  
+  if (!formData.date) {
+    errors.push('Vui lòng chọn ngày');
+  } else {
+    const selectedDate = new Date(formData.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+      errors.push('Không thể chọn ngày trong quá khứ');
+    }
+  }
+  
+  if (!formData.stationId) {
+    errors.push('Vui lòng chọn trạm hỗ trợ');
+  }
+  
+  return errors;
+};
 
   return (
     <div className={`form-page ${theme}`}>
       <div className="form-wrapper">
+        {/* Nút trở về trang chủ */}
+        <button
+          onClick={() => navigate('/home')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            marginBottom: '16px',
+            background: 'linear-gradient(to right, #10b981, #059669)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 600,
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+            transition: 'all 0.3s',
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = 'linear-gradient(to right, #059669, #047857)';
+            e.target.style.transform = 'translateY(-2px) scale(1.05)';
+            e.target.style.boxShadow = '0 6px 20px rgba(5, 150, 105, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = 'linear-gradient(to right, #10b981, #059669)';
+            e.target.style.transform = 'translateY(0) scale(1)';
+            e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+          }}
+        >
+          <span>🏠</span>
+          Trở về trang chủ
+        </button>
+
         {/* Header Section */}
         <div className={`form-header-card ${theme}`}>
           <h1>Tạo Form Yêu Cầu Hỗ Trợ</h1>
