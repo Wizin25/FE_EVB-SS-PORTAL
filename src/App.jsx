@@ -13,6 +13,7 @@ import HomePage from './components/Home/homePage.jsx';
 import StaffPage from './components/Admin/pages/Staff.jsx';
 import ControllerPage from './components/Admin/pages/Controller.jsx';
 import Profile from './components/Profile/Profile.jsx';
+import Form from './components/Form/Form.jsx'
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
             <Route path="controller" element={<ControllerPage />} />
           </Route>
           <Route path="/profile" element={<Profile />} />
+          <Route path="/booking" element={<Form />} />
         </Routes>
       </div>
     </Router>

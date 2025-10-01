@@ -211,4 +211,22 @@ export const authAPI = {
       throw error;
     }
   },
+  
+  logout: async () => {
+  try {
+    const response = await api.post('/api/Account/logout');
+    return response.data;
+  } catch (error) {
+    throw new Error(error?.message || JSON.stringify(error) || 'Logout failed');
+  }
+},
+
+getAllStaff: async () => {
+  try {
+    const response = await api.get('/api/Account/get_all_staff_for_admin');
+    return response.data;
+  } catch (error) {
+    throw new Error(error?.message || JSON.stringify(error) || 'Get staff failed');
+  }
+},
 };
