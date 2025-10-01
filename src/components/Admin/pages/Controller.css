@@ -1382,3 +1382,200 @@
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
+
+/* Dark Mode Styles */
+.dark .controller-page {
+  background-color: #1a1d25;
+  color: #e2e8f0;
+}
+
+.dark .controller-header,
+.dark .controller-tools,
+.dark .stat-card,
+.dark .users-table-wrapper,
+.dark .users-table th,
+.dark .search-input,
+.dark .sort-select {
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+.dark .controller-header h1 {
+  color: #f7fafc;
+}
+
+.dark .controller-header p {
+  color: #cbd5e0;
+}
+
+.dark .search-input {
+  border-color: #4a5568;
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+.dark .search-input:focus {
+  border-color: #0984e3;
+  background: #2d3748;
+}
+
+.dark .search-input::placeholder {
+  color: #a0aec0;
+}
+
+.dark .sort-select {
+  border-color: #4a5568;
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+.dark .sort-direction-btn {
+  background: #0984e3;
+  color: white;
+}
+
+.dark .sort-direction-btn:hover {
+  background: #0770c4;
+}
+
+.dark .stat-card {
+  border-top: 4px solid #0984e3;
+}
+
+.dark .stat-card h3 {
+  color: #cbd5e0;
+}
+
+.dark .stat-number {
+  color: #f7fafc;
+}
+
+.dark .users-table th {
+  background: #4a5568;
+  color: #f7fafc;
+  border-bottom: 2px solid #718096;
+}
+
+.dark .users-table th:hover {
+  background: #718096;
+}
+
+.dark .users-table td {
+  border-bottom: 1px solid #4a5568;
+  color: #e2e8f0;
+}
+
+.dark .users-table tbody tr {
+  background: #2d3748;
+}
+
+.dark .users-table tbody tr:hover {
+  background: #4a5568;
+}
+
+.dark .user-name {
+  color: #f7fafc;
+}
+
+.dark .account-id {
+  color: #cbd5e0;
+}
+
+.dark .no-data {
+  color: #a0aec0;
+}
+
+.dark .table-footer {
+  background: #4a5568;
+  border-top: 1px solid #718096;
+}
+
+.dark .results-count {
+  color: #e2e8f0;
+  background-color: #4a5568;
+  border-color: #0984e3;
+}
+
+/* Popup trong dark mode */
+.dark .popup-content {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.dark .popup-content h2 {
+  color: #ff9800;
+}
+
+.dark .popup-content label {
+  color: #e2e8f0;
+}
+
+.dark .popup-content input,
+.dark .popup-content select {
+  background: #4a5568;
+  border-color: #718096;
+  color: #e2e8f0;
+}
+
+.dark .popup-content input:focus,
+.dark .popup-content select:focus {
+  border-color: #ff9800;
+  background: #4a5568;
+}
+
+.dark .popup-content button[type="button"] {
+  background: #4a5568;
+  color: #e2e8f0;
+}
+
+.dark .popup-content button[type="button"]:hover:not(:disabled) {
+  background: #718096;
+}
+
+/* Scrollbar trong dark mode */
+.dark .users-table-container::-webkit-scrollbar-track {
+  background: #4a5568;
+}
+
+.dark .users-table-container::-webkit-scrollbar-thumb {
+  background: #718096;
+}
+
+.dark .users-table-container::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* Role badges trong dark mode */
+.dark .role-admin {
+  background: #d69e2e;
+  color: #2d3748;
+}
+
+.dark .role-bsstaff {
+  background: #6b46c1;
+  color: white;
+}
+
+.dark .role-evdriver {
+  background: #3182ce;
+  color: white;
+}
+
+.dark .role-n/a {
+  background: #718096;
+  color: #e2e8f0;
+}
+
+/* Status trong dark mode */
+.dark .status-active {
+  color: #48bb78;
+}
+
+.dark .status-inactive {
+  color: #f56565;
+}
+
+.dark .status-null {
+  color: #ed8936;
+}
