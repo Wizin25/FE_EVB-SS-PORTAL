@@ -1,8 +1,9 @@
 // HomePage.jsx
 import React, { useState, useEffect } from "react";
-import HeaderDriver from "./header"; 
+import HeaderDriver from "./header";
 import api from "../services/api";
 import Footer from "./footer";
+import BookingForm from "./BookingForm"; // Trang trí: import thêm BookingForm
 
 export default function HomePage() {
   const [theme, setTheme] = useState(() => {
@@ -122,8 +123,8 @@ export default function HomePage() {
   return (
     <div
       className={`min-h-screen transition-colors duration-300 ${
-        theme === 'dark' 
-          ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
+        theme === 'dark'
+          ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900'
           : 'bg-gradient-to-br from-blue-50 via-white to-green-50'
       }`}
       style={scrollStyles}
@@ -177,7 +178,19 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-
+   {/* Hero video section */}
+   <div className="booking-hero" style={{ height: 500, margin: 20 ,width: 1200}}>
+        <video autoPlay loop muted playsInline poster="" preload="metadata">
+          <source src="https://cdn.gogoro.com/resources/pages/global-home/hero/video-global-hero.mp4" type="video/mp4" />
+        </video>
+        <div className="booking-hero-content">
+          <div className="hero-text">
+            <h1>Đổi pin nhanh, sẵn sàng mọi hành trình</h1>
+            <p>Đặt lịch trước để đến trạm là có pin ngay, không phải đợi.</p>
+          </div>
+          <div className="hero-badge">⚡ Nguồn cảm hứng: video Gogoro</div>
+        </div>
+      </div>
         {/* Stats Cards */}
         <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
           {[
@@ -311,6 +324,17 @@ export default function HomePage() {
               </button>
             ))}
           </div>
+          {/* Secondary loop video subtle strip */}
+      <div className="booking-hero" style={{ height: 400, marginTop: 10 }}>
+        <video autoPlay loop muted playsInline preload="metadata">
+          <source src="https://cdn.gogoro.com/resources/pages/home/kv/video-home-kv.mp4" type="video/mp4" />
+        </video>
+        <div className="booking-hero-content" style={{ alignItems: 'flex-end' }}>
+          <div className="hero-text">
+            <p>Trạm phủ rộng, thao tác nhanh chóng, trải nghiệm mượt mà.</p>
+          </div>
+        </div>
+      </div>
         </div>
       </main>
       {/* Footer */}
