@@ -221,13 +221,14 @@ export const authAPI = {
     }
   },
 
-  createStation: async ({ batteryNumber, location }) => {
+  createStation: async ({ stationName ,batteryNumber, location}) => {
     try {
       const form = new FormData();
-      // Backend yêu cầu field name exactly as docs: BatteryNumber, Location
+      // Backend yêu cầu field name exactly as docs: BatteryNumber, Location, StationName
+      form.append("Name", stationName ?? "");
       form.append("BatteryNumber", batteryNumber ?? 0);
       form.append("Location", location ?? "");
-
+      
       const res = await api.post("/api/Station/add_station_for_admin", form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -268,9 +269,10 @@ export const authAPI = {
     }
   },
 
-  updateStation: async ({ stationId, batteryNumber, location }) => {
+  updateStation: async ({ stationName,stationId, batteryNumber, location }) => {
     try {
       const form = new FormData();
+      form.append("Name", stationName ?? "");
       form.append("StationId", stationId ?? ""); // giữ theo docs
       form.append("BatteryNumber", batteryNumber ?? 0);
       form.append("Location", location ?? "");
@@ -365,4 +367,24 @@ addBatteryToStation: async (batteryId, stationId) => {
     throw new Error(err?.message || "Gán pin vào trạm thất bại");
   }
 },
+  // Booking/Form APIs
+  createForm: async ({ accountId, title, description, date, stationId }) => {
+    try {
+      const form = new FormData();
+      // Field names must match backend exactly
+      form.append('AccountId', accountId ?? '');
+      form.append('Title', title ?? '');
+      form.append('Description', description ?? '');
+      form.append('Date', date ?? '');
+      form.append('StationId', stationId ?? '');
+
+      const res = await api.post('/api/Form/create-form', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return res.data;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Tạo lịch thất bại';
+      throw new Error(msg);
+    }
+  },
 };

@@ -7,7 +7,7 @@ import './Layout.css';
 const navItems = [
   { to: '/admin/dashboard', label: 'Dashboard' },
   { to: '/admin/form', label: 'Form' },
-  { to: '/admin/chart', label: 'Chart' },
+  { to: '/admin/battery', label: 'Battery' },
   { to: '/admin/calendar', label: 'Calendar' },
   { to: '/admin/station', label: 'Station' },
   { to: '/admin/controller', label: 'Controller' },
