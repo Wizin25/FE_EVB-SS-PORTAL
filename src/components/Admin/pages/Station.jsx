@@ -15,10 +15,12 @@ export default function Station() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
+  const [createName, setCreateName] = useState("");
   const [createBatteryNumber, setCreateBatteryNumber] = useState("");
   const [createLocation, setCreateLocation] = useState("");
 
   const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
   const [editBatteryNumber, setEditBatteryNumber] = useState("");
   const [editLocation, setEditLocation] = useState("");
 
@@ -45,7 +47,7 @@ export default function Station() {
     return stations.filter((st) => {
       if (statusFilter !== "All" && (st.status ?? "").toLowerCase() !== statusFilter.toLowerCase()) return false;
       if (!text) return true;
-      const candidate = `${st.stationId ?? ""} ${st.location ?? ""}`.toLowerCase();
+      const candidate = `${st.Name ?? ""} ${st.location ?? ""}`.toLowerCase();
       return candidate.includes(text);
     });
   }, [stations, q, statusFilter]);
@@ -68,12 +70,16 @@ export default function Station() {
   // Create
   const handleCreate = async (e) => {
     e.preventDefault();
+    if (!createName) { alert("Vui lòng nhập Tên trạm."); return; }
     if (!createLocation) { alert("Vui lòng nhập Location."); return; }
     const batteryNumber = parseInt(createBatteryNumber || "0", 10);
     setOpLoading(true);
     try {
-      await authAPI.createStation({ batteryNumber, location: createLocation });
-      setCreateBatteryNumber(""); setCreateLocation("");
+      await authAPI.createStation({ stationName: createName, batteryNumber, location: createLocation });
+      alert("Tạo trạm thành công");
+      setCreateName("");
+      setCreateBatteryNumber("");
+      setCreateLocation("");
       await fetchStations();
     } catch (err) {
       console.error("createStation error:", err);
@@ -83,19 +89,26 @@ export default function Station() {
 
   const startEdit = (station) => {
     setEditingId(station.stationId);
+    setEditName(station.stationName ?? "");
     setEditBatteryNumber(String(station.batteryNumber ?? ""));
     setEditLocation(station.location ?? "");
   };
-  const cancelEdit = () => { setEditingId(null); setEditBatteryNumber(""); setEditLocation(""); };
+  const cancelEdit = () => { 
+    setEditingId(null); 
+    setEditName("");
+    setEditBatteryNumber(""); 
+    setEditLocation(""); 
+  };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!editingId) return;
+    if (!editName) { alert("Vui lòng nhập Tên trạm."); return; }
     if (!editLocation) { alert("Vui lòng nhập Location."); return; }
     const batteryNumber = parseInt(editBatteryNumber || "0", 10);
     setOpLoading(true);
     try {
-      await authAPI.updateStation({ stationId: editingId, batteryNumber, location: editLocation });
+      await authAPI.updateStation({ stationId: editingId, stationName: editName, batteryNumber, location: editLocation });
       cancelEdit(); await fetchStations();
     } catch (err) {
       console.error("updateStation error:", err);
@@ -129,6 +142,9 @@ export default function Station() {
 
       <form className="station-create" onSubmit={handleCreate}>
         <div className="create-row">
+          <input type="text" placeholder="Tên trạm"
+                 value={createName} onChange={(e)=>setCreateName(e.target.value)}
+                 className="input" />
           <input type="number" min="0" placeholder="BatteryNumber"
                  value={createBatteryNumber} onChange={(e)=>setCreateBatteryNumber(e.target.value)}
                  className="input" />
@@ -142,7 +158,7 @@ export default function Station() {
       </form>
 
       <div className="station-controls">
-        <input className="station-search" placeholder="Tìm stationId hoặc location..."
+        <input className="station-search" placeholder="Tìm tên trạm hoặc location..."
                value={q} onChange={(e)=>setQ(e.target.value)} />
         <select className="station-select" value={statusFilter} onChange={(e)=>setStatusFilter(e.target.value)}>
           <option value="All">Tất cả trạng thái</option>
@@ -184,7 +200,7 @@ export default function Station() {
                              style={{ animationDelay: `${idx * 40}ms` }}>
                       <div className="station-head">
                         <div className="head-left">
-                          <h3 className="station-id">{station.stationId}</h3>
+                          <h3 className="station-id">{station.stationName ?? "Tên trạm chưa có"}</h3>
 
                           <div className="station-subinfo">
                             <span className="sub-location">{station.location ?? "-"}</span>
@@ -233,6 +249,11 @@ export default function Station() {
                         <form className="edit-form" onSubmit={handleUpdate}>
                           <div className="form-row">
                             <label>
+                              Tên trạm
+                              <input type="text" value={editName}
+                                     onChange={(e)=>setEditName(e.target.value)} className="input" />
+                            </label>
+                            <label>
                               BatteryNumber
                               <input type="number" min="0" value={editBatteryNumber}
                                      onChange={(e)=>setEditBatteryNumber(e.target.value)} className="input" />
@@ -269,10 +290,10 @@ export default function Station() {
                             <div className="batt-list">
                               {station.batteries.map((b) => (
                                 <div className="batt-item" key={b.batteryId}>
-                                  <div className="batt-left">
-                                    <div className="batt-id">{b.batteryId}</div>
+                                    <div className="batt-left">
+                                    <div className="batt-id">{b.batteryName || b.batteryId}</div>
                                     <div className="batt-meta">
-                                      {b.batteryType ? `${b.batteryType} • ${b.capacity ?? "?"}Wh` : `${b.capacity ?? "?"}Wh`}
+                                      {b.batteryType ? `${b.batteryType} • ${b.capacity ?? "?"}%` : `${b.capacity ?? "?"}%`}
                                       {b.specification ? ` • ${b.specification}` : ""}
                                     </div>
                                   </div>

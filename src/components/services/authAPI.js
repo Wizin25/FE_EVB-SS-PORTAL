@@ -221,13 +221,14 @@ export const authAPI = {
     }
   },
 
-  createStation: async ({ batteryNumber, location }) => {
+  createStation: async ({ stationName ,batteryNumber, location}) => {
     try {
       const form = new FormData();
-      // Backend yêu cầu field name exactly as docs: BatteryNumber, Location
+      // Backend yêu cầu field name exactly as docs: BatteryNumber, Location, StationName
+      form.append("Name", stationName ?? "");
       form.append("BatteryNumber", batteryNumber ?? 0);
       form.append("Location", location ?? "");
-
+      
       const res = await api.post("/api/Station/add_station_for_admin", form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -268,9 +269,10 @@ export const authAPI = {
     }
   },
 
-  updateStation: async ({ stationId, batteryNumber, location }) => {
+  updateStation: async ({ stationName,stationId, batteryNumber, location }) => {
     try {
       const form = new FormData();
+      form.append("Name", stationName ?? "");
       form.append("StationId", stationId ?? ""); // giữ theo docs
       form.append("BatteryNumber", batteryNumber ?? 0);
       form.append("Location", location ?? "");

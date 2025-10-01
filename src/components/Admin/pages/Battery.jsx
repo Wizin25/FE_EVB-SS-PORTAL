@@ -20,6 +20,7 @@ export default function BatteryManagementPage() {
 
   // create form
   const [createForm, setCreateForm] = useState({
+    batteryName: "",
     capacity: "", // integer % 0-100
     batteryType: "",
     specification: "",
@@ -33,6 +34,7 @@ export default function BatteryManagementPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [isEditingInModal, setIsEditingInModal] = useState(false);
   const [editForm, setEditForm] = useState({
+    batteryName: "",
     capacity: "",
     batteryType: "",
     specification: "",
@@ -108,20 +110,21 @@ export default function BatteryManagementPage() {
     if (Number.isNaN(cap) || cap < 0 || cap > 100) {
       return alert("Capacity phải là số nguyên trong khoảng 0-100 (phần trăm).");
     }
-    if (!createForm.batteryType || !createForm.specification) {
-      return alert("Vui lòng chọn BatteryType và Specification.");
+    if (!createForm.batteryName || !createForm.batteryType || !createForm.specification) {
+      return alert("Vui lòng nhập tên pin và chọn BatteryType, Specification.");
     }
     setCreateLoading(true);
     try {
       const fd = new FormData();
       // IMPORTANT: field names exactly as API requires
+      fd.append("BatteryName", createForm.batteryName);
       fd.append("Capacity", String(cap));
       fd.append("BatteryType", createForm.batteryType);
       fd.append("Specification", createForm.specification);
       fd.append("BatteryQuality", String(parseFloat(createForm.batteryQuality || 0)));
 
       await authAPI.createBattery(fd);
-      setCreateForm({ capacity: "", batteryType: batteryTypeOptions[0] || "", specification: specificationOptions[0] || "", batteryQuality: "" });
+      setCreateForm({ batteryName: "", capacity: "", batteryType: batteryTypeOptions[0] || "", specification: specificationOptions[0] || "", batteryQuality: "" });
       await fetchBatteries();
       alert("Tạo pin thành công!");
     } catch (err) {
@@ -140,10 +143,16 @@ export default function BatteryManagementPage() {
         alert("Không tìm thấy chi tiết pin.");
         return;
       }
-      // Normalize station: keep only stationId
-      if (detail.station && detail.station.stationId) detail.station = { stationId: detail.station.stationId };
+      // Preserve both stationId and stationName if available (avoid collapsing to only id)
+      if (detail.station && (detail.station.stationId || detail.station.stationName)) {
+        detail.station = {
+          stationId: detail.station.stationId,
+          stationName: detail.station.stationName,
+        };
+      }
       setSelectedBattery(detail);
       setEditForm({
+        batteryName: detail.batteryName ?? "",
         capacity: detail.capacity ?? "",
         batteryType: detail.batteryType ?? (batteryTypeOptions[0] || ""),
         specification: detail.specification ?? (specificationOptions[0] || ""),
@@ -164,14 +173,15 @@ export default function BatteryManagementPage() {
     if (Number.isNaN(cap) || cap < 0 || cap > 100) {
       return alert("Capacity phải là số nguyên trong khoảng 0-100 (phần trăm).");
     }
-    if (!editForm.batteryType || !editForm.specification) {
-      return alert("Vui lòng chọn BatteryType và Specification.");
+    if (!editForm.batteryName || !editForm.batteryType || !editForm.specification) {
+      return alert("Vui lòng nhập tên pin và chọn BatteryType, Specification.");
     }
     setOpLoading(true);
     try {
       const fd = new FormData();
-      // API requires BatteryId + the 4 fields
+      // API requires BatteryId + the fields
       fd.append("BatteryId", selectedBattery.batteryId);
+      fd.append("BatteryName", editForm.batteryName);
       fd.append("Capacity", String(cap));
       fd.append("BatteryType", editForm.batteryType);
       fd.append("Specification", editForm.specification);
@@ -182,7 +192,12 @@ export default function BatteryManagementPage() {
       // refresh detail and list
       const updated = await authAPI.getBatteryById(selectedBattery.batteryId);
       if (updated) {
-        if (updated.station && updated.station.stationId) updated.station = { stationId: updated.station.stationId };
+        if (updated.station && (updated.station.stationId || updated.station.stationName)) {
+          updated.station = {
+            stationId: updated.station.stationId,
+            stationName: updated.station.stationName,
+          };
+        }
         setSelectedBattery(updated);
         setBatteries((prev) => prev.map(p => p.batteryId === updated.batteryId ? updated : p));
       }
@@ -227,10 +242,15 @@ export default function BatteryManagementPage() {
     if (!selectedBatteryForAssign) return;
     try {
       await authAPI.addBatteryToStation(selectedBatteryForAssign.batteryId, stationId);
-      // update local list: set station field to only stationId
-      setBatteries(prev => prev.map(b => b.batteryId === selectedBatteryForAssign.batteryId ? { ...b, station: { stationId } } : b));
+      // update local list: set station with id and name if known
+      const matchedStation = stations.find((s) => s.stationId === stationId);
+      const stationUpdate = {
+        stationId,
+        stationName: matchedStation?.stationName,
+      };
+      setBatteries(prev => prev.map(b => b.batteryId === selectedBatteryForAssign.batteryId ? { ...b, station: stationUpdate } : b));
       if (selectedBattery?.batteryId === selectedBatteryForAssign.batteryId) {
-        setSelectedBattery(prev => prev ? { ...prev, station: { stationId } } : prev);
+        setSelectedBattery(prev => prev ? { ...prev, station: stationUpdate } : prev);
       }
       setShowAssignModal(false);
     } catch (err) {
@@ -241,6 +261,7 @@ export default function BatteryManagementPage() {
   // ---------- FILTER ----------
   const filtered = batteries.filter(b => {
     const matchesSearch = search === "" || 
+      (b.batteryName ?? "").toLowerCase().includes(search.toLowerCase()) ||
       b.batteryId?.toLowerCase().includes(search.toLowerCase()) ||
       (b.batteryType ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (b.specification ?? "").toLowerCase().includes(search.toLowerCase());
@@ -278,6 +299,14 @@ export default function BatteryManagementPage() {
       {/* Create form */}
       <form className="station-create" onSubmit={handleCreate} style={{ marginBottom: 12 }}>
         <div className="create-row" style={{ alignItems: "center" }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            Tên pin
+            <input className="input" type="text" 
+                   value={createForm.batteryName}
+                   onChange={(e) => setCreateForm({...createForm, batteryName: e.target.value})} 
+                   placeholder="Nhập tên pin" />
+          </label>
+
           <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             Capacity (%) 
             <input className="input" type="number" min="0" max="100" step="1"
@@ -335,7 +364,7 @@ export default function BatteryManagementPage() {
           <label style={{ fontSize: "14px", fontWeight: "500" }}>Tìm kiếm:</label>
           <input
             className="station-search"
-            placeholder="Tìm theo mã pin, loại pin, thông số..."
+            placeholder="Tìm theo tên pin, mã pin, loại pin, thông số..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{ minWidth: 250 }}
@@ -361,7 +390,7 @@ export default function BatteryManagementPage() {
      {/* Total count display */}
      <div className="station-summary">
         <span className="total-count">
-          Tổng số trạm: <strong>{totalItems}</strong>
+          Tổng số pin: <strong>{totalItems}</strong>
           {totalItems > 0 && (
             <span className="page-info">
               {" "}(Trang {currentPage}/{totalPages} - Hiển thị {startIndex + 1}-{Math.min(endIndex, totalItems)})
@@ -380,9 +409,14 @@ export default function BatteryManagementPage() {
                 <div className="batt-item" key={b.batteryId}>
                   <div className="batt-top">
                     <div className="batt-left">
-                      <div className="batt-id">{b.batteryId}</div>
+                      {/* 
+                        Sửa lại: Khi hiển thị danh sách, ưu tiên hiển thị tên pin (batteryName).
+                        Nếu không có tên pin thì mới fallback sang batteryId.
+                        Điều này đảm bảo khi tạo mới, pin sẽ hiển thị theo tên (nếu có).
+                      */}
+                      <div className="batt-id">{b.batteryName ? b.batteryName : b.batteryId}</div>
                       <div className="batt-meta">{b.batteryType} • {b.capacity}% • {b.specification}</div>
-                      <div className="batt-submeta">Trạm: {b.station?.stationId ?? "Chưa gán"}</div>
+                      <div className="batt-submeta">Trạm: {b.station?.stationName || b.station?.stationId || "Chưa gán"}</div>
                     </div>
                     <div className="batt-right">
                       <div className="batt-status-pill">{b.status}</div>
@@ -421,7 +455,8 @@ export default function BatteryManagementPage() {
             {detailLoading ? <div className="station-loading">Đang tải...</div> : (
               <>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <h2>Chi tiết Pin {selectedBattery.batteryId}</h2>
+                  {/* Ưu tiên hiển thị tên pin, nếu không có thì mới dùng batteryId */}
+                  <h2>Chi tiết Pin {selectedBattery.batteryName ? selectedBattery.batteryName : selectedBattery.batteryId}</h2>
                   <div>
                     <button className="btn small" onClick={() => setIsEditingInModal(prev => !prev)}>{isEditingInModal ? "Hủy sửa" : "Sửa"}</button>
                     <button className="btn" onClick={() => { setShowDetailModal(false); setIsEditingInModal(false); }}>Đóng</button>
@@ -431,6 +466,17 @@ export default function BatteryManagementPage() {
                 {isEditingInModal ? (
                   <div className="batt-edit-form" style={{ marginTop: 12 }}>
                     <div className="form-row">
+                      <label>
+                        Tên pin
+                        <input
+                          className="input"
+                          type="text"
+                          value={editForm.batteryName}
+                          onChange={e => setEditForm({ ...editForm, batteryName: e.target.value })}
+                          placeholder="Nhập tên pin"
+                        />
+                      </label>
+
                       <label>
                         Capacity (%)
                         <input
@@ -493,12 +539,14 @@ export default function BatteryManagementPage() {
                   </div>
                 ) : (
                   <div style={{ marginTop: 12 }}>
+                    {/* Ưu tiên hiển thị tên pin, nếu không có thì mới dùng batteryId */}
+                    <p><b>Tên pin:</b> {selectedBattery.batteryName ? selectedBattery.batteryName : selectedBattery.batteryId}</p>
                     <p><b>Loại:</b> {selectedBattery.batteryType}</p>
                     <p><b>Capacity:</b> {selectedBattery.capacity}%</p>
                     <p><b>Specification:</b> {selectedBattery.specification}</p>
                     <p><b>SoH:</b> {selectedBattery.batteryQuality}%</p>
                     <p><b>Trạng thái:</b> {selectedBattery.status}</p>
-                    <p><b>Station:</b> {selectedBattery.station?.stationId ?? "Chưa gán"}</p>
+                    <p><b>Station:</b> {selectedBattery.station?.stationName || selectedBattery.station?.stationId || "Chưa gán"}</p>
                     <p className="date-info" style={{ color: "#64748b", fontSize: 13 }}>
                       Ngày tạo: {selectedBattery.startDate ? new Date(selectedBattery.startDate).toLocaleString() : "-"} <br/>
                       Cập nhật: {selectedBattery.updateDate ? new Date(selectedBattery.updateDate).toLocaleString() : "-"}
@@ -527,12 +575,13 @@ export default function BatteryManagementPage() {
       {showAssignModal && selectedBatteryForAssign && (
         <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>Chọn trạm để gán cho {selectedBatteryForAssign.batteryId}</h2>
+            {/* Ưu tiên hiển thị tên pin, nếu không có thì mới dùng batteryId */}
+            <h2>Chọn trạm để gán cho {selectedBatteryForAssign.batteryName ? selectedBatteryForAssign.batteryName : selectedBatteryForAssign.batteryId}</h2>
             <ul className="station-list">
               {stations.map(st => (
                 <li key={st.stationId} style={{ marginBottom: 8 }}>
                   <button className="btn small" onClick={() => handleAssign(st.stationId)}>
-                    {st.stationId} — {st.location}
+                    {st.stationName || st.stationId} — {st.location}
                   </button>
                 </li>
               ))}
