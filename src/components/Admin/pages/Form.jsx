@@ -166,25 +166,36 @@ export default function FormPage() {
 
   // Xóa form
   const handleDeleteForm = async (id) => {
-    if (!window.confirm('Bạn có chắc muốn xóa form này?')) return;
+  console.log('Attempting to delete form ID:', id);
+  
+  if (!window.confirm('Bạn có chắc muốn xóa form này?')) return;
 
-    setLoading(true);
-    try {
-      const response = await formAPI.deleteForm(id);
-      if (response.isSuccess) {
-        alert('Xóa form thành công!');
-        setSelectedForm(null);
-        fetchAllForms();
-      } else {
-        alert('Lỗi khi xóa form: ' + response.message);
-      }
-    } catch (error) {
-      console.error('Error deleting form:', error);
-      alert('Lỗi khi xóa form');
-    } finally {
-      setLoading(false);
+  setLoading(true);
+  try {
+    console.log('Calling deleteForm API...');
+    const response = await formAPI.deleteForm(id);
+    console.log('Delete response:', response);
+    
+    if (response.isSuccess) {
+      console.log('Delete successful');
+      alert('Xóa form thành công!');
+      setSelectedForm(null);
+      fetchAllForms();
+    } else {
+      console.log('Delete failed:', response.message);
+      alert('Lỗi khi xóa form: ' + response.message);
     }
-  };
+  } catch (error) {
+    console.error('Delete error details:', {
+      error,
+      response: error.response,
+      data: error.response?.data
+    });
+    // ... phần xử lý lỗi như trên
+  } finally {
+    setLoading(false);
+  }
+};
 
   const resetForm = () => {
     setFormData({
@@ -421,12 +432,6 @@ export default function FormPage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button 
-                    onClick={() => setSelectedForm(form)}
-                    style={{ padding: '6px 12px', border: '1px solid #3b82f6', color: '#3b82f6', borderRadius: 6 }}
-                  >
-                    Xem
-                  </button>
                   <button 
                     onClick={() => handleDeleteForm(form.id)}
                     style={{ padding: '6px 12px', background: '#ef4444', color: 'white', borderRadius: 6 }}

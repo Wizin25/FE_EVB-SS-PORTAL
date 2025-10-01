@@ -73,11 +73,22 @@ export const formAPI = {
   },
 
   deleteForm: async (formId) => {
+  try {
+    // Thử dùng DELETE method trước
+    const response = await api.delete(`/api/Form/delete-form/${formId}`);
+    return response.data;
+  } catch (error) {
+    // Nếu DELETE không work, thử PUT
     try {
       const response = await api.put(`/api/Form/delete-form/${formId}`);
       return response.data;
-    } catch (error) {
-      throw error;
+    } catch (secondError) {
+      console.error('Delete form error:', secondError);
+      throw secondError.response?.data || { 
+        message: secondError.message || 'Xóa form thất bại',
+        isSuccess: false 
+      };
     }
-  },
+  }
+},
 };
