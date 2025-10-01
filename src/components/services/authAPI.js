@@ -139,6 +139,42 @@ export const authAPI = {
     }
   },
 
+  updateProfile: async (profileData) => {
+    try {
+      const form = new FormData();
+      form.append('Name', profileData.name);
+      form.append('Phone', profileData.phone);
+      form.append('Address', profileData.address ?? '');
+      form.append('Email', profileData.email);
+
+      const response = await api.put('/api/Account/update_current_profile', form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      // Trả về toàn bộ response data để xử lý
+      return response.data;
+    } catch (error) {
+      // Ném lỗi để component bắt được
+      throw error.response?.data || error;
+    }
+  },
+  
+  changePassword: async (passwordData) => {
+  try {
+    const response = await api.put('/api/Account/change-password', {
+      oldPassword: passwordData.oldPassword,
+      newPassword: passwordData.newPassword,
+      confirmPassword: passwordData.confirmPassword  // THÊM TRƯỜNG NÀY
+    });
+    
+    // Trả về toàn bộ response data để xử lý
+    return response.data;
+  } catch (error) {
+    // Ném lỗi để component bắt được
+    throw error.response?.data || error;
+  }
+},
+
   updateCustomer: async (customerData) => {
     try {
       const form = new FormData();

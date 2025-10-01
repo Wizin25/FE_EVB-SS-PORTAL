@@ -112,7 +112,6 @@
   padding: 24px 18px 18px 18px;
   position: relative;
   z-index: 1;
-  backdrop-filter: blur(2px);
   margin-left: 32px;
   margin-right: 32px;
   flex: 1 1 auto;
@@ -262,6 +261,37 @@
   background: #7f1d1d33;
 }
 
+/* Home button styles - gradient xanh lá đẹp */
+.profile-home-btn {
+  background: linear-gradient(to right, #10b981, #059669) !important;
+  color: white !important;
+  border: none !important;
+  margin-top: auto;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 12px 0 rgba(16, 185, 129, 0.3);
+  transition: all 0.3s ease !important;
+}
+
+.profile-home-btn:hover, .profile-home-btn:focus {
+  background: linear-gradient(to right, #059669, #047857) !important;
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 20px 0 rgba(5, 150, 105, 0.4);
+}
+
+.profile-home-btn:active {
+  transform: scale(0.95);
+}
+
+.profile-container.dark .profile-home-btn {
+  background: linear-gradient(to right, #10b981, #059669) !important;
+}
+
+.profile-container.dark .profile-home-btn:hover,
+.profile-container.dark .profile-home-btn:focus {
+  background: linear-gradient(to right, #059669, #047857) !important;
+}
+
+/* Responsive */
 @media (max-width: 800px) {
   .profile-container {
     padding: 0;
@@ -283,6 +313,9 @@
     padding: 14px 4px 10px 4px;
     margin-left: 8px;
     margin-right: 8px;
+  }
+  .profile-home-btn {
+    margin-bottom: 16px;
   }
 }
 
