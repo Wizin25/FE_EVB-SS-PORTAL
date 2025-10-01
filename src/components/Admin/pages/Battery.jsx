@@ -10,6 +10,13 @@ export default function BatteryManagementPage() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [batteryTypeFilter, setBatteryTypeFilter] = useState("");
+  const [specificationFilter, setSpecificationFilter] = useState("");
+  const [stationFilter, setStationFilter] = useState("");
+
+  // sorting
+  const [sortBy, setSortBy] = useState("");
+  const [sortOrder, setSortOrder] = useState("asc"); // "asc" or "desc"
 
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -268,9 +275,57 @@ export default function BatteryManagementPage() {
     
     const matchesStatus = statusFilter === "" || 
       (b.status ?? "").toLowerCase() === statusFilter.toLowerCase();
+    const matchesType = batteryTypeFilter === "" || (b.batteryType ?? "") === batteryTypeFilter;
+    const matchesSpec = specificationFilter === "" || (b.specification ?? "") === specificationFilter;
+    const stationText = `${b.station?.stationName ?? ""} ${b.station?.stationId ?? ""}`.toLowerCase();
+    const matchesStation = stationFilter === "" || stationText.includes(stationFilter.toLowerCase());
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesType && matchesSpec && matchesStation;
   });
+
+  // ---------- SORT ----------
+  const sorted = (() => {
+    if (!sortBy) return filtered;
+    const direction = sortOrder === "desc" ? -1 : 1;
+
+    const getComparable = (item) => {
+      switch (sortBy) {
+        case "batteryName":
+          return (item.batteryName || item.batteryId || "").toString().toLowerCase();
+        case "batteryType":
+          return (item.batteryType || "").toString().toLowerCase();
+        case "specification":
+          return (item.specification || "").toString().toLowerCase();
+        case "status":
+          return (item.status || "").toString().toLowerCase();
+        case "capacity":
+          return Number.isFinite(Number(item.capacity)) ? Number(item.capacity) : Number.NEGATIVE_INFINITY;
+        case "batteryQuality":
+          return Number.isFinite(Number(item.batteryQuality)) ? Number(item.batteryQuality) : Number.NEGATIVE_INFINITY;
+        default:
+          return "";
+      }
+    };
+
+    const copy = [...filtered];
+    copy.sort((a, b) => {
+      const av = getComparable(a);
+      const bv = getComparable(b);
+
+      // numeric compare when both are numbers
+      if (typeof av === "number" && typeof bv === "number") {
+        if (av < bv) return -1 * direction;
+        if (av > bv) return 1 * direction;
+        return 0;
+      }
+
+      // string compare
+      if (av < bv) return -1 * direction;
+      if (av > bv) return 1 * direction;
+      return 0;
+    });
+    return copy;
+  })();
 
   // ---------- PAGINATION ----------
   // Pagination calculations
@@ -278,7 +333,7 @@ export default function BatteryManagementPage() {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentBatteries = filtered.slice(startIndex, endIndex);
+  const currentBatteries = sorted.slice(startIndex, endIndex);
 
   const handlePageChange = (page) => {  
     if (page >= 1 && page <= totalPages) {
@@ -289,51 +344,198 @@ export default function BatteryManagementPage() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, statusFilter]);
+  }, [search, statusFilter, batteryTypeFilter, specificationFilter, stationFilter]);
+
+  // Reset to page 1 when sort changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortBy, sortOrder]);
 
   // ---------- RENDER ----------
   return (
     <div className="station-container">
-      <h1 className="station-title">Quản lý pin</h1>
+      <h1 className="station-title">Quản lý danh sách pin</h1>
 
       {/* Create form */}
       <form className="station-create" onSubmit={handleCreate} style={{ marginBottom: 12 }}>
         <div className="create-row" style={{ alignItems: "center" }}>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            Tên pin
-            <input className="input" type="text" 
-                   value={createForm.batteryName}
-                   onChange={(e) => setCreateForm({...createForm, batteryName: e.target.value})} 
-                   placeholder="Nhập tên pin" />
-          </label>
+          <div style={{ display: "flex", gap: 18 }}>
+            <div className="form-group">
+              <label className="form-label" htmlFor="batteryName" style={{
+                fontWeight: 600,
+                color: "#0f172a",
+                marginBottom: 4,
+                fontSize: 14,
+                letterSpacing: 0.1,
+              }}>
+                <span style={{
+                  background: "linear-gradient(90deg, #38bdf8 0%, #6366f1 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  fontWeight: 700,
+                  fontSize: 15,
+                }}>Tên pin</span>
+              </label>
+              <input
+                id="batteryName"
+                className="input"
+                type="text"
+                value={createForm.batteryName}
+                onChange={(e) => setCreateForm({ ...createForm, batteryName: e.target.value })}
+                placeholder="Nhập tên pin"
+                style={{
+                  border: "1.5px solid #c7d2fe",
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                  fontSize: 14,
+                  marginTop: 2,
+                  background: "#f8fafc"
+                }}
+              />
+            </div>
 
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            Capacity (%) 
-            <input className="input" type="number" min="0" max="100" step="1"
-                   value={createForm.capacity}
-                   onChange={(e) => setCreateForm({...createForm, capacity: e.target.value})} />
-          </label>
+            <div className="form-group">
+              <label className="form-label" htmlFor="capacity" style={{
+                fontWeight: 600,
+                color: "#0f172a",
+                marginBottom: 4,
+                fontSize: 14,
+                letterSpacing: 0.1,
+              }}>
+                <span style={{
+                  background: "linear-gradient(90deg, #f59e42 0%, #fbbf24 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  fontWeight: 700,
+                  fontSize: 15,
+                }}>Dung lượng (%)</span>
+              </label>
+              <input
+                id="capacity"
+                className="input"
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                value={createForm.capacity}
+                onChange={(e) => setCreateForm({ ...createForm, capacity: e.target.value })}
+                style={{
+                  border: "1.5px solid #fde68a",
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                  fontSize: 14,
+                  marginTop: 2,
+                  background: "#f8fafc"
+                }}
+              />
+            </div>
 
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            BatteryType
-            <select className="input" value={createForm.batteryType} onChange={(e) => setCreateForm({...createForm, batteryType: e.target.value})}>
-              {batteryTypeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-          </label>
+            <div className="form-group">
+              <label className="form-label" htmlFor="batteryType" style={{
+                fontWeight: 600,
+                color: "#0f172a",
+                marginBottom: 4,
+                fontSize: 14,
+                letterSpacing: 0.1,
+              }}>
+                <span style={{
+                  background: "linear-gradient(90deg, #34d399 0%, #10b981 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  fontWeight: 700,
+                  fontSize: 15,
+                }}>Loại pin</span>
+              </label>
+              <select
+                id="batteryType"
+                className="input"
+                value={createForm.batteryType}
+                onChange={(e) => setCreateForm({ ...createForm, batteryType: e.target.value })}
+                style={{
+                  border: "1.5px solid #6ee7b7",
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                  fontSize: 14,
+                  marginTop: 2,
+                  background: "#f8fafc"
+                }}
+              >
+                <option value="">-- Chọn loại --</option>
+                {batteryTypeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+            </div>
 
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            Specification
-            <select className="input" value={createForm.specification} onChange={(e) => setCreateForm({...createForm, specification: e.target.value})}>
-              {specificationOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-          </label>
+            <div className="form-group">
+              <label className="form-label" htmlFor="specification" style={{
+                fontWeight: 600,
+                color: "#0f172a",
+                marginBottom: 4,
+                fontSize: 14,
+                letterSpacing: 0.1,
+              }}>
+                <span style={{
+                  background: "linear-gradient(90deg, #818cf8 0%, #a5b4fc 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  fontWeight: 700,
+                  fontSize: 15,
+                }}>Thông số</span>
+              </label>
+              <select
+                id="specification"
+                className="input"
+                value={createForm.specification}
+                onChange={(e) => setCreateForm({ ...createForm, specification: e.target.value })}
+                style={{
+                  border: "1.5px solid #a5b4fc",
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                  fontSize: 14,
+                  marginTop: 2,
+                  background: "#f8fafc"
+                }}
+              >
+                <option value="">-- Chọn thông số --</option>
+                {specificationOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+            </div>
 
-          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            BatteryQuality (%)
-            <input className="input" type="number" min="0" max="100" step="0.1"
-                   value={createForm.batteryQuality}
-                   onChange={(e) => setCreateForm({...createForm, batteryQuality: e.target.value})} />
-          </label>
+            <div className="form-group">
+              <label className="form-label" htmlFor="batteryQuality" style={{
+                fontWeight: 600,
+                color: "#0f172a",
+                marginBottom: 4,
+                fontSize: 14,
+                letterSpacing: 0.1,
+              }}>
+                <span style={{
+                  background: "linear-gradient(90deg, #f472b6 0%, #f87171 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  fontWeight: 700,
+                  fontSize: 15,
+                }}>Chất lượng (%)</span>
+              </label>
+              <input
+                id="batteryQuality"
+                className="input"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={createForm.batteryQuality}
+                onChange={(e) => setCreateForm({ ...createForm, batteryQuality: e.target.value })}
+                style={{
+                  border: "1.5px solid #fbcfe8",
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                  fontSize: 14,
+                  marginTop: 2,
+                  background: "#f8fafc"
+                }}
+              />
+            </div>
+          </div>
 
           <button className="btn primary" type="submit" disabled={createLoading}>
             {createLoading ? "Đang tạo..." : "Thêm pin"}
@@ -342,12 +544,11 @@ export default function BatteryManagementPage() {
       </form>
 
       {/* Controls */}
-      <div className="station-controls" style={{ marginBottom: 18, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <label style={{ fontSize: "14px", fontWeight: "500" }}>Trạng thái:</label>
+      <div className="station-controls">
+        <div className="station-select">
+          <label>Trạng thái:</label>
           <select
             className="input"
-            style={{ minWidth: 160 }}
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
           >
@@ -359,19 +560,77 @@ export default function BatteryManagementPage() {
             <option value="Decommissioned">Decommissioned</option>
           </select>
         </div>
+
+        <div className="station-select">
+          <label>Loại pin:</label>
+          <select
+            className="input"
+            value={batteryTypeFilter}
+            onChange={e => setBatteryTypeFilter(e.target.value)}
+          >
+            <option value="">-- Tất cả --</option>
+            {batteryTypeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          </select>
+        </div>
+
+        <div className="station-select">
+          <label>Specification:</label>
+          <select
+            className="input"
+            value={specificationFilter}
+            onChange={e => setSpecificationFilter(e.target.value)}
+          >
+            <option value="">-- Tất cả --</option>
+            {specificationOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          </select>
+        </div>
+
+        <div className="station-select">
+          <label>Sắp xếp:</label>
+          <select
+            className="input"
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value)}
+          >
+            <option value="">-- Không sắp xếp --</option>
+            <option value="batteryName">Tên pin</option>
+            <option value="capacity">Capacity</option>
+            <option value="batteryType">BatteryType</option>
+            <option value="specification">Specification</option>
+            <option value="batteryQuality">BatteryQuality</option>
+            <option value="status">Trạng thái</option>
+          </select>
+          <select
+            className="input"
+            value={sortOrder}
+            onChange={e => setSortOrder(e.target.value)}
+          >
+            <option value="asc">Tăng dần</option>
+            <option value="desc">Giảm dần</option>
+          </select>
+        </div>
         
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <label style={{ fontSize: "14px", fontWeight: "500" }}>Tìm kiếm:</label>
+        <div className="station-select">
+          <label>Tìm kiếm:</label>
           <input
             className="station-search"
             placeholder="Tìm theo tên pin, mã pin, loại pin, thông số..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ minWidth: 250 }}
+          />
+        </div>
+
+        <div className="station-select">
+          <label>Trạm:</label>
+          <input
+            className="station-search"
+            placeholder="Lọc theo tên hoặc mã trạm"
+            value={stationFilter}
+            onChange={e => setStationFilter(e.target.value)}
           />
         </div>
         
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="station-select">
           <button className="btn" onClick={fetchBatteries} disabled={loading}>
             {loading ? "Đang tải..." : "Reload"}
           </button>
@@ -380,8 +639,15 @@ export default function BatteryManagementPage() {
             onClick={() => {
               setSearch("");
               setStatusFilter("");
+              setBatteryTypeFilter("");
+              setSpecificationFilter("");
+              setStationFilter("");
+              setSortBy("");
+              setSortOrder("asc");
+              setCurrentPage(1);
             }}
             disabled={loading}
+            type="button"
           >
             Xóa bộ lọc
           </button>
@@ -547,10 +813,6 @@ export default function BatteryManagementPage() {
                     <p><b>SoH:</b> {selectedBattery.batteryQuality}%</p>
                     <p><b>Trạng thái:</b> {selectedBattery.status}</p>
                     <p><b>Station:</b> {selectedBattery.station?.stationName || selectedBattery.station?.stationId || "Chưa gán"}</p>
-                    <p className="date-info" style={{ color: "#64748b", fontSize: 13 }}>
-                      Ngày tạo: {selectedBattery.startDate ? new Date(selectedBattery.startDate).toLocaleString() : "-"} <br/>
-                      Cập nhật: {selectedBattery.updateDate ? new Date(selectedBattery.updateDate).toLocaleString() : "-"}
-                    </p>
 
                     <div style={{ marginTop: 10 }}>
                       <div className="section-title">Histories</div>
@@ -563,6 +825,12 @@ export default function BatteryManagementPage() {
                         <ul className="detail-list">{selectedBattery.batteryReports.map((r,i)=><li key={i}>{JSON.stringify(r)}</li>)}</ul>
                       ) : <div className="empty-note">Không có báo cáo</div>}
                     </div>
+
+                    {/* Ngày tạo, cập nhật nằm dưới cuối cùng */}
+                    <p className="date-info" style={{ color: "#64748b", fontSize: 13, marginTop: 16 }}>
+                      Ngày tạo: {selectedBattery.startDate ? new Date(selectedBattery.startDate).toLocaleString() : "-"} <br/>
+                      Cập nhật: {selectedBattery.updateDate ? new Date(selectedBattery.updateDate).toLocaleString() : "-"}
+                    </p>
                   </div>
                 )}
               </>

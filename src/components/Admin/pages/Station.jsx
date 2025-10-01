@@ -10,6 +10,11 @@ export default function Station() {
 
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [locationFilter, setLocationFilter] = useState("");
+
+  // Sorting
+  const [sortBy, setSortBy] = useState(""); // stationName | batteryNumber | status
+  const [sortOrder, setSortOrder] = useState("asc"); // asc | desc
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,23 +51,59 @@ export default function Station() {
     const text = q.trim().toLowerCase();
     return stations.filter((st) => {
       if (statusFilter !== "All" && (st.status ?? "").toLowerCase() !== statusFilter.toLowerCase()) return false;
+      if (locationFilter && !(st.location ?? "").toLowerCase().includes(locationFilter.toLowerCase())) return false;
       if (!text) return true;
-      const candidate = `${st.Name ?? ""} ${st.location ?? ""}`.toLowerCase();
+      const candidate = `${st.stationName ?? st.Name ?? ""} ${st.location ?? ""}`.toLowerCase();
       return candidate.includes(text);
     });
-  }, [stations, q, statusFilter]);
+  }, [stations, q, statusFilter, locationFilter]);
+
+  const sorted = useMemo(() => {
+    if (!sortBy) return filtered;
+    const dir = sortOrder === "desc" ? -1 : 1;
+    const getVal = (st) => {
+      switch (sortBy) {
+        case "stationName":
+          return (st.stationName || st.Name || "").toString().toLowerCase();
+        case "batteryNumber":
+          return Number.isFinite(Number(st.batteryNumber)) ? Number(st.batteryNumber) : Number.NEGATIVE_INFINITY;
+        case "status":
+          return (st.status || "").toString().toLowerCase();
+        default:
+          return "";
+      }
+    };
+    const copy = [...filtered];
+    copy.sort((a, b) => {
+      const av = getVal(a);
+      const bv = getVal(b);
+      if (typeof av === "number" && typeof bv === "number") {
+        if (av < bv) return -1 * dir;
+        if (av > bv) return 1 * dir;
+        return 0;
+      }
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+    return copy;
+  }, [filtered, sortBy, sortOrder]);
 
   // Pagination calculations
-  const totalItems = filtered.length;
+  const totalItems = sorted.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentItems = filtered.slice(startIndex, endIndex);
+  const currentItems = sorted.slice(startIndex, endIndex);
 
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [q, statusFilter]);
+  }, [q, statusFilter, locationFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortBy, sortOrder]);
 
   const safeLen = (arr) => (Array.isArray(arr) ? arr.length : 0);
   const fmt = (d) => (d ? new Date(d).toLocaleString() : "-");
@@ -138,7 +179,7 @@ export default function Station() {
 
   return (
     <div className="station-container">
-      <h2 className="station-title">Danh sách trạm đổi pin</h2>
+      <h2 className="station-title">Quản lý danh sách trạm đổi pin</h2>
 
       <form className="station-create" onSubmit={handleCreate}>
         <div className="create-row">
@@ -164,6 +205,18 @@ export default function Station() {
           <option value="All">Tất cả trạng thái</option>
           <option value="Active">Active</option>
           <option value="Inactive">Inactive</option>
+        </select>
+        <input className="station-search" placeholder="Lọc theo Location..."
+               value={locationFilter} onChange={(e)=>setLocationFilter(e.target.value)} />
+        <select className="station-select" value={sortBy} onChange={(e)=>setSortBy(e.target.value)}>
+          <option value="">-- Không sắp xếp --</option>
+          <option value="stationName">Tên trạm</option>
+          <option value="batteryNumber">BatteryNumber</option>
+          <option value="status">Trạng thái</option>
+        </select>
+        <select className="station-select" value={sortOrder} onChange={(e)=>setSortOrder(e.target.value)}>
+          <option value="asc">Tăng dần</option>
+          <option value="desc">Giảm dần</option>
         </select>
         <button className="btn" onClick={fetchStations} disabled={loading || opLoading}>Reload</button>
       </div>
@@ -305,9 +358,7 @@ export default function Station() {
                                         {b.status ?? "-"}
                                       </div>
                                     </div>
-                                    <div className="batt-times">
-                                      <div className="small-t">Updated: {b.updateDate ? new Date(b.updateDate).toLocaleString() : "-"}</div>
-                                    </div>
+                      
                                   </div>
                                 </div>
                               ))}

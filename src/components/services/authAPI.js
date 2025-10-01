@@ -367,4 +367,24 @@ addBatteryToStation: async (batteryId, stationId) => {
     throw new Error(err?.message || "Gán pin vào trạm thất bại");
   }
 },
+  // Booking/Form APIs
+  createForm: async ({ accountId, title, description, date, stationId }) => {
+    try {
+      const form = new FormData();
+      // Field names must match backend exactly
+      form.append('AccountId', accountId ?? '');
+      form.append('Title', title ?? '');
+      form.append('Description', description ?? '');
+      form.append('Date', date ?? '');
+      form.append('StationId', stationId ?? '');
+
+      const res = await api.post('/api/Form/create-form', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return res.data;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Tạo lịch thất bại';
+      throw new Error(msg);
+    }
+  },
 };
