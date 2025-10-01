@@ -12,6 +12,7 @@ import HomePage from './components/Home/homePage.jsx';
 import StaffPage from './components/Admin/pages/Staff.jsx';
 import ControllerPage from './components/Admin/pages/Controller.jsx';
 import Profile from './components/Profile/Profile.jsx';
+import Booking from './components/Form/Booking.jsx'
 import BatteryManagementPage from './components/Admin/pages/Battery.jsx';
 import BookingForm from './components/Home/BookingForm.jsx';
 
@@ -38,6 +39,7 @@ function App() {
             <Route path="controller" element={<ControllerPage />} />
           </Route>
           <Route path="/profile" element={<Profile />} />
+          <Route path="/booking" element={<Booking />} />
         </Routes>
       </div>
     </Router>
