@@ -183,7 +183,7 @@ function MonthCalendar({ year, month, today, selectedDate, onDateSelect }) {
   );
 }
 
-export default function CalendarPage() {
+export default function CalendarPage({ onDateSelect }) {
   const today = todayDateObj();
   const [currentMonth, setCurrentMonth] = useState(today.month);
   const [currentYear, setCurrentYear] = useState(today.year);
@@ -213,6 +213,10 @@ export default function CalendarPage() {
 
   function handleDateSelect(date) {
     setSelectedDate(date);
+    // Gọi callback function từ parent component
+    if (onDateSelect) {
+      onDateSelect(date);
+    }
   }
 
   function handleYearChange(e) {
