@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authAPI } from '../services/authAPI';
+import { formAPI } from '../services/formAPI';
+import { isInRole, getUserRoles } from '../services/jwt';
 import './ProfileStyle.css';
 
 function Profile({ theme = "light" }) {
@@ -12,6 +14,12 @@ function Profile({ theme = "light" }) {
   const [editData, setEditData] = useState({});
   const [editError, setEditError] = useState(null);
   const [editLoading, setEditLoading] = useState(false);
+
+  const [forms, setForms] = useState([]);
+  const [selectedForm, setSelectedForm] = useState(null);
+  const [loadingForms, setLoadingForms] = useState(false);
+  const [formDetail, setFormDetail] = useState(null);
+  const [loadingFormDetail, setLoadingFormDetail] = useState(false);
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({
@@ -25,6 +33,7 @@ function Profile({ theme = "light" }) {
 
   const [activeSidebar, setActiveSidebar] = useState("profile");
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth <= 800 : false);
+  const [userRoles, setUserRoles] = useState([]);
 
   const navigate = useNavigate();
 
@@ -35,7 +44,6 @@ function Profile({ theme = "light" }) {
     authAPI.getCurrent()
       .then((data) => {
         if (!mounted) return;
-        // authAPI.getCurrent có thể trả wrapper hoặc data trực tiếp
         const safe = data?.data ?? (data?.isSuccess ? data.data : data) ?? data;
         setUser(safe);
         setEditData({
@@ -54,12 +62,58 @@ function Profile({ theme = "light" }) {
     return () => { mounted = false; };
   }, []);
 
-  // responsive handler: cập nhật isMobile khi resize
+  useEffect(() => {
+    const roles = getUserRoles();
+    setUserRoles(roles);
+    
+    if (roles.includes('EvDriver') && user) {
+      fetchForms();
+    }
+  }, [user]);
+
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 800);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  const fetchForms = async () => {
+    if (!isInRole('EvDriver') || !user || !user.id) return;
+    
+    setLoadingForms(true);
+    try {
+      // SỬ DỤNG getFormsByAccountId THAY VÌ getAllFormsDriver
+      const response = await formAPI.getFormsByAccountId(user.id);
+      if (response.isSuccess) {
+        setForms(response.data || []);
+      } else {
+        console.error('Error fetching forms:', response.message);
+      }
+    } catch (error) {
+      console.error('Error fetching forms:', error);
+    } finally {
+      setLoadingForms(false);
+    }
+  };
+
+  const fetchFormDetail = async (formId) => {
+    if (!isInRole('EvDriver')) return;
+    
+    setLoadingFormDetail(true);
+    try {
+      // SỬ DỤNG getFormById THAY VÌ getFormByIdDriver
+      const response = await formAPI.getFormById(formId);
+      if (response.isSuccess) {
+        setFormDetail(response.data);
+      } else {
+        console.error('Error fetching form detail:', response.message);
+      }
+    } catch (error) {
+      console.error('Error fetching form detail:', error);
+    } finally {
+      setLoadingFormDetail(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -92,7 +146,6 @@ function Profile({ theme = "light" }) {
     email = "-",
     evdrivers = [],
     exchangeBatteries = [],
-    forms = [],
     orders = [],
     reports = [],
   } = user;
@@ -142,7 +195,6 @@ function Profile({ theme = "light" }) {
     setEditLoading(true);
     setEditError(null);
     try {
-      // Gọi API update profile
       const response = await authAPI.updateProfile({
         name: editData.name,
         phone: editData.phone,
@@ -150,9 +202,7 @@ function Profile({ theme = "light" }) {
         email: editData.email,
       });
       
-      // Kiểm tra response và cập nhật state
       if (response && response.isSuccess) {
-        // Cập nhật user data với dữ liệu mới
         setUser(prev => ({
           ...prev,
           name: editData.name,
@@ -190,45 +240,43 @@ function Profile({ theme = "light" }) {
   };
 
   const handlePasswordSubmit = async (e) => {
-  e.preventDefault();
-  setPasswordError(null);
-  setPasswordSuccess(null);
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
 
-  if (!passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
-    setPasswordError("Vui lòng điền đầy đủ thông tin.");
-    return;
-  }
-  if (passwordData.newPassword !== passwordData.confirmPassword) {
-    setPasswordError("Mật khẩu mới và xác nhận không khớp.");
-    return;
-  }
-  
-  setPasswordLoading(true);
-  try {
-    // Gọi API change password với đủ 3 trường
-    const response = await authAPI.changePassword({
-      oldPassword: passwordData.oldPassword,
-      newPassword: passwordData.newPassword,
-      confirmPassword: passwordData.confirmPassword  // THÊM TRƯỜNG NÀY
-    });
-
-    // Kiểm tra response
-    if (response && response.isSuccess) {
-      setPasswordSuccess("Đổi mật khẩu thành công!");
-      setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
-      setTimeout(() => {
-        setActiveSidebar("profile");
-        setPasswordSuccess(null);
-      }, 1200);
-    } else {
-      throw new Error(response?.message || "Đổi mật khẩu thất bại");
+    if (!passwordData.oldPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      setPasswordError("Vui lòng điền đầy đủ thông tin.");
+      return;
     }
-  } catch (err) {
-    setPasswordError(err?.message || "Lỗi khi đổi mật khẩu");
-  } finally {
-    setPasswordLoading(false);
-  }
-};
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError("Mật khẩu mới và xác nhận không khớp.");
+      return;
+    }
+    
+    setPasswordLoading(true);
+    try {
+      const response = await authAPI.changePassword({
+        oldPassword: passwordData.oldPassword,
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword
+      });
+
+      if (response && response.isSuccess) {
+        setPasswordSuccess("Đổi mật khẩu thành công!");
+        setPasswordData({ oldPassword: "", newPassword: "", confirmPassword: "" });
+        setTimeout(() => {
+          setActiveSidebar("profile");
+          setPasswordSuccess(null);
+        }, 1200);
+      } else {
+        throw new Error(response?.message || "Đổi mật khẩu thất bại");
+      }
+    } catch (err) {
+      setPasswordError(err?.message || "Lỗi khi đổi mật khẩu");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
 
   const handlePasswordCancel = () => {
     setShowPasswordModal(false);
@@ -237,38 +285,220 @@ function Profile({ theme = "light" }) {
     setPasswordSuccess(null);
   };
 
-  // Cập nhật sidebarItems với nút trở về trang chủ thay vì đăng xuất
-  const sidebarItems = [
-    { key: "profile", label: "Hồ sơ", icon: "👤", onClick: () => setActiveSidebar("profile") },
-    { key: "bookHistory", label: "Lịch sử Book lịch", icon: "📅", onClick: () => setActiveSidebar("bookHistory") },
-    { key: "paymentHistory", label: "Lịch sử thanh toán", icon: "💳", onClick: () => setActiveSidebar("paymentHistory") },
-    { key: "changePassword", label: "Thay đổi mật khẩu", icon: "🔒", onClick: () => setActiveSidebar("changePassword") },
-    { 
+  const getSidebarItems = () => {
+    const baseItems = [
+      { key: "profile", label: "Hồ sơ", icon: "👤", onClick: () => setActiveSidebar("profile") },
+      { key: "paymentHistory", label: "Lịch sử thanh toán", icon: "💳", onClick: () => setActiveSidebar("paymentHistory") },
+      { key: "changePassword", label: "Thay đổi mật khẩu", icon: "🔒", onClick: () => setActiveSidebar("changePassword") },
+    ];
+
+    if (userRoles.includes('EvDriver')) {
+      baseItems.splice(1, 0, {
+        key: "bookingHistory", 
+        label: "Lịch sử Đặt lịch", 
+        icon: "📋", 
+        onClick: () => setActiveSidebar("bookingHistory")
+      });
+    }
+
+    baseItems.push({
       key: "home", 
       label: "Trở về trang chủ", 
       icon: "🏠", 
       onClick: () => navigate('/home'),
-      isHome: true // Thêm flag để style riêng
-    },
-  ];
+      isHome: true
+    });
 
-  const renderBookHistory = () => (
-    <div style={{ padding: 24 }}>
-      <h3 style={{ fontWeight: 600, fontSize: 18, marginBottom: 12 }}>📅 Lịch sử Book lịch</h3>
-      {Array.isArray(orders) && orders.length > 0 ? (
-        <ul style={{ paddingLeft: 16 }}>
-          {orders.map((order, idx) => (
-            <li key={order.orderId || idx} style={{ marginBottom: 8 }}>
-              <span style={{ fontWeight: 500 }}>Mã đơn:</span> {order.orderId || "-"}<br />
-              <span style={{ fontWeight: 500 }}>Ngày:</span> {order.date || "-"}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div>Không có lịch sử đặt lịch.</div>
-      )}
-    </div>
-  );
+    return baseItems;
+  };
+
+  const sidebarItems = getSidebarItems();
+
+  const renderBookingHistory = () => {
+    if (!userRoles.includes('EvDriver')) {
+      return (
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <h3 style={{ fontWeight: 600, fontSize: 18, marginBottom: 12 }}>🚫 Truy cập bị từ chối</h3>
+          <p>Bạn không có quyền truy cập tính năng này.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ padding: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h3 style={{ fontWeight: 600, fontSize: 18, marginBottom: 0 }}>📋 Lịch sử Đặt lịch của bạn</h3>
+          <button
+            onClick={fetchForms}
+            disabled={loadingForms}
+            style={{
+              padding: '8px 16px',
+              background: '#2563eb',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: loadingForms ? 'not-allowed' : 'pointer',
+              fontSize: 14
+            }}
+          >
+            {loadingForms ? 'Đang tải...' : '🔄 Làm mới'}
+          </button>
+        </div>
+
+        {loadingForms ? (
+          <div style={{ textAlign: 'center', padding: '20px' }}>
+            <p>Đang tải lịch sử đặt lịch...</p>
+          </div>
+        ) : forms.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+            <p>Bạn chưa có lịch sử đặt lịch nào.</p>
+            <button 
+              onClick={() => navigate('/booking')}
+              style={{
+                marginTop: '12px',
+                padding: '10px 20px',
+                background: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: 14
+              }}
+            >
+              📝 Tạo đặt lịch mới
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: '12px' }}>
+            <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>
+              Hiển thị {forms.length} đặt lịch của bạn
+            </p>
+            {forms.map((form) => (
+              <div
+                key={form.id}
+                style={{
+                  padding: '16px',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  background: theme === 'dark' ? '#374151' : 'white',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = 'none';
+                }}
+                onClick={() => {
+                  setSelectedForm(form);
+                  fetchFormDetail(form.id);
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 600 }}>
+                      {form.title || 'Không có tiêu đề'}
+                    </h4>
+                    <p style={{ margin: '4px 0', fontSize: '14px', color: theme === 'dark' ? '#d1d5db' : '#64748b' }}>
+                      {form.description || 'Không có mô tả'}
+                    </p>
+                    <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: theme === 'dark' ? '#9ca3af' : '#6b7280', flexWrap: 'wrap' }}>
+                      <span>📅 {form.date ? new Date(form.date).toLocaleDateString('vi-VN') : 'Chưa có ngày'}</span>
+                      <span>🏢 Trạm: {form.stationId || 'Chưa xác định'}</span>
+                      <span>🆔 {form.id}</span>
+                      {form.status && <span>📊 {form.status}</span>}
+                    </div>
+                  </div>
+                  <div style={{ 
+                    padding: '4px 8px', 
+                    borderRadius: '12px', 
+                    fontSize: '12px',
+                    background: form.status === 'Completed' ? '#10b981' : 
+                               form.status === 'Pending' ? '#f59e0b' : 
+                               form.status === 'Approved' ? '#3b82f6' : 
+                               form.status === 'Rejected' ? '#ef4444' : '#6b7280',
+                    color: 'white',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {form.status || 'Chưa xác định'}
+                  </div>
+                </div>
+
+                {selectedForm && selectedForm.id === form.id && (
+                  <div style={{
+                    marginTop: '16px',
+                    padding: '16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    background: theme === 'dark' ? '#1f2937' : '#f9fafb'
+                  }}>
+                    {loadingFormDetail ? (
+                      <div style={{ textAlign: 'center' }}>
+                        <p>Đang tải chi tiết...</p>
+                      </div>
+                    ) : formDetail ? (
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                          <h5 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
+                            Chi tiết đặt lịch của bạn
+                          </h5>
+                          <button
+                            onClick={() => setSelectedForm(null)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              fontSize: '18px',
+                              cursor: 'pointer',
+                              color: theme === 'dark' ? '#d1d5db' : '#374151'
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <div style={{ display: 'grid', gap: '8px', fontSize: '14px' }}>
+                          <div><strong>ID:</strong> {formDetail.id}</div>
+                          <div><strong>Tiêu đề:</strong> {formDetail.title || 'N/A'}</div>
+                          <div><strong>Mô tả:</strong> {formDetail.description || 'N/A'}</div>
+                          <div><strong>Ngày đặt lịch:</strong> {formDetail.date ? new Date(formDetail.date).toLocaleDateString('vi-VN') : 'N/A'}</div>
+                          <div><strong>Trạm hỗ trợ:</strong> {formDetail.stationId || 'N/A'}</div>
+                          <div><strong>Trạng thái:</strong> 
+                            <span style={{
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              marginLeft: '8px',
+                              background: formDetail.status === 'Completed' ? '#10b981' : 
+                                         formDetail.status === 'Pending' ? '#f59e0b' : 
+                                         formDetail.status === 'Approved' ? '#3b82f6' : 
+                                         formDetail.status === 'Rejected' ? '#ef4444' : '#6b7280',
+                              color: 'white'
+                            }}>
+                              {formDetail.status || 'N/A'}
+                            </span>
+                          </div>
+                          <div><strong>Ngày tạo:</strong> {formDetail.createdAt ? new Date(formDetail.createdAt).toLocaleDateString('vi-VN') : 'N/A'}</div>
+                          {formDetail.updatedAt && (
+                            <div><strong>Cập nhật lần cuối:</strong> {new Date(formDetail.updatedAt).toLocaleDateString('vi-VN')}</div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', color: '#ef4444' }}>
+                        Không thể tải chi tiết đặt lịch
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderPaymentHistory = () => (
     <div style={{ padding: 24 }}>
@@ -288,19 +518,17 @@ function Profile({ theme = "light" }) {
     </div>
   );
 
-  // NOTE: set flexDirection based on isMobile so layout shows sidebar + main correctly
   const containerStyle = {
     position: "relative",
     minHeight: "100vh",
     display: "flex",
-    flexDirection: isMobile ? "column" : "row", // <-- FIX: enforce row on desktop, column on mobile
+    flexDirection: isMobile ? "column" : "row",
     width: "100%",
     overflow: "hidden",
   };
 
   return (
     <div className={`profile-container${theme === "dark" ? " dark" : ""}`} style={containerStyle}>
-      {/* Sidebar */}
       <div
         className="profile-sidebar"
         style={{
@@ -371,7 +599,6 @@ function Profile({ theme = "light" }) {
         ))}
       </div>
 
-      {/* Main content */}
       <div
         className="profile-main-content"
         style={{
@@ -562,7 +789,7 @@ function Profile({ theme = "light" }) {
                   </div>
                   <div>
                     <div style={{ fontWeight: 500, marginBottom: 4 }}>Forms</div>
-                    {renderPreview(forms, "id")}
+                    {renderPreview(forms.slice(0, 3), "title")}
                   </div>
                   <div>
                     <div style={{ fontWeight: 500, marginBottom: 4 }}>Orders</div>
@@ -574,12 +801,11 @@ function Profile({ theme = "light" }) {
                   </div>
                 </div>
               </div>
-
             </div>
           </div>
         )}
 
-        {activeSidebar === "bookHistory" && renderBookHistory()}
+        {activeSidebar === "bookingHistory" && renderBookingHistory()}
         {activeSidebar === "paymentHistory" && renderPaymentHistory()}
         {activeSidebar === "changePassword" && (
           <div style={{ padding: 24 }}>

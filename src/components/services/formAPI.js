@@ -91,4 +91,30 @@ export const formAPI = {
     }
   }
 },
+
+getFormByIdDriver: async (formId) => {
+  try {
+    const response = await api.get(`/api/Form/get-form-by-id-driver/${formId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Get form by id driver error:', error);
+    throw error.response?.data || { 
+      message: error.message || 'Lỗi khi lấy thông tin form',
+      isSuccess: false 
+    };
+  }
+},
+
+getAllFormsDriver: async () => {
+  try {
+    const response = await api.get('/api/Form/get-all-forms-driver');
+    return response.data;
+  } catch (error) {
+    console.error('Get all forms driver error:', error);
+    throw error.response?.data || { 
+      message: error.message || 'Lỗi khi lấy danh sách form',
+      isSuccess: false 
+    };
+  }
+},
 };
