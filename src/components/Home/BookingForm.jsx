@@ -101,7 +101,7 @@ export default function BookingForm() {
   };
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}>
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`} style={{ overflowY: 'auto', maxHeight: '100vh' }}>
       <HeaderDriver
         onToggleTheme={handleToggleTheme}
         theme={theme}
@@ -110,6 +110,20 @@ export default function BookingForm() {
         nextBooking={nextBooking}
         onOpenBooking={() => {}}
       />
+
+      {/* Hero video section */}
+      <div className="booking-hero" style={{ height: 400, width: 1500 }}>
+        <video autoPlay loop muted playsInline poster="" preload="metadata">
+          <source src="https://cdn.gogoro.com/resources/pages/home/kv/video-home-kv.mp4" type="video/mp4" />
+        </video>
+        <div className="booking-hero-content">
+          <div className="hero-text">
+            <h1>Đổi pin nhanh, sẵn sàng mọi hành trình</h1>
+            <p>Đặt lịch trước để đến trạm là có pin ngay, không phải đợi.</p>
+          </div>
+          <div className="hero-badge">⚡ Nguồn cảm hứng: video Gogoro</div>
+        </div>
+      </div>
 
       <div className="booking-container">
         <div className="booking-card">

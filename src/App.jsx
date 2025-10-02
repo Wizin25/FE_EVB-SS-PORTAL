@@ -5,6 +5,7 @@ import SignUp from './components/Log/signup';
 import ForgotPassword from './components/Log/forgot';
 import AdminLayout from './components/Admin/Layout.jsx';
 import DashboardPage from './components/Admin/pages/Dashboard.jsx';
+import Station from './components/Admin/pages/Station.jsx';
 import FormPage from './components/Admin/pages/Form.jsx';
 import CalendarPage from './components/Admin/pages/Calendar.jsx';
 import StationForUser from './components/Home/StationforUser.jsx';
@@ -35,7 +36,7 @@ function App() {
             <Route path="form" element={<FormPage />} />
             <Route path="battery" element={<BatteryManagementPage />} />
             <Route path="calendar" element={<CalendarPage />} />
-            <Route path="station" element={<StationForUser />} />
+            <Route path="station" element={<Station/>} />
             <Route path="controller" element={<ControllerPage />} />
           </Route>
           <Route path="/profile" element={<Profile />} />
