@@ -1,5 +1,5 @@
 // Form.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { authAPI } from '../../services/authAPI';
 import { formAPI } from '../../services/formAPI';
 import { getCurrentUserPayload, isInRole } from '../../services/jwt';
@@ -10,6 +10,10 @@ export default function FormPage() {
   const [loading, setLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
+  // Thêm state mới cho customer details
+  const [customerDetails, setCustomerDetails] = useState({});
+  const [detailLoading, setDetailLoading] = useState({});
+
   // State cho form tạo mới
   const [formData, setFormData] = useState({
     title: '',
@@ -18,10 +22,15 @@ export default function FormPage() {
     stationId: ''
   });
 
-  // State cho tìm kiếm và lọc
-  const [searchId, setSearchId] = useState('');
-  const [accountId, setAccountId] = useState('');
-  const [stationId, setStationId] = useState('');
+  // State cho tìm kiếm và sắp xếp
+  const [searchAccountId, setSearchAccountId] = useState('');
+  const [searchStation, setSearchStation] = useState('');
+  const [sortBy, setSortBy] = useState('date');
+  const [sortDirection, setSortDirection] = useState('desc');
+
+  // State cho phân trang
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Lấy thông tin user hiện tại
   useEffect(() => {
@@ -36,13 +45,42 @@ export default function FormPage() {
     fetchCurrentUser();
   }, []);
 
+  // Hàm lấy thông tin customer theo accountId
+  const fetchCustomerDetails = async (accountId, formId) => {
+    if (!accountId || customerDetails[accountId]) return;
+
+    setDetailLoading(prev => ({ ...prev, [accountId]: true }));
+    
+    try {
+      const response = await authAPI.getCustomerById(accountId);
+      if (response.isSuccess && response.data) {
+        setCustomerDetails(prev => ({
+          ...prev,
+          [accountId]: response.data
+        }));
+      }
+    } catch (error) {
+      console.error(`Error fetching customer details for account ${accountId}:`, error);
+    } finally {
+      setDetailLoading(prev => ({ ...prev, [accountId]: false }));
+    }
+  };
+
   // Lấy tất cả forms
   const fetchAllForms = async () => {
     setLoading(true);
     try {
       const response = await formAPI.getAllForms();
       if (response.isSuccess) {
-        setForms(response.data || []);
+        const formsData = response.data || [];
+        setForms(formsData);
+
+        // Fetch customer details cho mỗi form
+        formsData.forEach(form => {
+          if (form.accountId) {
+            fetchCustomerDetails(form.accountId, form.id);
+          }
+        });
       } else {
         console.error('Error fetching forms:', response.message);
         alert('Lỗi khi tải danh sách form: ' + response.message);
@@ -50,63 +88,6 @@ export default function FormPage() {
     } catch (error) {
       console.error('Error fetching forms:', error);
       alert('Lỗi khi tải danh sách form');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Lấy form theo ID
-  const fetchFormById = async (id) => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const response = await formAPI.getFormById(id);
-      if (response.isSuccess) {
-        setSelectedForm(response.data);
-      } else {
-        alert('Không tìm thấy form: ' + response.message);
-      }
-    } catch (error) {
-      console.error('Error fetching form:', error);
-      alert('Không tìm thấy form');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Lấy forms theo account ID
-  const fetchFormsByAccountId = async (id) => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const response = await formAPI.getFormsByAccountId(id);
-      if (response.isSuccess) {
-        setForms(response.data || []);
-      } else {
-        alert('Lỗi khi tải forms theo account: ' + response.message);
-      }
-    } catch (error) {
-      console.error('Error fetching forms:', error);
-      alert('Lỗi khi tải forms theo account');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Lấy forms theo station ID
-  const fetchFormsByStationId = async (id) => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const response = await formAPI.getFormsByStationId(id);
-      if (response.isSuccess) {
-        setForms(response.data || []);
-      } else {
-        alert('Lỗi khi tải forms theo trạm: ' + response.message);
-      }
-    } catch (error) {
-      console.error('Error fetching forms:', error);
-      alert('Lỗi khi tải forms theo trạm');
     } finally {
       setLoading(false);
     }
@@ -144,58 +125,38 @@ export default function FormPage() {
     }
   };
 
-  // Cập nhật form
-  const handleUpdateForm = async (updatedData) => {
+  // Xóa form
+  const handleDeleteForm = async (id) => {
+    console.log('Attempting to delete form ID:', id);
+    
+    if (!window.confirm('Bạn có chắc muốn xóa form này?')) return;
+
     setLoading(true);
     try {
-      const response = await formAPI.updateForm(updatedData);
+      console.log('Calling deleteForm API...');
+      const response = await formAPI.deleteForm(id);
+      console.log('Delete response:', response);
+      
       if (response.isSuccess) {
-        alert('Cập nhật form thành công!');
+        console.log('Delete successful');
+        alert('Xóa form thành công!');
         setSelectedForm(null);
         fetchAllForms();
       } else {
-        alert('Lỗi khi cập nhật form: ' + response.message);
+        console.log('Delete failed:', response.message);
+        alert('Lỗi khi xóa form: ' + response.message);
       }
     } catch (error) {
-      console.error('Error updating form:', error);
-      alert('Lỗi khi cập nhật form');
+      console.error('Delete error details:', {
+        error,
+        response: error.response,
+        data: error.response?.data
+      });
+      alert('Lỗi khi xóa form: ' + (error.message || 'Vui lòng thử lại'));
     } finally {
       setLoading(false);
     }
   };
-
-  // Xóa form
-  const handleDeleteForm = async (id) => {
-  console.log('Attempting to delete form ID:', id);
-  
-  if (!window.confirm('Bạn có chắc muốn xóa form này?')) return;
-
-  setLoading(true);
-  try {
-    console.log('Calling deleteForm API...');
-    const response = await formAPI.deleteForm(id);
-    console.log('Delete response:', response);
-    
-    if (response.isSuccess) {
-      console.log('Delete successful');
-      alert('Xóa form thành công!');
-      setSelectedForm(null);
-      fetchAllForms();
-    } else {
-      console.log('Delete failed:', response.message);
-      alert('Lỗi khi xóa form: ' + response.message);
-    }
-  } catch (error) {
-    console.error('Delete error details:', {
-      error,
-      response: error.response,
-      data: error.response?.data
-    });
-    // ... phần xử lý lỗi như trên
-  } finally {
-    setLoading(false);
-  }
-};
 
   const resetForm = () => {
     setFormData({
@@ -213,11 +174,131 @@ export default function FormPage() {
     }));
   };
 
+  // Hàm xử lý sắp xếp
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortDirection('desc');
+    }
+  };
+
+  // Lọc và sắp xếp forms
+  const filteredAndSortedForms = useMemo(() => {
+    let results = [...forms];
+
+    // Tìm kiếm theo AccountID
+    if (searchAccountId) {
+      const accountIdLower = searchAccountId.toLowerCase();
+      results = results.filter(form => 
+        form.accountId && form.accountId.toLowerCase().includes(accountIdLower)
+      );
+    }
+
+    // Tìm kiếm theo Station Name hoặc Station ID
+    if (searchStation) {
+      const stationLower = searchStation.toLowerCase();
+      results = results.filter(form => 
+        (form.stationId && form.stationId.toLowerCase().includes(stationLower)) ||
+        (form.stationName && form.stationName.toLowerCase().includes(stationLower))
+      );
+    }
+
+    // Sắp xếp
+    if (sortBy) {
+      results.sort((a, b) => {
+        let aValue = a[sortBy];
+        let bValue = b[sortBy];
+
+        // Xử lý sắp xếp theo date
+        if (sortBy === 'date') {
+          aValue = aValue ? new Date(aValue) : new Date(0);
+          bValue = bValue ? new Date(bValue) : new Date(0);
+        }
+
+        // Xử lý các trường string
+        if (typeof aValue === 'string') aValue = aValue.toLowerCase();
+        if (typeof bValue === 'string') bValue = bValue.toLowerCase();
+
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return results;
+  }, [forms, searchAccountId, searchStation, sortBy, sortDirection]);
+
+  // Tính toán phân trang
+  const totalItems = filteredAndSortedForms.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentForms = filteredAndSortedForms.slice(startIndex, endIndex);
+
+  // Reset về trang 1 khi filters thay đổi
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchAccountId, searchStation, sortBy, sortDirection]);
+
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
   useEffect(() => {
     fetchAllForms();
   }, []);
 
   const canCreateForm = currentUser && isInRole('EvDriver');
+
+  // Hàm format date giống Controller.jsx
+  const formatDate = (dateString) => {
+    if (!dateString || dateString === 'N/A') return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'N/A';
+      
+      return date.toLocaleString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Ho_Chi_Minh'
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Hàm xác định màu sắc cho status
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+      case 'chờ xử lý':
+        return '#f59e0b'; // orange
+      case 'approved':
+      case 'đã duyệt':
+        return '#10b981'; // green
+      case 'rejected':
+      case 'từ chối':
+        return '#ef4444'; // red
+      case 'completed':
+      case 'hoàn thành':
+        return '#3b82f6'; // blue
+      default:
+        return '#6b7280'; // gray
+    }
+  };
+
+  // Icon sắp xếp
+  const getSortIcon = (field) => {
+    if (sortBy !== field) return '↕️';
+    return sortDirection === 'asc' ? '↑' : '↓';
+  };
 
   return (
     <div style={{ padding: 20, maxWidth: 1200, margin: '0 auto' }}>
@@ -290,64 +371,68 @@ export default function FormPage() {
         </section>
       )}
 
-      {/* Tìm kiếm và bộ lọc */}
+      {/* Tìm kiếm và sắp xếp */}
       <section style={{ marginBottom: 40, padding: 20, border: '1px solid #e2e8f0', borderRadius: 8 }}>
-        <h2 style={{ marginBottom: 16 }}>Tìm kiếm & Lọc Form</h2>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'end' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Tìm theo Form ID</span>
+        <h2 style={{ marginBottom: 16 }}>Tìm kiếm & Sắp xếp Form</h2>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'end' }}>
+          
+          {/* Tìm kiếm theo Account ID */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 200 }}>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Tìm theo Account</span>
             <input
-              placeholder="Nhập Form ID"
-              value={searchId}
-              onChange={(e) => setSearchId(e.target.value)}
+              placeholder="Nhập Account ..."
+              value={searchAccountId}
+              onChange={(e) => setSearchAccountId(e.target.value)}
               style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }}
             />
-            <button 
-              onClick={() => fetchFormById(searchId)}
-              style={{ padding: '8px 12px', background: '#3b82f6', color: 'white', borderRadius: 6 }}
-            >
-              Tìm Form
-            </button>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Lọc theo Account ID</span>
+          {/* Tìm kiếm theo Station */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 200 }}>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Tìm theo Station</span>
             <input
-              placeholder="Nhập Account ID"
-              value={accountId}
-              onChange={(e) => setAccountId(e.target.value)}
+              placeholder="Nhập Station ..."
+              value={searchStation}
+              onChange={(e) => setSearchStation(e.target.value)}
               style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }}
             />
-            <button 
-              onClick={() => fetchFormsByAccountId(accountId)}
-              style={{ padding: '8px 12px', background: '#10b981', color: 'white', borderRadius: 6 }}
-            >
-              Lọc theo Account
-            </button>
           </div>
 
+          {/* Sắp xếp */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Lọc theo Station ID</span>
-            <input
-              placeholder="Nhập Station ID"
-              value={stationId}
-              onChange={(e) => setStationId(e.target.value)}
-              style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }}
-            />
-            <button 
-              onClick={() => fetchFormsByStationId(stationId)}
-              style={{ padding: '8px 12px', background: '#f59e0b', color: 'white', borderRadius: 6 }}
-            >
-              Lọc theo Station
-            </button>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Sắp xếp theo</span>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <select 
+                value={sortBy} 
+                onChange={(e) => handleSort(e.target.value)}
+                style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }}
+              >
+                <option value="date">Ngày tạo</option>
+                <option value="title">Tiêu đề</option>
+                <option value="status">Trạng thái</option>
+              </select>
+              <button 
+                onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
+                style={{ 
+                  padding: '8px 12px', 
+                  background: '#3b82f6', 
+                  color: 'white', 
+                  borderRadius: 6,
+                  minWidth: 100
+                }}
+              >
+                {sortDirection === 'asc' ? '↑ Tăng dần' : '↓ Giảm dần'}
+              </button>
+            </div>
           </div>
 
-          <button 
-            onClick={fetchAllForms}
-            style={{ padding: '8px 16px', background: '#6b7280', color: 'white', borderRadius: 6, height: 'fit-content' }}
-          >
-            Hiển thị tất cả
-          </button>
+          {/* Thống kê */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginLeft: 'auto' }}>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Kết quả</span>
+            <div style={{ fontSize: 14, color: '#64748b' }}>
+              Hiển thị: {filteredAndSortedForms.length} / {forms.length} forms
+            </div>
+          </div>
         </div>
       </section>
 
@@ -379,24 +464,43 @@ export default function FormPage() {
         </section>
       )}
 
-      {/* Danh sách forms */}
+      {/* Danh sách forms - ĐÃ CẬP NHẬT VỚI PHÂN TRANG */}
       <section style={{ padding: 20, border: '1px solid #e2e8f0', borderRadius: 8 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2>Danh sách Forms ({forms.length})</h2>
-          <button 
-            onClick={fetchAllForms}
-            disabled={loading}
-            style={{ 
-              padding: '8px 16px', 
-              background: '#0f172a', 
-              color: 'white', 
-              borderRadius: 6,
-              opacity: loading ? 0.6 : 1
-            }}
-          >
-            {loading ? 'Đang tải...' : 'Làm mới'}
-          </button>
+          <h2>
+            Danh sách Forms 
+            <span style={{ fontSize: 16, fontWeight: 'normal', color: '#64748b', marginLeft: 8 }}>
+              ({currentForms.length} / {filteredAndSortedForms.length} trên {forms.length} forms)
+            </span>
+          </h2>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span style={{ fontSize: 14, color: '#64748b' }}>
+              Sắp xếp: {sortBy === 'date' ? 'Ngày' : sortBy === 'title' ? 'Tiêu đề' : 'Trạng thái'} {getSortIcon(sortBy)}
+            </span>
+            <button 
+              onClick={fetchAllForms}
+              disabled={loading}
+              style={{ 
+                padding: '8px 16px', 
+                background: '#0f172a', 
+                color: 'white', 
+                borderRadius: 6,
+                opacity: loading ? 0.6 : 1
+              }}
+            >
+              {loading ? 'Đang tải...' : 'Làm mới'}
+            </button>
+          </div>
         </div>
+
+        {/* Thông tin phân trang */}
+        {totalItems > 0 && (
+          <div style={{ marginBottom: 16, padding: '12px 16px', background: '#f8fafc', borderRadius: 6 }}>
+            <span style={{ fontSize: 14, color: '#64748b' }}>
+              Trang {currentPage}/{totalPages} - Hiển thị {startIndex + 1}-{Math.min(endIndex, totalItems)} trên {totalItems} forms
+            </span>
+          </div>
+        )}
         
         {loading ? (
           <div style={{ textAlign: 'center', padding: 40 }}>
@@ -406,42 +510,186 @@ export default function FormPage() {
           <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>
             <p>Không có form nào</p>
           </div>
-        ) : (
-          <div style={{ display: 'grid', gap: 12 }}>
-            {forms.map((form) => (
-              <div 
-                key={form.id} 
-                style={{ 
-                  padding: 16, 
-                  border: '1px solid #e2e8f0', 
-                  borderRadius: 8,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  background: 'white'
-                }}
-              >
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: '0 0 8px 0', fontSize: 18, fontWeight: 600 }}>{form.title}</h3>
-                  <p style={{ margin: '4px 0', color: '#64748b' }}>{form.description}</p>
-                  <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 14 }}>
-                    <span>ID: {form.id}</span>
-                    {form.accountId && <span>Account: {form.accountId}</span>}
-                    {form.stationId && <span>Station: {form.stationId}</span>}
-                    {form.date && <span>Ngày: {new Date(form.date).toLocaleDateString('vi-VN')}</span>}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button 
-                    onClick={() => handleDeleteForm(form.id)}
-                    style={{ padding: '6px 12px', background: '#ef4444', color: 'white', borderRadius: 6 }}
-                  >
-                    Xóa
-                  </button>
-                </div>
-              </div>
-            ))}
+        ) : currentForms.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>
+            <p>Không tìm thấy form nào phù hợp với tiêu chí tìm kiếm</p>
           </div>
+        ) : (
+          <>
+            <div style={{ display: 'grid', gap: 12 }}>
+              {currentForms.map((form) => {
+                const customer = customerDetails[form.accountId];
+                const isLoading = detailLoading[form.accountId];
+                
+                return (
+                  <div 
+                    key={form.id} 
+                    style={{ 
+                      padding: 16, 
+                      border: '1px solid #e2e8f0', 
+                      borderRadius: 8,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      background: 'white'
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ margin: '0 0 8px 0', fontSize: 18, fontWeight: 600 }}>{form.title}</h3>
+                      <p style={{ margin: '4px 0', color: '#64748b' }}>{form.description}</p>
+                      
+                      {/* Thông tin Form cơ bản */}
+                      <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 14, flexWrap: 'wrap' }}>
+                        <span><strong>ID:</strong> {form.id}</span>
+                        {form.accountId && <span><strong>Account ID:</strong> {form.accountId}</span>}
+                        {form.stationId && <span><strong>Station ID:</strong> {form.stationId}</span>}
+                        {form.date && (
+                          <span>
+                            <strong>Ngày tạo:</strong> {formatDate(form.date)}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Thông tin Customer chi tiết - GIỐNG CONTROLLER.JSX */}
+                      {form.accountId && (
+                        <div style={{ marginTop: 12, padding: 12, background: '#f8fafc', borderRadius: 6 }}>
+                          <h4 style={{ margin: '0 0 8px 0', fontSize: 14, fontWeight: 600 }}>Thông tin Customer:</h4>
+                          {isLoading ? (
+                            <p style={{ margin: 0, fontSize: 14, color: '#64748b' }}>Đang tải thông tin...</p>
+                          ) : customer ? (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8, fontSize: 14 }}>
+                              <div>
+                                <strong>Name:</strong> {customer.name || 'N/A'}
+                              </div>
+                              <div>
+                                <strong>Phone:</strong> {customer.phone || 'N/A'}
+                              </div>
+                              <div>
+                                <strong>Email:</strong> {customer.email || 'N/A'}
+                              </div>
+                              <div>
+                                <strong>Address:</strong> {customer.address || 'N/A'}
+                              </div>
+                              {customer.customerID && (
+                                <div>
+                                  <strong>Customer ID:</strong> {customer.customerID}
+                                </div>
+                              )}
+                              {customer.status && (
+                                <div>
+                                  <strong>Status:</strong> 
+                                  <span style={{ 
+                                    marginLeft: 6,
+                                    padding: '2px 8px', 
+                                    borderRadius: 12, 
+                                    fontSize: 12,
+                                    backgroundColor: customer.status === 'Active' ? '#10b981' : '#ef4444',
+                                    color: 'white'
+                                  }}>
+                                    {customer.status}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <p style={{ margin: 0, fontSize: 14, color: '#64748b' }}>
+                              Không tìm thấy thông tin customer
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexDirection: 'column' }}>
+                      {/* Status */}
+                      <span 
+                        style={{ 
+                          padding: '6px 12px', 
+                          borderRadius: 20, 
+                          fontSize: 12, 
+                          fontWeight: 600,
+                          backgroundColor: getStatusColor(form.status),
+                          color: 'white',
+                          textTransform: 'capitalize'
+                        }}
+                      >
+                        {form.status || 'Chưa xác định'}
+                      </span>
+                      
+                      {/* Nút Xóa */}
+                      <button 
+                        onClick={() => handleDeleteForm(form.id)}
+                        style={{ 
+                          padding: '6px 12px', 
+                          background: '#ef4444', 
+                          color: 'white', 
+                          borderRadius: 6,
+                          fontSize: 12
+                        }}
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Phân trang */}
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 20 }}>
+                <button 
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  style={{ 
+                    padding: '8px 12px', 
+                    background: currentPage === 1 ? '#cbd5e1' : '#3b82f6', 
+                    color: 'white', 
+                    borderRadius: 6,
+                    border: 'none',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  ← Trước
+                </button>
+                
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      style={{ 
+                        padding: '8px 12px', 
+                        background: page === currentPage ? '#0f172a' : '#e2e8f0', 
+                        color: page === currentPage ? 'white' : '#64748b', 
+                        borderRadius: 6,
+                        border: 'none',
+                        cursor: 'pointer',
+                        minWidth: 40
+                      }}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+                
+                <button 
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  style={{ 
+                    padding: '8px 12px', 
+                    background: currentPage === totalPages ? '#cbd5e1' : '#3b82f6', 
+                    color: 'white', 
+                    borderRadius: 6,
+                    border: 'none',
+                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  Sau →
+                </button>
+              </div>
+            )}
+          </>
         )}
       </section>
     </div>
