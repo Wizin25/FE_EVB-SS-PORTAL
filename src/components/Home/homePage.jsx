@@ -3,7 +3,8 @@ import React, { useState, useEffect } from "react";
 import HeaderDriver from "./header";
 import api from "../services/api";
 import Footer from "./footer";
-import BookingForm from "./BookingForm"; // Trang trí: import thêm BookingForm
+import { LiquidGlass } from '@liquidglass/react';
+
 
 export default function HomePage() {
   const [theme, setTheme] = useState(() => {
@@ -26,7 +27,7 @@ export default function HomePage() {
   const handleToggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
-    
+
     const root = document.documentElement;
     if (newTheme === "dark") {
       root.classList.add("dark");
@@ -43,7 +44,7 @@ export default function HomePage() {
     // Initialize theme
     const savedTheme = localStorage.getItem("theme") || "light";
     setTheme(savedTheme);
-    
+
     const root = document.documentElement;
     if (savedTheme === "dark") {
       root.classList.add("dark");
@@ -121,12 +122,12 @@ export default function HomePage() {
   };
 
   return (
+    
     <div
-      className={`min-h-screen transition-colors duration-300 ${
-        theme === 'dark'
+      className={`min-h-screen transition-colors duration-300 ${theme === 'dark'
           ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900'
           : 'bg-gradient-to-br from-blue-50 via-white to-green-50'
-      }`}
+        }`}
       style={scrollStyles}
     >
       <HeaderDriver
@@ -137,62 +138,63 @@ export default function HomePage() {
         nextBooking={nextBooking}
         onOpenBooking={handleOpenBooking}
       />
-
       <main className="container px-4 py-8 mx-auto max-w-7xl">
         {/* Welcome Section */}
-        <div className={`rounded-2xl p-8 mb-8 shadow-xl ${
-          theme === 'dark'
-            ? 'bg-gradient-to-r from-gray-800 to-gray-700 border border-gray-600'
-            : 'bg-gradient-to-r from-blue-600 to-green-600 text-white'
-        }`}>
-          <div className="flex flex-col items-center justify-between md:flex-row">
-            <div className="mb-4 md:mb-0">
-              <h1 className="mb-2 text-4xl font-bold">
-                Welcome back, {user?.name || 'Driver'}! 👋
-              </h1>
-              <p className="text-lg opacity-90">
-                Ready to make your next eco-friendly journey with SwapX?
-              </p>
-            </div>
-            <div className="flex space-x-4">
+
+        <div className={` LiquidGlass ${theme === 'dark'
+            ? 'bg-gradient-to-r from-white-800 to-white-700 border border-white-600'
+            : 'bg-gradient-to-r from-blue-400 to-gray-300 text-black'
+          }`}>
+          <div className="flex flex-col items-center justify-between ">
+            <LiquidGlass  borderRadius={360} blur={5.5} contrast={1.2} brightness={1.1} saturation={1.2} className="mb-5 md:mb-5">
+              <div className="p-5">
+                <div className="flex flex-col items-center justify-center text-center">
+                  <h1 className="mb-4 text-3xl font-bold">
+                    Welcome back, {user?.name || 'Driver'}! 👋
+                  </h1>
+                  <p className="text-lg opacity-90">
+                    Bạn đã sẵn sàng cho hành trình xanh tiếp theo cùng SwapX chưa?
+                  </p>
+                </div>
+                </div>
+            </LiquidGlass>
+            <div className="flex space-x-4 LiquidGlass">
               <button
                 onClick={handleOpenBooking}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 ${
-                  theme === 'dark'
+                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 ${theme === 'dark'
                     ? 'bg-green-600 hover:bg-green-500 text-white'
                     : 'bg-white text-blue-600 hover:bg-gray-100'
-                } shadow-lg`}
+                  } shadow-lg`}
               >
                 Book Now
               </button>
               <button
                 onClick={() => handleQuickAction('findStation')}
-                className={`px-6 py-3 rounded-xl font-semibold border-2 transition-all duration-300 transform hover:scale-105 ${
-                  theme === 'dark'
+                className={`px-6 py-3 rounded-xl font-semibold border-2 transition-all duration-300 transform hover:scale-105 ${theme === 'dark'
                     ? 'border-gray-400 text-gray-300 hover:bg-gray-600'
                     : 'border-white text-white hover:bg-white hover:text-blue-600'
-                }`}
+                  }`}
               >
                 Find Stations
               </button>
             </div>
           </div>
         </div>
-   {/* Hero video section */}
-   <div className="booking-hero" style={{ height: 500, margin: 20 ,width: 1200}}>
-        <video autoPlay loop muted playsInline poster="" preload="metadata">
-          <source src="https://cdn.gogoro.com/resources/pages/global-home/hero/video-global-hero.mp4" type="video/mp4" />
-        </video>
-        <div className="booking-hero-content">
-          <div className="hero-text">
-            <h1>Đổi pin nhanh, sẵn sàng mọi hành trình</h1>
-            <p>Đặt lịch trước để đến trạm là có pin ngay, không phải đợi.</p>
+        {/* Hero video section */}
+        <div className="booking-hero" style={{ height: 500, margin: 20, width: 1200 }}>
+          <video autoPlay loop muted playsInline poster="" preload="metadata">
+            <source src="https://cdn.gogoro.com/resources/pages/global-home/hero/video-global-hero.mp4" type="video/mp4" />
+          </video>
+          <div className="booking-hero-content">
+            <div className="hero-text LiquidGlass">
+              <h1>Đổi pin nhanh, sẵn sàng mọi hành trình</h1>
+              <p>Đặt lịch trước để đến trạm là có pin ngay, không phải đợi.</p>
+            </div>
+            <div className="hero-badge">⚡ Nguồn cảm hứng: video Gogoro</div>
           </div>
-          <div className="hero-badge">⚡ Nguồn cảm hứng: video Gogoro</div>
         </div>
-      </div>
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
+        <div className=" grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4 LiquidGlass">
           {[
             {
               title: "Total Bookings",
@@ -225,24 +227,21 @@ export default function HomePage() {
           ].map((stat, index) => (
             <div
               key={index}
-              className={`rounded-xl p-6 shadow-lg transition-all duration-300 hover:transform hover:scale-105 ${
-                theme === 'dark'
+              className={` LiquidGlass rounded-xl p-6 shadow-lg transition-all duration-300 hover:transform hover:scale-105 ${theme === 'dark'
                   ? 'bg-gray-800 border border-gray-700'
                   : 'bg-white border border-gray-100'
-              }`}
+                }`}
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-2xl">{stat.icon}</span>
                 <div className={`w-3 h-3 rounded-full bg-${stat.color}-500`}></div>
               </div>
-              <h3 className={`text-sm font-medium mb-1 ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}>
+              <h3 className={`text-sm font-medium mb-1 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                }`}>
                 {stat.title}
               </h3>
-              <p className={`text-2xl font-bold ${
-                theme === 'dark' ? 'text-white' : 'text-gray-900'
-              }`}>
+              <p className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                }`}>
                 {stat.value}{stat.suffix}
               </p>
             </div>
@@ -251,14 +250,12 @@ export default function HomePage() {
 
         {/* Next Booking Card */}
         {nextBooking && (
-          <div className={`rounded-xl p-6 mb-8 shadow-lg ${
-            theme === 'dark'
+          <div className={`rounded-xl p-6 mb-8 shadow-lg ${theme === 'dark'
               ? 'bg-gray-800 border border-gray-700'
               : 'bg-white border border-gray-100'
-          }`}>
-            <h2 className={`text-xl font-semibold mb-4 flex items-center ${
-              theme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
+            <h2 className={`text-xl font-semibold mb-4 flex items-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}>
               <span className="mr-2">🚗</span>
               Your Next Booking
             </h2>
@@ -284,14 +281,12 @@ export default function HomePage() {
         )}
 
         {/* Quick Actions */}
-        <div className={`rounded-xl p-6 shadow-lg mb-8 ${
-          theme === 'dark'
+        <div className={`rounded-xl p-6 shadow-lg mb-8 ${theme === 'dark'
             ? 'bg-gray-800 border border-gray-700'
             : 'bg-white border border-gray-100'
-        }`}>
-          <h2 className={`text-xl font-semibold mb-6 ${
-            theme === 'dark' ? 'text-white' : 'text-gray-900'
           }`}>
+          <h2 className={`text-xl font-semibold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+            }`}>
             Quick Actions
           </h2>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -304,37 +299,34 @@ export default function HomePage() {
               <button
                 key={index}
                 onClick={() => handleQuickAction(item.action)}
-                className={`p-4 rounded-lg text-left transition-all duration-300 hover:transform hover:scale-105 ${
-                  theme === 'dark'
+                className={`p-4 rounded-lg text-left transition-all duration-300 hover:transform hover:scale-105 ${theme === 'dark'
                     ? 'bg-gray-700 hover:bg-gray-600 border border-gray-600'
                     : 'bg-gray-50 hover:bg-gray-100 border border-gray-200'
-                }`}
+                  }`}
               >
                 <div className="mb-2 text-2xl">{item.icon}</div>
-                <h3 className={`font-semibold mb-1 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
-                }`}>
+                <h3 className={`font-semibold mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'
+                  }`}>
                   {item.title}
                 </h3>
-                <p className={`text-xs ${
-                  theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>
+                <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                  }`}>
                   {item.desc}
                 </p>
               </button>
             ))}
           </div>
           {/* Secondary loop video subtle strip */}
-      <div className="booking-hero" style={{ height: 400, marginTop: 10 }}>
-        <video autoPlay loop muted playsInline preload="metadata">
-          <source src="https://cdn.gogoro.com/resources/pages/home/kv/video-home-kv.mp4" type="video/mp4" />
-        </video>
-        <div className="booking-hero-content" style={{ alignItems: 'flex-end' }}>
-          <div className="hero-text">
-            <p>Trạm phủ rộng, thao tác nhanh chóng, trải nghiệm mượt mà.</p>
+          <div className="booking-hero" style={{ height: 400, marginTop: 10 }}>
+            <video autoPlay loop muted playsInline preload="metadata">
+              <source src="https://cdn.gogoro.com/resources/pages/home/kv/video-home-kv.mp4" type="video/mp4" />
+            </video>
+            <div className="booking-hero-content" style={{ alignItems: 'flex-end' }}>
+              <div className="hero-text">
+                <p>Trạm phủ rộng, thao tác nhanh chóng, trải nghiệm mượt mà.</p>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
         </div>
       </main>
       {/* Footer */}

@@ -1,6 +1,7 @@
 // HeaderDriver.jsx (skeleton)
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LiquidGlass } from '@liquidglass/react';
 import './home.css';
 import Profile from '../Profile/Profile';
 
@@ -18,12 +19,12 @@ export default function Header({
           <img src="https://res.cloudinary.com/dzht29nkq/image/upload/v1758274139/SwapX_1_-Photoroom_wvmglm.png" alt="SwapX" style={{height:36}}/>
         </a>
         <nav className="main-nav">
-          <a href="/stations">Trạm</a>
-          <button className="cta" onClick={onOpenBooking}>Đặt lịch</button>
-          <a href="/plans">Gói dịch vụ</a>
-          <a href="/vehicles">Phương tiện</a>
-          <a href="/payments">Thanh toán</a>
-          <a href="/support">Hỗ trợ</a>
+          <a href="/stations" className="LiquidGlass">Trạm</a>
+          <button className="cta LiquidGlass" onClick={onOpenBooking}>Đặt lịch</button>
+          <a href="/plans" className="LiquidGlass">Gói dịch vụ</a>
+          <a href="/vehicles" className="LiquidGlass">Phương tiện</a>
+          <a href="/payments" className="LiquidGlass">Thanh toán</a>
+          <a href="/support" className="LiquidGlass">Hỗ trợ</a>
         </nav>
       </div>
 

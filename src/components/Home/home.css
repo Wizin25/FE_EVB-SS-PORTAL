@@ -1,26 +1,30 @@
-/* Header styling - modern, more vibrant, with subtle shadow and rounded corners */
+/* Header styling - LiquidGlass style */
 .app-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 32px;
-  background: linear-gradient(90deg, #f8fafc 0%, #e0f2fe 100%);
-  border-bottom: 1.5px solid #e0e7ef;
-  border-radius: 0 0 18px 18px;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.04);
-  transition: background 0.3s;
+  padding: 18px 36px;
+  background: linear-gradient(90deg, #fff 0%, #f3f4f6 100%);
+  border-bottom: 1.5px solid rgba(180, 220, 255, 0);
+  border-radius: 0 0 24px 24px;
+  box-shadow: 0 4px 32px 0 rgba(0, 0, 0, 0.415), 0 1.5px 8px 0 rgba(0, 0, 0, 0.396) inset;
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  transition: background 0.3s, box-shadow 0.2s;
 }
 
 .app-header.dark {
-  background: linear-gradient(90deg, #23272f 0%, #1e293b 100%);
+  background: rgba(30,41,59,0.72);
   color: #f1f1f1;
-  border-bottom: 1.5px solid #2d3748;
+  border-bottom: 1.5px solid #334155;
+  box-shadow: 0 4px 32px 0 rgba(30,41,59,0.22), 0 1.5px 8px 0 rgba(56,189,248,0.10) inset;
+  backdrop-filter: blur(18px) saturate(1.1);
 }
 
 .app-header .left {
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 32px;
 }
 
 .app-header .logo img {
@@ -28,27 +32,40 @@
   width: auto;
   max-height: 72px;
   cursor: pointer;
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.08));
-  transition: transform 0.15s;
+  filter: drop-shadow(0 2px 12px rgba(56,189,248,0.10));
+  transition: transform 0.18s cubic-bezier(.4,0,.2,1), filter 0.18s;
   display: block;
-  transform: scale(2);
+  transform: scale(2.1);
+  box-shadow: 0 2px 12px 0 rgba(56,189,248,0.10) inset;
 }
 .app-header .logo img:hover {
-  transform: scale(3) rotate(-2deg);
+  transform: scale(2.5) rotate(-2deg);
+  filter: drop-shadow(0 4px 24px rgba(56,189,248,0.18));
 }
 
-.app-header .main-nav {
+ .main-nav {
   display: flex;
   align-items: center;
-  gap: 24px;
-  margin-left: 32px;
-  position: static;
-  width: auto;
+  justify-content: center;
+  gap: 28px;
+  margin-left: auto;
+  margin-right: auto;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: max-content;
   padding: 0;
   background: none;
-  transform: none;
 }
-
+.LiquidGlass {
+  background: rgba(251, 251, 251, 0);
+  border: 1px solid rgba(255,255,255,.35);
+  padding: 10px 14px;
+  border-radius: 12px;
+  backdrop-filter: blur(1px);
+  box-shadow: inset 0 2px 10px 0 rgba(255,255,255,0.45), inset 0 1.5px 6px 0 rgba(255,255,255,0.18);
+}
 .app-header .main-nav a,
 .app-header .main-nav button {
   display: flex;
@@ -57,48 +74,53 @@
   min-width: 110px;
   min-height: 40px;
   text-decoration: none;
-  color: #222;
+  color: #1e293b;
   font-weight: 600;
-  background: rgba(255,255,255,0.85);
-  border: none;
+  background: rgba(255,255,255,0.55);
+  border: 1.5px solid rgba(56,189,248,0.13);
   cursor: pointer;
-  padding: 8px 20px;
-  border-radius: 12px;
+  padding: 10px 22px;
+  border-radius: 16px;
   font-size: 1.08rem;
-  box-shadow: 0 2px 8px 0 rgba(0,123,255,0.04);
+  box-shadow: 0 2px 12px 0 rgba(56,189,248,0.08) inset;
   transition: 
     background 0.22s cubic-bezier(.4,0,.2,1), 
     color 0.18s cubic-bezier(.4,0,.2,1), 
     box-shadow 0.18s cubic-bezier(.4,0,.2,1), 
     transform 0.13s cubic-bezier(.4,0,.2,1);
+  backdrop-filter: blur(4px) saturate(1.1);
+  -webkit-backdrop-filter: blur(4px) saturate(1.1);
 }
 
 .app-header .main-nav a:hover,
 .app-header .main-nav button:hover {
-  background: linear-gradient(90deg, #e0f2fe 0%, #bae6fd 100%);
-  color: #007bff;
+  background: linear-gradient(90deg, rgba(186,230,253,0.85) 0%, rgba(56,189,248,0.18) 100%);
+  color: #0ea5e9;
   transform: translateY(-2px) scale(1.07);
-  box-shadow: 0 4px 16px 0 rgba(0,123,255,0.10);
+  box-shadow: 0 4px 24px 0 rgba(56,189,248,0.13), 0 2px 12px 0 rgba(56,189,248,0.10) inset;
 }
 .app-header.dark .main-nav a,
 .app-header.dark .main-nav button {
-  background: rgba(30,41,59,0.92);
+  background: rgba(30,41,59,0.82);
   color: #f1f5f9;
+  border: 1.5px solid rgba(56,189,248,0.13);
+  box-shadow: 0 2px 12px 0 rgba(56,189,248,0.10) inset;
 }
 .app-header.dark .main-nav a:hover,
 .app-header.dark .main-nav button:hover {
-  background: linear-gradient(90deg, #334155 0%, #1e293b 100%);
+  background: linear-gradient(90deg, rgba(51,65,85,0.92) 0%, rgba(30,41,59,0.92) 100%);
   color: #38bdf8;
+  box-shadow: 0 4px 24px 0 rgba(56,189,248,0.18), 0 2px 12px 0 rgba(56,189,248,0.10) inset;
 }
 
 .app-header .main-nav .cta {
-  background: linear-gradient(90deg, #007bff 0%, #38bdf8 100%);
+  background: linear-gradient(90deg, #38bdf8 0%, #0ea5e9 100%);
   color: #fff;
-  padding: 10px 28px;
-  border-radius: 16px;
+  padding: 12px 32px;
+  border-radius: 20px;
   font-weight: 700;
-  font-size: 1.12rem;
-  box-shadow: 0 4px 16px 0 rgba(0,123,255,0.13);
+  font-size: 1.13rem;
+  box-shadow: 0 6px 24px 0 rgba(56,189,248,0.18), 0 2px 12px 0 rgba(56,189,248,0.10) inset;
   letter-spacing: 0.02em;
   border: none;
   transition: 
@@ -107,8 +129,8 @@
     transform 0.13s cubic-bezier(.4,0,.2,1);
 }
 .app-header .main-nav .cta:hover {
-  background: linear-gradient(90deg, #0056b3 0%, #0ea5e9 100%);
-  box-shadow: 0 6px 24px 0 rgba(0,123,255,0.18);
+  background: linear-gradient(90deg, #0ea5e9 0%, #38bdf8 100%);
+  box-shadow: 0 8px 32px 0 rgba(56,189,248,0.22), 0 2px 12px 0 rgba(56,189,248,0.13) inset;
   color: #fff;
   transform: translateY(-3px) scale(1.09);
 }
@@ -116,7 +138,7 @@
 .app-header .right {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
 }
 
 .app-header .notif {
@@ -127,13 +149,13 @@
   position: absolute;
   top: -7px;
   right: -10px;
-  background: linear-gradient(135deg, #ef4444 60%, #fbbf24 100%);
+  background: linear-gradient(135deg, #38bdf8 60%, #fbbf24 100%);
   color: white;
   border-radius: 50%;
-  padding: 2px 7px;
+  padding: 2px 8px;
   font-size: 12px;
   font-weight: bold;
-  box-shadow: 0 1px 4px 0 rgba(239,68,68,0.15);
+  box-shadow: 0 2px 8px 0 rgba(56,189,248,0.18);
   border: 2px solid #fff;
 }
 
@@ -145,21 +167,23 @@
 
 /* Avatar button for toggling dropdown */
 .app-header .account-dropdown .avatar {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
-  background-color: #cbd5e1;
+  background: rgba(186,230,253,0.32);
   cursor: pointer;
-  border: 2px solid #e0e7ef;
-  transition: box-shadow 0.18s, border 0.18s;
-  box-shadow: 0 1px 6px 0 rgba(0,0,0,0.07);
+  border: 2px solid rgba(56,189,248,0.18);
+  transition: box-shadow 0.18s, border 0.18s, background 0.18s;
+  box-shadow: 0 2px 12px 0 rgba(56,189,248,0.10) inset;
+  backdrop-filter: blur(2px) saturate(1.1);
 }
 .app-header .account-dropdown .avatar:active,
 .app-header .account-dropdown .avatar:focus {
   border: 2px solid #38bdf8;
-  box-shadow: 0 2px 12px 0 rgba(56,189,248,0.13);
+  box-shadow: 0 4px 16px 0 rgba(56,189,248,0.18);
   outline: none;
+  background: rgba(56,189,248,0.10);
 }
 
 /* Dropdown menu: controlled by .open class, not hover */
@@ -168,16 +192,18 @@
   position: absolute;
   right: 0;
   top: 100%;
-  margin-top: 8px;
-  min-width: 170px;
-  background: #fff;
-  border: 1.5px solid #e0e7ef;
-  border-radius: 10px;
+  margin-top: 10px;
+  min-width: 180px;
+  background: rgba(255,255,255,0.85);
+  border: 1.5px solid rgba(56,189,248,0.13);
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.13);
+  box-shadow: 0 8px 32px 0 rgba(56,189,248,0.13), 0 2px 12px 0 rgba(56,189,248,0.10) inset;
   z-index: 100;
   animation: fadeInDropdown 0.18s;
-  transition: opacity 0.2s ease-in-out;
+  transition: opacity 0.2s ease-in-out, background 0.18s;
+  backdrop-filter: blur(8px) saturate(1.1);
+  -webkit-backdrop-filter: blur(8px) saturate(1.1);
 }
 @keyframes fadeInDropdown {
   from { opacity: 0; transform: translateY(-8px);}
@@ -193,26 +219,29 @@
 .app-header .account-dropdown .dropdown a,
 .app-header .account-dropdown .dropdown button {
   display: block;
-  padding: 10px 18px;
+  padding: 12px 22px;
   text-decoration: none;
-  color: #334155;
+  color: #1e293b;
   background: none;
   border: none;
   width: 100%;
   text-align: left;
   cursor: pointer;
   font-size: 15px;
+  font-weight: 500;
+  border-radius: 0;
   transition: background 0.15s, color 0.15s;
 }
 
 .app-header .account-dropdown .dropdown a:hover,
 .app-header .account-dropdown .dropdown button:hover {
-  background-color: #f1f5f9;
-  color: #007bff;
+  background: rgba(186,230,253,0.32);
+  color: #0ea5e9;
 }
 .app-header.dark .account-dropdown .dropdown {
-  background: #23272f;
+  background: rgba(30,41,59,0.92);
   border-color: #334155;
+  box-shadow: 0 8px 32px 0 rgba(56,189,248,0.18), 0 2px 12px 0 rgba(56,189,248,0.10) inset;
 }
 .app-header.dark .account-dropdown .dropdown a,
 .app-header.dark .account-dropdown .dropdown button {
@@ -220,6 +249,6 @@
 }
 .app-header.dark .account-dropdown .dropdown a:hover,
 .app-header.dark .account-dropdown .dropdown button:hover {
-  background: #334155;
+  background: rgba(51,65,85,0.92);
   color: #38bdf8;
 }
