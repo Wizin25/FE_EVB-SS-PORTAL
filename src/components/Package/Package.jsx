@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { vehicleAPI } from '../services/vehicleAPI';
 import { authAPI } from '../services/authAPI';
+import { useNavigate } from 'react-router-dom';
 import './Package.css';
 
 const Package = () => {
@@ -10,6 +11,7 @@ const Package = () => {
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserVehicles = async () => {
@@ -77,6 +79,10 @@ const Package = () => {
     setSelectedPackage(pkg);
   };
 
+  const handleCloseModal = () => {
+    setSelectedPackage(null);
+  };
+
   const handlePackagePurchase = async () => {
     if (!selectedPackage || !selectedVehicle) return;
 
@@ -99,6 +105,10 @@ const Package = () => {
     }
   };
 
+  const handleGoBack = () => {
+    navigate(-1); // Quay lại trang trước đó
+  };
+
   if (loading && vehicles.length === 0) return <div className="loading">Đang tải thông tin xe...</div>;
 
   return (
@@ -116,6 +126,12 @@ const Package = () => {
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
       backgroundAttachment: 'fixed'
     }}>
+      {/* Nút quay lại */}
+      <button className="back-button" onClick={handleGoBack}>
+        <span className="back-arrow">←</span>
+        Quay lại
+      </button>
+
       <div className="package-container">
         <h1>Chọn Gói Dịch Vụ Cho Xe Của Bạn</h1>
         
@@ -200,40 +216,48 @@ const Package = () => {
                 </div>
 
                 {selectedPackage && (
-                  <div className="package-detail">
-                    <h3>Thông Tin Gói Đã Chọn</h3>
-                    <div className="detail-content">
-                      <h4>{selectedPackage.name || selectedPackage.packageId}</h4>
-                      <p><strong>Mã gói:</strong> {selectedPackage.packageId}</p>
-                      <p><strong>Giá:</strong> {selectedPackage.price?.toLocaleString('vi-VN')} VND</p>
-                      <p><strong>Mô tả:</strong> {selectedPackage.description || 'Không có mô tả'}</p>
-                      
-                      <div style={{ margin: '15px 0', padding: '10px', backgroundColor: '#fff', borderRadius: '4px' }}>
-                        <strong>Áp dụng cho xe:</strong> {selectedVehicle.vehicle_name}
-                        <br />
-                        <strong>Loại xe:</strong> {selectedVehicle.vehicle_type}
-                        <br />
-                        <strong>VIN:</strong> {selectedVehicle.VIN}
+                  <>
+                    <div className="modal-overlay" onClick={handleCloseModal}></div>
+                    <div className="package-detail">
+                      <div className="modal-header">
+                        <h3>Thông Tin Gói Đã Chọn</h3>
+                        <button className="close-modal-btn" onClick={handleCloseModal}>×</button>
                       </div>
-                      
-                      <button 
-                        onClick={handlePackagePurchase}
-                        className="purchase-btn"
-                        disabled={selectedVehicle.PackageID === selectedPackage.packageId}
-                      >
-                        {selectedVehicle.PackageID === selectedPackage.packageId 
-                          ? 'Đang Sử Dụng' 
-                          : `Mua Ngay - ${selectedPackage.price?.toLocaleString('vi-VN')} VND`
-                        }
-                      </button>
-                      
-                      {selectedVehicle.PackageID === selectedPackage.packageId && (
-                        <p style={{ color: '#27ae60', marginTop: '10px' }}>
-                          ✓ Bạn đang sử dụng gói này
-                        </p>
-                      )}
+                      <div className="modal-content">
+                        <div className="detail-content">
+                          <h4>{selectedPackage.name || selectedPackage.packageId}</h4>
+                          <p><strong>Mã gói:</strong> {selectedPackage.packageId}</p>
+                          <p><strong>Giá:</strong> {selectedPackage.price?.toLocaleString('vi-VN')} VND</p>
+                          <p><strong>Mô tả:</strong> {selectedPackage.description || 'Không có mô tả'}</p>
+                          
+                          <div className="vehicle-info-box">
+                            <strong>Áp dụng cho xe:</strong> {selectedVehicle.vehicle_name}
+                            <br />
+                            <strong>Loại xe:</strong> {selectedVehicle.vehicle_type}
+                            <br />
+                            <strong>VIN:</strong> {selectedVehicle.VIN}
+                          </div>
+                          
+                          <button 
+                            onClick={handlePackagePurchase}
+                            className="purchase-btn"
+                            disabled={selectedVehicle.PackageID === selectedPackage.packageId}
+                          >
+                            {selectedVehicle.PackageID === selectedPackage.packageId 
+                              ? 'Đang Sử Dụng' 
+                              : `Mua Ngay - ${selectedPackage.price?.toLocaleString('vi-VN')} VND`
+                            }
+                          </button>
+                          
+                          {selectedVehicle.PackageID === selectedPackage.packageId && (
+                            <div className="current-package-indicator">
+                              <span>✓</span> Bạn đang sử dụng gói này
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
               </>
             )}
