@@ -13,21 +13,6 @@ export const vehicleAPI = {
     }
   },
 
-  // Gán package cho vehicle
-  assignPackageToVehicle: async (VIN, packageId) => {
-    try {
-      const formData = new FormData();
-      formData.append('VIN', VIN);
-      formData.append('PackageID', packageId);
-      
-      const response = await api.put('/api/Vehicle/assign_package', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
 
   // Lấy tất cả vehicles
   getAllVehicles: async () => {
