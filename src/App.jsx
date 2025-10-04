@@ -16,6 +16,7 @@ import Profile from './components/Profile/Profile.jsx';
 import Booking from './components/Form/Booking.jsx'
 import BatteryManagementPage from './components/Admin/pages/Battery.jsx';
 import BookingForm from './components/Home/BookingForm.jsx';
+import Package from './components/Package/Package.jsx'
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
           </Route>
           <Route path="/profile" element={<Profile />} />
           <Route path="/booking" element={<Booking />} />
+          <Route path="/plans" element={<Package />} />
         </Routes>
       </div>
     </Router>

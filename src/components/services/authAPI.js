@@ -367,6 +367,19 @@ addBatteryToStation: async (batteryId, stationId) => {
     throw new Error(err?.message || "Gán pin vào trạm thất bại");
   }
 },
+
+ getDriverBatteries: async () => {
+    try {
+      // Tạm thời dùng getAllBatteries, sau này có API riêng thì thay thế
+      const res = await api.get('/api/Battery/get-all-batteries');
+      if (res.data?.isSuccess) {
+        return res.data.data;
+      }
+      return [];
+    } catch (err) {
+      throw new Error(err?.message || 'Lỗi khi lấy danh sách pin của tài xế');
+    }
+  },
   // Booking/Form APIs
   createForm: async ({ accountId, title, description, date, stationId }) => {
     try {
@@ -387,4 +400,13 @@ addBatteryToStation: async (batteryId, stationId) => {
       throw new Error(msg);
     }
   },
+
+  getCurrentUserVehicles: async () => {
+  try {
+    const response = await api.get('/api/Vehicle/get_vehicles_by_current_user');
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
 };
