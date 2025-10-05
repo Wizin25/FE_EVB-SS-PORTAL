@@ -408,5 +408,15 @@ addBatteryToStation: async (batteryId, stationId) => {
   } catch (error) {
     throw error;
   }
-}
+},
+
+getAllVehicles: async () => {
+  try {
+    const response = await api.get('/api/Vehicle/get_all_vehicles');
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+},
+
 };
