@@ -83,7 +83,7 @@ const Package = () => {
     };
 
     fetchUserVehicles();
-  }, [selectedVehicle]); // Chỉ fetch khi selectedVehicle thay đổi
+  }, [selectedVehicle]);
 
   // Hàm lọc vehicles của user hiện tại
   const filterUserVehicles = (allVehicles, currentUser) => {
@@ -182,6 +182,53 @@ const Package = () => {
     return compatiblePackages;
   };
 
+  // Thêm hàm xử lý bỏ chọn package
+  const handleRemovePackage = async () => {
+  if (!selectedVehicle) return;
+
+  try {
+    const confirmRemove = window.confirm(
+      `Bạn có chắc muốn bỏ chọn gói "${getPackageDisplayName(selectedPackage)}" khỏi xe ${getVehicleProperty(selectedVehicle, 'name')}?`
+    );
+    
+    if (confirmRemove) {
+      const vehicleId = getVehicleProperty(selectedVehicle, 'vin');
+      
+      // Tạo FormData để gửi request
+      const formData = new FormData();
+      formData.append('vehicleId', vehicleId);
+      
+      console.log('Sending delete vehicle in package request:', { vehicleId });
+
+      // Gọi API để xóa vehicle khỏi package
+      const response = await vehicleAPI.deleteVehicleInPackage(formData);
+      console.log('Remove package response:', response);
+      
+      if (response.isSuccess) {
+        alert(`Đã bỏ chọn gói thành công khỏi xe ${getVehicleProperty(selectedVehicle, 'name')}`);
+        
+        // Cập nhật local state
+        const updatedVehicles = vehicles.map(v => 
+          getVehicleProperty(v, 'vin') === vehicleId 
+            ? { ...v, PackageID: null, packageId: null }
+            : v
+        );
+        setVehicles(updatedVehicles);
+        setSelectedVehicle(updatedVehicles.find(v => 
+          getVehicleProperty(v, 'vin') === vehicleId
+        ));
+        
+        setSelectedPackage(null);
+      } else {
+        throw new Error(response.message || 'Bỏ chọn gói thất bại');
+      }
+    }
+  } catch (err) {
+    console.error('Error removing package:', err);
+    setError('Bỏ chọn gói thất bại: ' + (err.message || err));
+  }
+};
+
   useEffect(() => {
     const fetchAndFilterPackages = async () => {
       if (!selectedVehicle) {
@@ -257,24 +304,30 @@ const Package = () => {
   };
 
   const handlePackagePurchase = async () => {
-    if (!selectedPackage || !selectedVehicle) return;
+  if (!selectedPackage || !selectedVehicle) return;
 
-    try {
-      const packageDisplayName = getPackageDisplayName(selectedPackage);
-      const confirmPurchase = window.confirm(
-        `Bạn có chắc muốn mua gói "${packageDisplayName}" với giá ${getPackageProperty(selectedPackage, 'price')?.toLocaleString('vi-VN')} VND cho xe ${getVehicleProperty(selectedVehicle, 'name')}?`
-      );
+  try {
+    const packageDisplayName = getPackageDisplayName(selectedPackage);
+    const confirmPurchase = window.confirm(
+      `Bạn có chắc muốn mua gói "${packageDisplayName}" với giá ${getPackageProperty(selectedPackage, 'price')?.toLocaleString('vi-VN')} VND cho xe ${getVehicleProperty(selectedVehicle, 'name')}?`
+    );
+    
+    if (confirmPurchase) {
+      // Tạo FormData để gửi request
+      const formData = new FormData();
+      formData.append('VehicleId', getVehicleProperty(selectedVehicle, 'vin'));
+      formData.append('PackageId', getPackageProperty(selectedPackage, 'id'));
       
-      if (confirmPurchase) {
-        // Gọi API để thêm vehicle vào package
-        const requestData = {
-          vehicleId: getVehicleProperty(selectedVehicle, 'vin'),
-          packageId: getPackageProperty(selectedPackage, 'id')
-        };
-        
-        const response = await vehicleAPI.addVehicleInPackage(requestData);
-        console.log('Purchase response:', response);
-        
+      console.log('Sending add vehicle in package request:', {
+        vehicleId: getVehicleProperty(selectedVehicle, 'vin'),
+        packageId: getPackageProperty(selectedPackage, 'id')
+      });
+
+      // Gọi API để thêm vehicle vào package
+      const response = await vehicleAPI.addVehicleInPackage(formData);
+      console.log('Purchase response:', response);
+      
+      if (response.isSuccess) {
         alert(`Đã mua thành công gói: ${packageDisplayName} cho xe ${getVehicleProperty(selectedVehicle, 'name')}`);
         
         // Cập nhật local state
@@ -289,12 +342,15 @@ const Package = () => {
         ));
         
         setSelectedPackage(null);
+      } else {
+        throw new Error(response.message || 'Mua gói thất bại');
       }
-    } catch (err) {
-      console.error('Error purchasing package:', err);
-      setError('Mua gói thất bại: ' + (err.message || err));
     }
-  };
+  } catch (err) {
+    console.error('Error purchasing package:', err);
+    setError('Mua gói thất bại: ' + (err.message || err));
+  }
+};
 
   const handleGoBack = () => {
     navigate(-1);
@@ -451,7 +507,7 @@ const Package = () => {
             <div className="vehicle-info-section">
               <div className="vehicle-info-header">
                 <h2 className="section-title">
-                  <span className="section-icon">🚗</span>
+                  <span className="section-icon"></span>
                   Thông Tin Xe Đã Chọn
                 </h2>
                 <button 
@@ -467,6 +523,7 @@ const Package = () => {
                   <div className="vehicle-main-info">
                     <div className="vehicle-icon-large">
                       {getVehicleProperty(selectedVehicle, 'type') === 'electric_bike' ? '🏍️' : 
+                       getVehicleProperty(selectedVehicle, 'type') === 'Car' ? '🚗' : 
                        getVehicleProperty(selectedVehicle, 'type') === 'electric_scooter' ? '🛴' : 
                        getVehicleProperty(selectedVehicle, 'type') === 'electric_car' ? '🚗' : '🚲'}
                     </div>
@@ -629,21 +686,26 @@ const Package = () => {
                   <strong>VIN:</strong> {getVehicleProperty(selectedVehicle, 'vin')}
                 </div>
                 
-                <button 
-                  onClick={handlePackagePurchase}
-                  className="package-purchase-btn"
-                  disabled={getVehicleProperty(selectedVehicle, 'package') === getPackageProperty(selectedPackage, 'id')}
-                >
-                  {getVehicleProperty(selectedVehicle, 'package') === getPackageProperty(selectedPackage, 'id') 
-                    ? 'ĐANG SỬ DỤNG' 
-                    : `ĐĂNG KÝ NGAY - ${getPackageProperty(selectedPackage, 'price')?.toLocaleString('vi-VN')} VND`
-                  }
-                </button>
-                
-                {getVehicleProperty(selectedVehicle, 'package') === getPackageProperty(selectedPackage, 'id') && (
-                  <div className="package-current-indicator">
-                    <span>✓</span> Bạn đang sử dụng gói này
-                  </div>
+                {/* ĐÃ SỬA: Cập nhật phần button trong modal */}
+                {getVehicleProperty(selectedVehicle, 'package') === getPackageProperty(selectedPackage, 'id') ? (
+                  <>
+                    <div className="package-current-indicator">
+                      <span>✓</span> Bạn đang sử dụng gói này
+                    </div>
+                    <button 
+                      onClick={handleRemovePackage}
+                      className="package-remove-btn"
+                    >
+                      BỎ CHỌN GÓI
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    onClick={handlePackagePurchase}
+                    className="package-purchase-btn"
+                  >
+                    ĐĂNG KÝ NGAY - {getPackageProperty(selectedPackage, 'price')?.toLocaleString('vi-VN')} VND
+                  </button>
                 )}
               </div>
             </div>

@@ -36,12 +36,8 @@ export const vehicleAPI = {
   },
 
   // Thêm vehicle vào package
-  addVehicleInPackage: async (requestData) => {
+  addVehicleInPackage: async (formData) => {
     try {
-      const formData = new FormData();
-      formData.append('VehicleId', requestData.vehicleId);
-      formData.append('PackageId', requestData.packageId);
-
       const response = await api.put('/api/Vehicle/add_vehicle_in_package', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
@@ -51,12 +47,9 @@ export const vehicleAPI = {
     }
   },
 
-  // Xóa vehicle khỏi package
-  deleteVehicleInPackage: async (vehicleId) => {
+// Xóa vehicle khỏi package
+deleteVehicleInPackage: async (formData) => {
     try {
-      const formData = new FormData();
-      formData.append('vehicleId', vehicleId);
-
       const response = await api.put('/api/Vehicle/delete_vehicle_in_package', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
