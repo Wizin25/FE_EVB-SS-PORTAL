@@ -103,14 +103,16 @@ export default function StationForUser() {
       className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}
       style={{ maxHeight: "calc(100vh - 120px)", overflowY: "auto" }}
     >
-      <HeaderDriver
-        onToggleTheme={handleToggleTheme}
-        theme={theme}
-        user={user}
-        unreadCount={unreadCount}
-        nextBooking={nextBooking}
-        onOpenBooking={handleOpenBooking}
-      />
+      <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+        <HeaderDriver
+          onToggleTheme={handleToggleTheme}
+          theme={theme}
+          user={user}
+          unreadCount={unreadCount}
+          nextBooking={nextBooking}
+          onOpenBooking={() => {}}
+        />
+      </div>
       {/* Main illustration with subtle border and shadow */}
       <div
             style={{

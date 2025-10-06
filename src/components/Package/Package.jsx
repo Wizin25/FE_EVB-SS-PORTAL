@@ -5,6 +5,8 @@ import { packageAPI } from '../services/packageAPI';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getCurrentUserPayload } from '../services/jwt';
 import './Package.css';
+import HeaderDriver from "../Home/header";
+
 
 const Package = () => {
   const [packages, setPackages] = useState([]);
@@ -15,6 +17,31 @@ const Package = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
+  const [user, setUser] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [nextBooking, setNextBooking] = useState(null);
+
+  const handleToggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+
+    const root = document.documentElement;
+    if (newTheme === "dark") {
+      root.classList.add("dark");
+      document.body.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      root.classList.remove("dark");
+      document.body.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("theme") || "light";
+    }
+    return "light";
+  });
 
   // Khi có vehicle từ location.state, set luôn làm selectedVehicle
   useEffect(() => {
@@ -523,6 +550,20 @@ const filterPackagesForVehicle = (allPackages, vehicle) => {
 
   return (
     <div className="package-page" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+      {/* HeaderDriver là lớp trên cùng của màn hình */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+        <HeaderDriver
+          // Bạn có thể truyền props như theme, user, unreadCount, nextBooking nếu cần
+          // Ví dụ: theme={theme} user={user} unreadCount={unreadCount} nextBooking={nextBooking}
+          onToggleTheme={handleToggleTheme}
+          theme={theme}
+          user={user}
+          unreadCount={unreadCount}
+          nextBooking={nextBooking}
+          onOpenBooking={() => {}}
+        />
+      </div>
+
       {/* Animated Background */}
       <div className="package-animated-bg">
         <div className="package-gradient-orb package-orb-1"></div>
@@ -544,7 +585,7 @@ const filterPackagesForVehicle = (allPackages, vehicle) => {
           />
         ))}
       </div>
-
+        
       <div className="package-container">
         <div className="package-content">
           {/* Hero Section */}
@@ -553,7 +594,6 @@ const filterPackagesForVehicle = (allPackages, vehicle) => {
               <span className="package-back-icon">←</span>
               <span>Quay lại</span>
             </button>
-            
             <div>
               <h1 className="package-title">
                 <span className="package-title-line">Chọn Gói Dịch Vụ</span>

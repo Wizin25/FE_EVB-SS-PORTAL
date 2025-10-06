@@ -130,14 +130,17 @@ export default function HomePage() {
         }`}
       style={scrollStyles}
     >
-      <HeaderDriver
-        onToggleTheme={handleToggleTheme}
-        theme={theme}
-        user={user}
-        unreadCount={unreadCount}
-        nextBooking={nextBooking}
-        onOpenBooking={handleOpenBooking}
-      />
+      {/* HeaderDriver là lớp trên cùng của màn hình */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+        <HeaderDriver
+          onToggleTheme={handleToggleTheme}
+          theme={theme}
+          user={user}
+          unreadCount={unreadCount}
+          nextBooking={nextBooking}
+          onOpenBooking={handleOpenBooking}
+        />
+      </div>
       <main className="container px-4 py-8 mx-auto max-w-7xl">
         {/* Welcome Section */}
 

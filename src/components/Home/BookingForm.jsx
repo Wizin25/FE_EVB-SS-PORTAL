@@ -102,14 +102,17 @@ export default function BookingForm() {
 
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`} style={{ overflowY: 'auto', maxHeight: '100vh' }}>
-      <HeaderDriver
-        onToggleTheme={handleToggleTheme}
-        theme={theme}
-        user={user}
-        unreadCount={unreadCount}
-        nextBooking={nextBooking}
-        onOpenBooking={() => {}}
-      />
+      {/* HeaderDriver là lớp trên cùng của màn hình */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+        <HeaderDriver
+          onToggleTheme={handleToggleTheme}
+          theme={theme}
+          user={user}
+          unreadCount={unreadCount}
+          nextBooking={nextBooking}
+          onOpenBooking={() => {}}
+        />
+      </div>
 
       {/* Hero video section */}
       <div className="booking-hero" style={{ height: 400, width: 1500 }}>

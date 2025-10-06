@@ -3,12 +3,41 @@ import { authAPI } from '../services/authAPI';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUserPayload } from '../services/jwt'; // Import hàm lấy thông tin user từ JWT
 import './Vehicle.css';
+import HeaderDriver from "../Home/header";
 
 const Vehicle = () => {
   const [vehicles, setVehicles] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("theme") || "light";
+    }
+    return "light";
+  });
+  const [user, setUser] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [nextBooking, setNextBooking] = useState(null);
+  const handleOpenBooking = () => {
+    window.location.href = "/booking";
+  };
+  
+  const handleToggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+
+    const root = document.documentElement;
+    if (newTheme === "dark") {
+      root.classList.add("dark");
+      document.body.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      root.classList.remove("dark");
+      document.body.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
 
   useEffect(() => {
     loadVehicles();
@@ -164,6 +193,17 @@ const Vehicle = () => {
 
   return (
     <div className="vehicle-page" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+       {/* HeaderDriver là lớp trên cùng của màn hình */}
+       <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+        <HeaderDriver
+          onToggleTheme={handleToggleTheme}
+          theme={theme}
+          user={user}
+          unreadCount={unreadCount}
+          nextBooking={nextBooking}
+          onOpenBooking={handleOpenBooking}
+        />
+      </div>
       {/* Animated Background */}
       <div className="animated-bg">
         <div className="gradient-orb orb-1"></div>
