@@ -3,6 +3,7 @@ import { authAPI } from "../services/authAPI";
 import HeaderDriver from "./header";
 import Footer from "./footer";
 import "../Admin/pages/Station.css";
+import RatingStation from "./RatingStation";
 
 export default function StationForUser() {
   // theme and header-related states
@@ -47,6 +48,8 @@ export default function StationForUser() {
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [openRatingFor, setOpenRatingFor] = useState(null);
+  const [currentAccountId, setCurrentAccountId] = useState("");
 
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -75,6 +78,18 @@ export default function StationForUser() {
   };
 
   useEffect(() => { fetchStations(); }, []);
+
+  useEffect(() => {
+    // Try get current user info to fill AccountId
+    (async () => {
+      try {
+        const me = await authAPI.getCurrent();
+        if (me?.accountId) setCurrentAccountId(me.accountId);
+      } catch (e) {
+        // ignore
+      }
+    })();
+  }, []);
 
   const filtered = useMemo(() => {
     const text = q.trim().toLowerCase();
@@ -516,7 +531,21 @@ export default function StationForUser() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <button
+                        className="btn"
+                        style={{
+                          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                          color: 'white',
+                          padding: '10px 16px',
+                          borderRadius: '25px',
+                          fontWeight: 'bold',
+                          border: 'none'
+                        }}
+                        onClick={() => setOpenRatingFor(st)}
+                      >
+                        ⭐ Đánh giá
+                      </button>
                       <a 
                         className="btn primary" 
                         href={`/booking?stationId=${encodeURIComponent(st.stationId)}`}
@@ -620,6 +649,15 @@ export default function StationForUser() {
           </div>
         )}
       </div>
+
+      {openRatingFor && (
+        <RatingStation
+          stationId={openRatingFor.stationId}
+          accountId={currentAccountId}
+          onClose={() => setOpenRatingFor(null)}
+          onSuccess={fetchStations}
+        />
+      )}
 
       <Footer />
     </div>

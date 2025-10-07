@@ -380,6 +380,37 @@ addBatteryToStation: async (batteryId, stationId) => {
       throw new Error(err?.message || 'Lỗi khi lấy danh sách pin của tài xế');
     }
   },
+  // Rating APIs
+  addRating: async ({ rating1, description, stationId, accountId }) => {
+    try {
+      const form = new FormData();
+      // Field names must match backend exactly as in docs
+      form.append('Rating1', rating1);
+      form.append('Description', description ?? '');
+      form.append('StationId', stationId);
+      form.append('AccountId', accountId);
+
+      const res = await api.post('/api/Rating/add_rating', form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return res.data;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Gửi đánh giá thất bại';
+      throw new Error(msg);
+    }
+  },
+  getAllRatings: async () => {
+    try {
+      const res = await api.get('/api/Rating/get_all_ratings');
+      if (res?.data?.isSuccess) {
+        return res.data.data || [];
+      }
+      return [];
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Lấy danh sách đánh giá thất bại';
+      throw new Error(msg);
+    }
+  },
   // Booking/Form APIs
   createForm: async ({ accountId, title, description, date, stationId }) => {
     try {
