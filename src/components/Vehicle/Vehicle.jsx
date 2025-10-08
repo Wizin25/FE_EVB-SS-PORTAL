@@ -354,23 +354,24 @@ const getVehicleImage = (vehicleName) => {
 
   // Helper to safely get vehicle properties
   const getVehicleProperty = (vehicle, property) => {
-    const possibleKeys = {
-      vin: ['VIN', 'vin', 'vehicleId', 'id', 'vehicleID'],
-      battery: ['BatteryID', 'batteryId', 'batteryID', 'battery'],
-      package: ['PackageID', 'packageId', 'packageID', 'package'],
-      name: ['vehicle_name', 'name', 'vehicleName', 'model', 'vehicle_name'],
-      status: ['status', 'Status', 'state'],
-      type: ['vehicle_type', 'type', 'vehicleType']
-    };
-    
-    const keys = possibleKeys[property] || [property];
-    for (let key of keys) {
-      if (vehicle[key] !== undefined && vehicle[key] !== null) {
-        return vehicle[key];
-      }
-    }
-    return 'N/A';
+  const possibleKeys = {
+    vin: ['VIN', 'vin', 'vehicleId', 'id', 'vehicleID'],
+    battery: ['BatteryID', 'batteryId', 'batteryID', 'battery'],
+    batteryName: ['BatteryName', 'batteryName', 'battery_name', 'Battery_Name'], // THÊM DÒNG NÀY
+    package: ['PackageID', 'packageId', 'packageID', 'package'],
+    name: ['vehicle_name', 'name', 'vehicleName', 'model', 'vehicle_name'],
+    status: ['status', 'Status', 'state'],
+    type: ['vehicle_type', 'type', 'vehicleType']
   };
+  
+  const keys = possibleKeys[property] || [property];
+  for (let key of keys) {
+    if (vehicle[key] !== undefined && vehicle[key] !== null) {
+      return vehicle[key];
+    }
+  }
+  return 'N/A';
+};
 
   const vehicleTypes = Object.keys(vehicles);
 
@@ -549,7 +550,9 @@ const getVehicleImage = (vehicleName) => {
                           <div className="detail-row">
                             <span className="detail-label">Pin</span>
                             <span className="detail-value battery-id">
-                              🔋 {getVehicleProperty(vehicle, 'battery')}
+                              🔋 {getVehicleProperty(vehicle, 'batteryName') !== 'N/A' 
+                              ? getVehicleProperty(vehicle, 'batteryName') 
+                              : getVehicleProperty(vehicle, 'battery')}
                             </span>
                           </div>
                           <div className="detail-row">

@@ -130,13 +130,13 @@ export const vehicleAPI = {
   },
 
   getPackageByVehicleId: async (vehicleId) => {
-    try {
-      const response = await api.get('/api/Vehicle/get_package_by_vehicle_id', {
-        params: { vehicleId }
-      });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
+  try {
+    const response = await api.get('/api/Vehicle/get_package_by_vehicle_id', {
+      params: { vehicleId }
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+},
 };
