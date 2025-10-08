@@ -18,6 +18,7 @@ import BatteryManagementPage from './components/Admin/pages/Battery.jsx';
 import BookingForm from './components/Home/BookingForm.jsx';
 import Package from './components/Package/Package.jsx'
 import Vehicle from './components/Vehicle/Vehicle.jsx'
+import PackageManager from './components/Admin/pages/PackageManager.jsx'
 function App() {
   return (
     <Router>
@@ -39,6 +40,7 @@ function App() {
             <Route path="calendar" element={<CalendarPage />} />
             <Route path="station" element={<Station/>} />
             <Route path="controller" element={<ControllerPage />} />
+            <Route path="package" element={<PackageManager />} />
           </Route>
           <Route path="/profile" element={<Profile />} />
           <Route path="/booking" element={<Booking />} />

@@ -764,3 +764,444 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Nút Tạo Xe */
+.create-vehicle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  margin-left: auto;
+}
+
+.create-vehicle-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h2 {
+  margin-bottom: 1.5rem;
+  color: #333;
+  text-align: center;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #555;
+  font-weight: 500;
+}
+
+.form-input, .form-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.form-input:focus, .form-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.btn-cancel, .btn-confirm {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.btn-cancel {
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+}
+
+.btn-cancel:hover {
+  background: #e9ecef;
+}
+
+.btn-confirm {
+  background: #007bff;
+  color: white;
+}
+
+.btn-confirm:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.btn-cancel:disabled, .btn-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Hero section layout */
+.hero-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* Nút Tạo Xe */
+.create-vehicle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  margin-left: auto;
+}
+
+.create-vehicle-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h2 {
+  margin-bottom: 1.5rem;
+  color: #333;
+  text-align: center;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #555;
+  font-weight: 500;
+}
+
+.form-input, .form-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.form-input:focus, .form-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.btn-cancel, .btn-confirm {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.btn-cancel {
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+}
+
+.btn-cancel:hover {
+  background: #e9ecef;
+}
+
+.btn-confirm {
+  background: #007bff;
+  color: white;
+}
+
+.btn-confirm:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.btn-cancel:disabled, .btn-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Hero section layout */
+.hero-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+/* Card actions */
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Delete vehicle button */
+.delete-vehicle-btn {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.delete-vehicle-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: scale(1.05);
+}
+
+.delete-vehicle-btn:active {
+  transform: scale(0.95);
+}
+
+/* Package Card Styles với trạng thái "Đang sử dụng" */
+.package-currently-used {
+  border: 2px solid #10b981 !important;
+  background: rgba(16, 185, 129, 0.05) !important;
+  position: relative;
+}
+
+.package-current-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 15px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 2;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Nút hành động trên card */
+.package-card-actions {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.package-select-card-btn, .package-remove-card-btn {
+  width: 100%;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.package-select-card-btn {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
+}
+
+.package-select-card-btn:hover {
+  background: rgba(59, 130, 246, 0.2);
+  transform: translateY(-2px);
+}
+
+.package-remove-card-btn {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.package-remove-card-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Modal styles */
+.package-current-indicator {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #10b981;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  text-align: center;
+  font-weight: 600;
+}
+
+.package-current-indicator span {
+  margin-right: 0.5rem;
+}
+
+.package-remove-btn {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.package-remove-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+  transform: translateY(-2px);
+}
+
+.package-remove-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.package-purchase-btn {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #10b981;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.package-purchase-btn:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.2);
+  transform: translateY(-2px);
+}
+
+.package-purchase-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.package-processing {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 1rem;
+  font-style: italic;
+}
+
+/* Vehicle info badge */
+.current-package-badge {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .package-current-badge {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.6rem;
+  }
+  
+  .package-select-card-btn, .package-remove-card-btn {
+    font-size: 0.8rem;
+    padding: 0.6rem;
+  }
+}
