@@ -1205,3 +1205,49 @@
     padding: 0.6rem;
   }
 }
+
+/* Thêm vào Vehicle.css */
+.vehicle-image-container {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+}
+
+.vehicle-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.vehicle-icon-fallback {
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.vehicle-card-modern:hover .vehicle-image {
+  transform: scale(1.1);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .vehicle-image-container {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .vehicle-icon-fallback {
+    font-size: 1.5rem;
+  }
+}

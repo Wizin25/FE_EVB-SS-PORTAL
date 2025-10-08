@@ -17,8 +17,7 @@ const Vehicle = () => {
   const [newVehicle, setNewVehicle] = useState({
     vin: '',
     vehicleName: '',
-    vehicleType: 'electric_motorbike',
-    batteryId: ''
+    vehicleType: 'electric_motorbike'
   });
   
   const navigate = useNavigate();
@@ -66,6 +65,55 @@ const Vehicle = () => {
     { value: 'YADEA_VITO', label: 'Yadea Vito' },
     { value: 'YADEA_FLIT', label: 'Yadea Flit' }
   ];
+
+  // Danh sách loại xe từ enum VehicleTypeEnums
+  const vehicleTypeOptions = [
+    { value: 'electric_bike', label: 'Xe đạp điện' },
+    { value: 'electric_motorbike', label: 'Xe máy điện' },
+    { value: 'electric_assist_bicycle', label: 'Xe đạp trợ lực' }
+  ];
+
+  // Thêm vào Vehicle.jsx
+const vehicleImageMapping = {
+  // Xe máy điện
+  'YADEA_VELAX': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Velax-Anh-nho-ben-tren.png',
+  'YADEA_VOLTGUARD_U': 'https://www.yadea.com.vn/wp-content/uploads/2025/01/V002-U-anh-chinh-1-480x361.png',
+  'YADEA_VOLTGUARD_P': 'https://www.yadea.com.vn/wp-content/uploads/2025/01/Anh-sp-chinh-1200x880-den.png',
+  'YADEA_ORLA': 'https://www.yadea.com.vn/wp-content/uploads/2023/10/orla-black-detail.png',
+  'YADEA_ORIS': 'https://www.yadea.com.vn/wp-content/uploads/2024/06/oris-xam.png',
+  'YADEA_OSSY': 'https://www.yadea.com.vn/wp-content/uploads/2024/05/c.png',
+  'YADEA_OCEAN': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/ocean-cyan-banner-001.png',
+  'YADEA_ICUTE': 'https://www.yadea.com.vn/wp-content/uploads/2023/10/icute-banner-cyan.png',
+  'YADEA_ODORA_S': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/odoras-xanh-banner.png',
+  'YADEA_ODORA_S2': 'https://www.yadea.com.vn/wp-content/uploads/2025/09/Anh-ngang-to-1280x880px-den.png',
+  'YADEA_M6I': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/m6i-blue-banner.png',
+  'YADEA_VIGOR': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/virgo-grey-banner.png',
+  'YADEA_X_ZONE': 'https://www.yadea.com.vn/wp-content/uploads/2024/08/xzone-den-ngang-1280x880-1.png',
+  'YADEA_VEKOO': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Vekoo_4_Hong-anh-dao.png',
+  'YADEA_X_MEN_NEO': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/xmen-red-banner-1.png',
+  'YADEA_X_SKY': 'https://www.yadea.com.vn/wp-content/uploads/2025/02/XSKY-Anh-ngang-chinh-1280x880px.png',
+  'YADEA_X_BULL': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/xbull.png',
+  'YADEA_VEKOO_SOOBIN': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Vekoo_3_Xanh-lam-anh-ngoc.png',
+  'YADEA_VELAX_SOOBIN': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Velax_3_Xanh-Bentley.png',
+  'YADEA_ORIS_SOOBIN': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Oris_3_Hong-anh-dao.png',
+  
+  // Xe đạp điện
+  'YADEA_I8_VINTAGE': 'https://www.yadea.com.vn/wp-content/uploads/2025/03/Anh-dau-banner-i8-gau-xanh-1280x880px.png',
+  'YADEA_I8': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/Anh-sp-banner-1280x880-trang-sua-i8-moi.png',
+  'YADEA_I6_Accumulator': 'https://product.hstatic.net/200000859553/product/hong_cb6790de6aa84124ae1f359932b6b20c_master.png',
+  'YADEA_I6_Lithium_Battery': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/i6-black2.png',
+  'YADEA_IFUN': 'https://www.yadea.com.vn/wp-content/uploads/2024/08/YADEA-iFUN-xanh-anh-ngang.webp',
+  'YADEA_IGO': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/igo-black-banner-1.png',
+  
+  // Xe đạp trợ lực
+  'YADEA_VITO': 'https://www.yadea.com.vn/wp-content/uploads/2025/09/Anh-ngang-VITO-xanh.png',
+  'YADEA_FLIT': 'https://www.yadea.com.vn/wp-content/uploads/2025/09/Anh-ngang-FLIT-trang.png'
+};
+
+// Hàm lấy ảnh xe
+const getVehicleImage = (vehicleName) => {
+  return vehicleImageMapping[vehicleName] || '#DEFAULT_VEHICLE_IMAGE_URL';
+};
 
   const loadPackagesForVehicles = async (vehiclesData) => {
   try {
@@ -161,6 +209,7 @@ const Vehicle = () => {
     console.log('Extracted user vehicles data:', vehiclesData);
 
     if (vehiclesData && vehiclesData.length > 0) {
+      // CHỈ LỌC XE ACTIVE - ẨN XE INACTIVE
       const activeVehicles = vehiclesData.filter(vehicle => 
         getVehicleProperty(vehicle, 'status')?.toLowerCase() === 'active'
       );
@@ -220,10 +269,6 @@ const Vehicle = () => {
         setError('Vui lòng chọn tên xe');
         return;
       }
-      if (!newVehicle.batteryId.trim()) {
-        setError('Vui lòng nhập Battery ID');
-        return;
-      }
 
       console.log('Creating new vehicle:', newVehicle);
 
@@ -232,7 +277,6 @@ const Vehicle = () => {
       formData.append('VIN', newVehicle.vin);
       formData.append('VehicleName', newVehicle.vehicleName);
       formData.append('VehicleType', newVehicle.vehicleType);
-      formData.append('BatteryId', newVehicle.batteryId);
 
       const response = await vehicleAPI.linkVehicle(formData);
       console.log('Create vehicle response:', response);
@@ -242,8 +286,7 @@ const Vehicle = () => {
       setNewVehicle({
         vin: '',
         vehicleName: '',
-        vehicleType: 'electric_motorbike',
-        batteryId: ''
+        vehicleType: 'electric_motorbike'
       });
 
       // Load lại danh sách xe
@@ -303,15 +346,10 @@ const Vehicle = () => {
     const icons = {
       'electric_bike': '🚲',
       'electric_scooter': '🛴',
-      'electric_car': '🚗',
       'electric_motorbike': '🏍️',
-      'motorcycle': '🏍️',
-      'bicycle': '🚲',
-      'scooter': '🛴',
-      'Bike': '🚲',
-      'Car': '🚗'
+      'electric_assist_bicycle': '🚲',
     };
-    return icons[type] || '🚗';
+    return icons[type] || '🏍️';
   };
 
   // Helper to safely get vehicle properties
@@ -464,10 +502,26 @@ const Vehicle = () => {
                       <div className="card-glow"></div>
                       
                       <div className="card-header">
-                        <div className="vehicle-icon-large">
-                          {getVehicleIcon(getVehicleProperty(vehicle, 'type'))}
-                        </div>
-                        <div className="card-actions">
+  <div className="vehicle-image-container">
+    <img 
+      src={getVehicleImage(getVehicleProperty(vehicle, 'name'))} 
+      alt={getVehicleProperty(vehicle, 'name')}
+      className="vehicle-image"
+      onError={(e) => {
+        // Fallback nếu ảnh lỗi
+        e.target.style.display = 'none';
+        e.target.nextSibling.style.display = 'block';
+      }}
+    />
+    {/* Fallback emoji nếu không có ảnh */}
+    <div 
+      className="vehicle-icon-fallback"
+      style={{display: 'none'}}
+    >
+      {getVehicleIcon(getVehicleProperty(vehicle, 'type'))}
+    </div>
+  </div>
+  <div className="card-actions">
                           <span className={`status-badge ${getVehicleProperty(vehicle, 'status')?.toLowerCase()}`}>
                             <span className="status-dot"></span>
                             {getVehicleProperty(vehicle, 'status') === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
@@ -585,20 +639,12 @@ const Vehicle = () => {
                   onChange={(e) => setNewVehicle({...newVehicle, vehicleType: e.target.value})}
                   className="form-select"
                 >
-                  <option value="electric_motorbike">electric_motorbike</option>
-                  <option value="electric_bike">electric_bike</option>
+                  {vehicleTypeOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
-              </div>
-
-              <div className="form-group">
-                <label>Battery ID *</label>
-                <input
-                  type="text"
-                  value={newVehicle.batteryId}
-                  onChange={(e) => setNewVehicle({...newVehicle, batteryId: e.target.value})}
-                  placeholder="Nhập Battery ID"
-                  className="form-input"
-                />
               </div>
 
               <div className="modal-actions">
@@ -612,7 +658,7 @@ const Vehicle = () => {
                 <button 
                   className="btn-confirm" 
                   onClick={handleCreateVehicle}
-                  disabled={creating || !newVehicle.vin.trim() || !newVehicle.vehicleName.trim() || !newVehicle.batteryId.trim()}
+                  disabled={creating || !newVehicle.vin.trim() || !newVehicle.vehicleName.trim()}
                 >
                   {creating ? 'Đang tạo...' : 'Tạo xe'}
                 </button>

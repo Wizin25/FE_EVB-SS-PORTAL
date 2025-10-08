@@ -1245,3 +1245,51 @@
   background-color: #2ed573;
   color: white;
 }
+
+/* Thêm vào PackageManager.css */
+
+/* Battery type display trong card */
+.package-manager-card-battery {
+  margin: 8px 0;
+  padding: 6px 12px;
+  background-color: #e3f2fd;
+  border-radius: 6px;
+  border-left: 4px solid #2196f3;
+  font-size: 14px;
+}
+
+.package-manager-card-battery strong {
+  color: #1976d2;
+}
+
+/* Responsive cho grid form */
+.package-manager-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+  .package-manager-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.package-manager-select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.package-manager-select.error {
+  border-color: #e74c3c;
+}
+
+.package-manager-card-battery {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #666;
+}

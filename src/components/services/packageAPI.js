@@ -28,13 +28,15 @@ export const packageAPI = {
       formData.append('PackageId', updateData.packageId);
       formData.append('PackageName', updateData.packageName);
       formData.append('Price', updateData.price);
-      formData.append('Description', updateData.description || ''); // Thêm giá trị mặc định
+      formData.append('Description', updateData.description || '');
+      formData.append('BatteryType', updateData.batteryType); // Thêm batteryType
 
       console.log('API Call - Update Package:', {
         PackageId: updateData.packageId,
         PackageName: updateData.packageName,
         Price: updateData.price,
-        Description: updateData.description
+        Description: updateData.description,
+        BatteryType: updateData.batteryType // Log batteryType
       });
 
       const response = await api.put('/api/Package/update_package', formData, {
@@ -79,12 +81,14 @@ export const packageAPI = {
       const formData = new FormData();
       formData.append('PackageName', createData.packageName);
       formData.append('Price', createData.price);
-      formData.append('Description', createData.description || ''); // Thêm giá trị mặc định
+      formData.append('Description', createData.description || '');
+      formData.append('BatteryType', createData.batteryType); // Thêm batteryType
 
       console.log('API Call - Create Package:', {
         PackageName: createData.packageName,
         Price: createData.price,
-        Description: createData.description
+        Description: createData.description,
+        BatteryType: createData.batteryType // Log batteryType
       });
 
       const response = await api.post('/api/Package/add_package', formData, {
@@ -105,5 +109,20 @@ export const packageAPI = {
     } catch (error) {
       throw error;
     }
+  },
+
+  getPackageByBatteryType: async (batteryType) => {
+  try {
+    const response = await api.get('/api/Package/get_package_by_battery_type', {
+      params: { 
+        batterySpecificationEnums: batteryType 
+      }
+    });
+    console.log('API Response - getPackageByBatteryType:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('API Error - getPackageByBatteryType:', error);
+    throw error;
   }
+},
 };

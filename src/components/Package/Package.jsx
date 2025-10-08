@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { vehicleAPI } from '../services/vehicleAPI';
-import { authAPI } from '../services/authAPI';
 import { packageAPI } from '../services/packageAPI';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getCurrentUserPayload } from '../services/jwt';
@@ -21,6 +20,8 @@ const Package = () => {
   const [user, setUser] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [nextBooking, setNextBooking] = useState(null);
+  const [packageUsage, setPackageUsage] = useState({});
+  const [batteries, setBatteries] = useState([]);
 
   const isPackageDecommissioned = (pkg) => {
     const status = getPackageProperty(pkg, 'status');
@@ -50,21 +51,127 @@ const Package = () => {
     return "light";
   });
 
+  const batterySpecMapping = {
+  'BAT001': 'V48_Ah13',
+  'BAT002': 'V60_Ah22', 
+  'BAT003': 'V72_Ah38',
+  'BAT004': 'V72_Ah50',
+  'BAT005': 'V48_Ah22',
+  'bXJcwpwU502tkngq3J42': 'V48_Ah12',
+  'hyg3kYjBCUKeHJmbg3xT': 'V72_Ah38',
+  'OEsBV7ZMaUSEqe7YTfg-': 'V72_Ah38',
+  'Pn0UwQo3JUCTX24UUHzU': 'V72_Ah38',
+  'RWw47dk850-dAqKsO7Gy': 'V72_Ah38'
+};
+
+const getBatterySpecification = (batteryId) => {
+  if (!batteryId || batteryId === 'N/A') return 'V48_Ah12';
+  
+  // Kiểm tra mapping trước
+  if (batterySpecMapping[batteryId]) {
+    return batterySpecMapping[batteryId];
+  }
+  
+  return 'V48_Ah12'; // Default fallback
+};
+
+const getBatteryProperty = (battery, property) => {
+  if (!battery) return 'N/A';
+  
+  const possibleKeys = {
+    id: ['BatteryID', 'id', 'batteryID', 'batteryId', 'BatteryId'],
+    specification: ['specification', 'Specification', 'spec', 'Spec'],
+    type: ['Battery_type', 'batteryType', 'type', 'BatteryType'],
+    capacity: ['capacity', 'Capacity'],
+    status: ['status', 'Status']
+  };
+  
+  const keys = possibleKeys[property] || [property];
+  for (let key of keys) {
+    if (battery[key] !== undefined && battery[key] !== null && battery[key] !== '') {
+      return battery[key];
+    }
+  }
+  return 'N/A';
+};
+
+const getVehicleBatteryType = (vehicle) => {
+  const batteryId = getVehicleProperty(vehicle, 'battery');
+  return getBatterySpecification(batteryId);
+};
+
   // Kiểm tra gói có đang được sử dụng bởi xe đã chọn không
-  const isPackageUsedByVehicle = (pkg) => {
-    if (!selectedVehicle || !pkg) return false;
+  const isPackageUsedByVehicle = async (pkg) => {
+  if (!selectedVehicle || !pkg) return false;
+  
+  try {
+    // Gọi API để lấy package hiện tại của vehicle
+    const vehicleId = getVehicleProperty(selectedVehicle, 'vin');
+    const response = await vehicleAPI.getPackageByVehicleId(vehicleId);
     
-    const vehiclePackageId = getVehicleProperty(selectedVehicle, 'package');
+    console.log('DEBUG - Current vehicle package:', response);
+    
+    let currentPackage = null;
+    
+    // Xử lý response structure
+    if (response && response.data) {
+      currentPackage = response.data;
+    } else if (response && response.isSuccess && response.data) {
+      currentPackage = response.data;
+    } else if (Array.isArray(response) && response.length > 0) {
+      currentPackage = response[0];
+    }
+    
+    if (!currentPackage) return false;
+    
+    const currentPackageId = getPackageProperty(currentPackage, 'id');
     const packageId = getPackageProperty(pkg, 'id');
     
     console.log('DEBUG - Package Usage Check:', {
-      vehiclePackageId,
+      currentPackageId,
       packageId,
-      isSamePackage: vehiclePackageId === packageId
+      isSamePackage: currentPackageId === packageId
     });
     
-    return vehiclePackageId === packageId;
+    return currentPackageId === packageId;
+  } catch (error) {
+    console.error('Error checking current package:', error);
+    return false;
+  }
+};
+
+const updatePackageUsage = async () => {
+  if (!selectedVehicle || packages.length === 0) return;
+  
+  const usageMap = {};
+  for (const pkg of packages) {
+    const isUsed = await isPackageUsedByVehicle(pkg);
+    usageMap[getPackageProperty(pkg, 'id')] = isUsed;
+  }
+  setPackageUsage(usageMap);
+};
+
+// Thêm vào useEffect để fetch batteries
+useEffect(() => {
+  const fetchBatteries = async () => {
+    try {
+      // Giả sử bạn có API để lấy tất cả batteries
+      // const response = await batteryAPI.getAllBatteries();
+      // setBatteries(response.data || []);
+      
+      // Tạm thời sử dụng mock data hoặc fetch từ API có sẵn
+      console.log('Fetching batteries data...');
+    } catch (error) {
+      console.error('Error fetching batteries:', error);
+    }
   };
+
+  fetchBatteries();
+}, []);
+
+useEffect(() => {
+  updatePackageUsage();
+}, [packages, selectedVehicle]);
 
   // Khi có vehicle từ location.state, set luôn làm selectedVehicle
   useEffect(() => {
@@ -81,7 +188,7 @@ const Package = () => {
         // Chỉ fetch vehicles nếu chưa có selectedVehicle
         if (!selectedVehicle) {
           console.log('Fetching all vehicles...');
-          const response = await vehicleAPI.getAllVehicles();
+          const response = await vehicleAPI.getCurrentUserVehicles();
           console.log('All vehicles API Response:', response);
           
           let allVehicles = [];
@@ -153,35 +260,36 @@ const Package = () => {
 
   // Helper để lấy property từ vehicle một cách an toàn
   const getVehicleProperty = (vehicle, property) => {
-    if (!vehicle) return 'N/A';
-    
-    const possibleKeys = {
-      vin: ['VIN', 'vin', 'Vin', 'vehicleId', 'id', 'vehicleID', 'VehicleID', 'VINCode', 'vincode', 'VIN_CODE'],
-      battery: ['BatteryID', 'batteryId', 'batteryID', 'battery', 'BatteryId'],
-      package: ['PackageID', 'packageId', 'packageID', 'package', 'PackageId', 'currentPackage', 'activePackage'],
-      name: ['vehicle_name', 'name', 'vehicleName', 'model', 'VehicleName', 'Name'],
-      status: ['status', 'Status', 'state'],
-      type: ['vehicle_type', 'type', 'vehicleType', 'VehicleType'],
-      id: ['vehicleId', 'id', 'vehicleID', 'VehicleID', 'VIN', 'vin', 'Vin'],
-      customerId: [
-        'CustomerID', 'customerId', 'customerID', 'customer', 'CustomerId',
-        'AccountID', 'accountId', 'AccountId', 
-        'UserID', 'userId', 'UserId',
-        'OwnerID', 'ownerId', 'OwnerId'
-      ]
-    };
-    
-    const keys = possibleKeys[property] || [property];
-    
-    // Tìm key chính xác
-    for (let key of keys) {
-      if (vehicle[key] !== undefined && vehicle[key] !== null && vehicle[key] !== '') {
-        return vehicle[key];
-      }
-    }
-    
-    return 'N/A';
+  if (!vehicle) return 'N/A';
+  
+  const possibleKeys = {
+    vin: ['VIN', 'vin', 'Vin', 'vehicleId', 'id', 'vehicleID', 'VehicleID', 'VINCode', 'vincode', 'VIN_CODE'],
+    battery: ['BatteryID', 'batteryId', 'batteryID', 'battery', 'BatteryId'],
+    batteryType: ['batteryType', 'BatteryType', 'batterySpecification', 'BatterySpecification'],
+    package: ['PackageID', 'packageId', 'packageID', 'package', 'PackageId', 'currentPackage', 'activePackage'],
+    name: ['vehicle_name', 'name', 'vehicleName', 'model', 'VehicleName', 'Name'],
+    status: ['status', 'Status', 'state'],
+    type: ['vehicle_type', 'type', 'vehicleType', 'VehicleType'],
+    id: ['vehicleId', 'id', 'vehicleID', 'VehicleID', 'VIN', 'vin', 'Vin'],
+    customerId: [
+      'CustomerID', 'customerId', 'customerID', 'customer', 'CustomerId',
+      'AccountID', 'accountId', 'AccountId', 
+      'UserID', 'userId', 'UserId',
+      'OwnerID', 'ownerId', 'OwnerId'
+    ]
   };
+  
+  const keys = possibleKeys[property] || [property];
+  
+  // Tìm key chính xác
+  for (let key of keys) {
+    if (vehicle[key] !== undefined && vehicle[key] !== null && vehicle[key] !== '') {
+      return vehicle[key];
+    }
+  }
+  
+  return 'N/A';
+};
 
   const fetchPackageById = async (packageId) => {
     try {
@@ -339,54 +447,85 @@ const Package = () => {
 
   // Hàm load packages cho xe đã chọn
   const loadPackagesForSelectedVehicle = async () => {
-    if (!selectedVehicle) {
-      setPackages([]);
-      return;
-    }
+  if (!selectedVehicle) {
+    setPackages([]);
+    return;
+  }
 
-    try {
-      setLoading(true);
-      setError('');
-      
-      // Lấy tất cả packages
+  try {
+    setLoading(true);
+    setError('');
+    
+    // LẤY BATTERY TYPE TỪ VEHICLE VÀ GỌI API get_package_by_battery_type
+    const vehicleBatteryType = getVehicleBatteryType(selectedVehicle);
+    
+    console.log('Fetching packages for battery type:', vehicleBatteryType);
+    console.log('Selected vehicle:', selectedVehicle);
+    
+    // Gọi API lấy package theo battery type
+    const batteryPackagesResponse = await packageAPI.getPackageByBatteryType(vehicleBatteryType);
+    
+    let batteryPackages = [];
+    
+    // Xử lý response structure
+    if (batteryPackagesResponse && Array.isArray(batteryPackagesResponse)) {
+      batteryPackages = batteryPackagesResponse;
+    } else if (batteryPackagesResponse && batteryPackagesResponse.data && Array.isArray(batteryPackagesResponse.data)) {
+      batteryPackages = batteryPackagesResponse.data;
+    } else if (batteryPackagesResponse && batteryPackagesResponse.data && batteryPackagesResponse.data.data && Array.isArray(batteryPackagesResponse.data.data)) {
+      batteryPackages = batteryPackagesResponse.data.data;
+    } else if (batteryPackagesResponse && batteryPackagesResponse.data && batteryPackagesResponse.data.isSuccess && Array.isArray(batteryPackagesResponse.data.data)) {
+      batteryPackages = batteryPackagesResponse.data.data;
+    } else {
+      console.warn('Unexpected response structure for battery packages:', batteryPackagesResponse);
+      // Thử fallback đến getAllPackages nếu cấu trúc response không như expected
       const allPackagesResponse = await packageAPI.getAllPackages();
-      console.log('All packages response:', allPackagesResponse);
-      
+      if (allPackagesResponse && Array.isArray(allPackagesResponse)) {
+        batteryPackages = allPackagesResponse;
+      } else if (allPackagesResponse && allPackagesResponse.data && Array.isArray(allPackagesResponse.data)) {
+        batteryPackages = allPackagesResponse.data;
+      }
+    }
+    
+    console.log('Packages by battery type:', batteryPackages);
+    
+    // Lọc packages active (không bị decommissioned)
+    const activePackages = batteryPackages.filter(pkg => !isPackageDecommissioned(pkg));
+    setPackages(activePackages);
+    
+    if (activePackages.length === 0) {
+      setError(`Không có gói nào phù hợp với loại pin của xe ${getVehicleProperty(selectedVehicle, 'name')}`);
+    }
+  } catch (err) {
+    console.error('Error fetching packages by battery type:', err);
+    
+    // Fallback: thử lấy tất cả packages nếu API battery type fail
+    try {
+      console.log('Fallback: fetching all packages...');
+      const allPackagesResponse = await packageAPI.getAllPackages();
       let allPackages = [];
       
-      // Xử lý response structure
       if (allPackagesResponse && Array.isArray(allPackagesResponse)) {
         allPackages = allPackagesResponse;
       } else if (allPackagesResponse && allPackagesResponse.data && Array.isArray(allPackagesResponse.data)) {
         allPackages = allPackagesResponse.data;
-      } else if (allPackagesResponse && allPackagesResponse.data && allPackagesResponse.data.data && Array.isArray(allPackagesResponse.data.data)) {
-        allPackages = allPackagesResponse.data.data;
-      } else if (allPackagesResponse && allPackagesResponse.data && allPackagesResponse.data.isSuccess && Array.isArray(allPackagesResponse.data.data)) {
-        allPackages = allPackagesResponse.data.data;
       }
       
-      console.log('Extracted all packages:', allPackages);
+      const activePackages = allPackages.filter(pkg => !isPackageDecommissioned(pkg));
+      setPackages(activePackages);
       
-      if (allPackages.length > 0) {
-        // Lọc packages phù hợp với vehicle
-        const compatiblePackages = filterPackagesForVehicle(allPackages, selectedVehicle);
-        setPackages(compatiblePackages);
-        
-        if (compatiblePackages.length === 0) {
-          setError('Không có gói nào phù hợp với xe này. Vui lòng kiểm tra lại thông tin pin của xe.');
-        }
-      } else {
-        setError('Không có gói dịch vụ nào');
-        setPackages([]);
+      if (activePackages.length === 0) {
+        setError('Không có gói dịch vụ nào khả dụng');
       }
-    } catch (err) {
-      console.error('Error fetching packages:', err);
+    } catch (fallbackErr) {
+      console.error('Fallback also failed:', fallbackErr);
       setError('Không thể tải danh sách gói dịch vụ');
       setPackages([]);
-    } finally {
-      setLoading(false);
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     loadPackagesForSelectedVehicle();
@@ -690,17 +829,21 @@ const Package = () => {
                     </div>
                   </div>
                   
-                  <div className="vehicle-additional-info">
-                    <div className="info-item">
-                      <span className="info-label">🔋 Pin:</span>
-                      <span className="info-value">{getVehicleProperty(selectedVehicle, 'battery')}</span>
-                    </div>
-                    {getVehicleProperty(selectedVehicle, 'package') && getVehicleProperty(selectedVehicle, 'package') !== 'N/A' && (
-                      <div className="current-package-badge">
-                        ⭐ Đang sử dụng gói: {getVehicleProperty(selectedVehicle, 'package')}
-                      </div>
-                    )}
-                  </div>
+<div className="vehicle-additional-info">
+  <div className="info-item">
+    <span className="info-label">🔋 Pin:</span>
+    <span className="info-value">{getVehicleProperty(selectedVehicle, 'battery')}</span>
+  </div>
+  <div className="info-item">
+    <span className="info-label">🔧 Loại pin:</span>
+    <span className="info-value">{getBatterySpecification(getVehicleProperty(selectedVehicle, 'battery'))}</span>
+  </div>
+  {getVehicleProperty(selectedVehicle, 'package') && getVehicleProperty(selectedVehicle, 'package') !== 'N/A' && (
+    <div className="current-package-badge">
+      ⭐ Đang sử dụng gói: {getVehicleProperty(selectedVehicle, 'package')}
+    </div>
+  )}
+</div>
                 </div>
               </div>
             </div>
@@ -741,9 +884,9 @@ const Package = () => {
                 <>
                   <div className="package-grid">
                     {packages.map((pkg, idx) => {
-                      const packageDisplayName = getPackageDisplayName(pkg);
-                      const packageId = getPackageProperty(pkg, 'id');
-                      const isCurrentlyUsed = isPackageUsedByVehicle(pkg);
+  const packageDisplayName = getPackageDisplayName(pkg);
+  const packageId = getPackageProperty(pkg, 'id');
+  const isCurrentlyUsed = packageUsage[packageId] || false;
                       
                       return (
                         <div 
