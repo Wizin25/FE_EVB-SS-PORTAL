@@ -23,11 +23,45 @@ export const vehicleAPI = {
     }
   },
 
-  // Thêm vehicle vào package - ĐÃ SỬA THEO SWAGGER
+  // Lấy vehicles của customer hiện tại
+  getCurrentUserVehicles: async () => {
+    try {
+      const response = await api.get('/api/Vehicle/get_all_vehicle_by_customer_id');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Tạo (liên kết) xe mới
+  linkVehicle: async (formData) => {
+    try {
+      const response = await api.post('/api/Vehicle/link_vehicle', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Hủy liên kết xe (xóa xe)
+  unlinkVehicle: async (formData) => {
+    try {
+      const response = await api.put('/api/Vehicle/unlink_vehicle', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Thêm vehicle vào package
   addVehicleInPackage: async (data) => {
     try {
       const formData = new FormData();
-      formData.append('Vin', data.Vin); // Sửa thành Vin theo Swagger
+      formData.append('Vin', data.Vin);
       formData.append('PackageId', data.PackageId);
       
       console.log('API Call - addVehicleInPackage:', {
@@ -57,11 +91,11 @@ export const vehicleAPI = {
     }
   },
 
-  // Xóa vehicle khỏi package - ĐÃ SỬA THEO SWAGGER
+  // Xóa vehicle khỏi package
   deleteVehicleInPackage: async (data) => {
     try {
       const formData = new FormData();
-      formData.append('vehicleId', data.vehicleId); // SỬA: vehicleId thay vì Vin
+      formData.append('vehicleId', data.vehicleId);
 
       console.log('API Call - deleteVehicleInPackage DATA:', {
         vehicleId: data.vehicleId,
@@ -93,5 +127,5 @@ export const vehicleAPI = {
         throw new Error('Lỗi không xác định: ' + error.message);
       }
     }
-  }
+  },
 };

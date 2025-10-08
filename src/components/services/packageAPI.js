@@ -1,10 +1,60 @@
 import api from './api';
 
 export const packageAPI = {
-  // Lấy tất cả packages
+  // Lấy tất cả packages (cho admin - bao gồm cả inactive)
   getAllPackages: async () => {
     try {
       const response = await api.get('/api/Package/get_all_packages');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Lấy chỉ các packages active (cho người dùng)
+  getActivePackages: async () => {
+    try {
+      const response = await api.get('/api/Package/get_active_packages');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Cập nhật package - SỬA: XÓA TRƯỜNG DURATION
+  updatePackage: async (updateData) => {
+    try {
+      const formData = new FormData();
+      formData.append('PackageId', updateData.packageId);
+      formData.append('PackageName', updateData.packageName);
+      formData.append('Price', updateData.price);
+      formData.append('Description', updateData.description || ''); // Thêm giá trị mặc định
+
+      console.log('API Call - Update Package:', {
+        PackageId: updateData.packageId,
+        PackageName: updateData.packageName,
+        Price: updateData.price,
+        Description: updateData.description
+      });
+
+      const response = await api.put('/api/Package/update_package', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Xóa mềm package (chuyển status sang Inactive)
+  deletePackage: async (packageId) => {
+    try {
+      const formData = new FormData();
+      formData.append('packageId', packageId);
+
+      const response = await api.put('/api/Package/delete_package', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       return response.data;
     } catch (error) {
       throw error;
@@ -23,12 +73,34 @@ export const packageAPI = {
     }
   },
 
-  // Lấy packages phù hợp với battery (cần implement thêm API backend nếu cần)
+  // Tạo package mới
+  createPackage: async (createData) => {
+    try {
+      const formData = new FormData();
+      formData.append('PackageName', createData.packageName);
+      formData.append('Price', createData.price);
+      formData.append('Description', createData.description || ''); // Thêm giá trị mặc định
+
+      console.log('API Call - Create Package:', {
+        PackageName: createData.packageName,
+        Price: createData.price,
+        Description: createData.description
+      });
+
+      const response = await api.post('/api/Package/add_package', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Lấy packages active phù hợp với battery
   getPackagesByBattery: async (batteryId) => {
     try {
-      // Tạm thời lấy tất cả packages, có thể filter phía frontend
-      // hoặc tạo API mới ở backend
-      const response = await api.get('/api/Package/get_all_packages');
+      // Sử dụng API mới chỉ lấy active packages
+      const response = await api.get('/api/Package/get_active_packages');
       return response.data;
     } catch (error) {
       throw error;

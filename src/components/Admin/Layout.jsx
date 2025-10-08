@@ -11,6 +11,7 @@ const navItems = [
   { to: '/admin/calendar', label: 'Calendar' },
   { to: '/admin/station', label: 'Station' },
   { to: '/admin/controller', label: 'Controller' },
+  { to: '/admin/package', label: 'Package' },
 ];
 
 function ThemeToggle({ className = "" }) {
@@ -118,7 +119,7 @@ export default function AdminLayout() {
     >
       <div
         ref={nodeRef}
-        className="flex min-h-screen font-sans bg-white dark:bg-gray-900 transition-colors"
+        className="flex min-h-screen font-sans transition-colors bg-white dark:bg-gray-900"
         style={{ height: '100vh', overflow: 'auto' }} // enable scroll for the whole layout
       >
         {/* Sidebar */}
@@ -188,7 +189,7 @@ export default function AdminLayout() {
 
         {/* Main Content Area */}
 
-        <div className="flex-1 flex flex-col min-h-screen" style={{ overflow: 'auto' }}>
+        <div className="flex flex-col flex-1 min-h-screen" style={{ overflow: 'auto' }}>
 
           {/* Header */}
           <header className="flex items-center justify-between h-16 px-4 bg-white border-b border-orange-100 admin-header dark:bg-gray-900 dark:border-gray-800">
@@ -232,9 +233,9 @@ export default function AdminLayout() {
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 bg-white dark:bg-gray-900 transition-colors overflow-y-auto">
+          <main className="flex-1 overflow-y-auto transition-colors bg-white dark:bg-gray-900">
             <div className="p-8">
-              <div className="mb-6 border-b border-orange-200 dark:border-gray-800 pb-2" />
+              <div className="pb-2 mb-6 border-b border-orange-200 dark:border-gray-800" />
               <div className="admin-content-card rounded-xl bg-white dark:bg-gray-800 shadow-lg p-6 min-h-[60vh] transition-colors overflow-y-auto">
                 <Outlet />
               </div>

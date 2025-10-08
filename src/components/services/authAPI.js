@@ -74,7 +74,7 @@ export const authAPI = {
     const response = await api.put('/api/Account/change-password', {
       oldPassword: passwordData.oldPassword,
       newPassword: passwordData.newPassword,
-      confirmPassword: passwordData.confirmPassword  // THÊM TRƯỜNG NÀY
+      confirmPassword: passwordData.confirmPassword
     });
     
     // Trả về toàn bộ response data để xử lý
@@ -400,23 +400,4 @@ addBatteryToStation: async (batteryId, stationId) => {
       throw new Error(msg);
     }
   },
-
-  getCurrentUserVehicles: async () => {
-  try {
-    const response = await api.get('/api/Vehicle/get_vehicles_by_current_user');
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-},
-
-getAllVehicles: async () => {
-  try {
-    const response = await api.get('/api/Vehicle/get_all_vehicles');
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-},
-
 };

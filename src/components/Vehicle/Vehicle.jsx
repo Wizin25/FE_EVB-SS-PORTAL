@@ -1,14 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { authAPI } from '../services/authAPI';
+import { vehicleAPI } from '../services/vehicleAPI';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentUserPayload } from '../services/jwt'; // Import hàm lấy thông tin user từ JWT
+import { getCurrentUserPayload, isInRole } from '../services/jwt';
 import './Vehicle.css';
 import HeaderDriver from "../Home/header";
+import Footer from "../Home/footer";
 
 const Vehicle = () => {
   const [vehicles, setVehicles] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [vehiclePackages, setVehiclePackages] = useState({});
+  const [packageLoading, setPackageLoading] = useState(false);
+  const [newVehicle, setNewVehicle] = useState({
+    vin: '',
+    vehicleName: '',
+    vehicleType: 'electric_motorbike',
+    batteryId: ''
+  });
+  
   const navigate = useNavigate();
   const [theme, setTheme] = useState(() => {
     if (typeof window !== "undefined") {
@@ -19,6 +31,83 @@ const Vehicle = () => {
   const [user, setUser] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [nextBooking, setNextBooking] = useState(null);
+  
+  // Danh sách các tên xe từ enum
+  const vehicleNameOptions = [
+    // Xe máy điện
+    { value: 'YADEA_VELAX', label: 'Yadea Velax' },
+    { value: 'YADEA_VOLTGUARD_U', label: 'Yadea Voltguard U' },
+    { value: 'YADEA_VOLTGUARD_P', label: 'Yadea Voltguard P' },
+    { value: 'YADEA_ORLA', label: 'Yadea Orla' },
+    { value: 'YADEA_ORIS', label: 'Yadea Oris' },
+    { value: 'YADEA_OSSY', label: 'Yadea Ossy' },
+    { value: 'YADEA_OCEAN', label: 'Yadea Ocean' },
+    { value: 'YADEA_ICUTE', label: 'Yadea iCute' },
+    { value: 'YADEA_ODORA_S', label: 'Yadea Odora S' },
+    { value: 'YADEA_ODORA_S2', label: 'Yadea Odora S2' },
+    { value: 'YADEA_M6I', label: 'Yadea M6i' },
+    { value: 'YADEA_VIGOR', label: 'Yadea Vigor' },
+    { value: 'YADEA_X_ZONE', label: 'Yadea X-Zone' },
+    { value: 'YADEA_VEKOO', label: 'Yadea Vekoo' },
+    { value: 'YADEA_X_MEN_NEO', label: 'Yadea X-Men Neo' },
+    { value: 'YADEA_X_SKY', label: 'Yadea X-Sky' },
+    { value: 'YADEA_X_BULL', label: 'Yadea X-Bull' },
+    { value: 'YADEA_VEKOO_SOOBIN', label: 'Yadea Vekoo Soobin' },
+    { value: 'YADEA_VELAX_SOOBIN', label: 'Yadea Velax Soobin' },
+    { value: 'YADEA_ORIS_SOOBIN', label: 'Yadea Oris Soobin' },
+    // Xe đạp điện
+    { value: 'YADEA_I8_VINTAGE', label: 'Yadea i8 Vintage' },
+    { value: 'YADEA_I8', label: 'Yadea i8' },
+    { value: 'YADEA_I6_Accumulator', label: 'Yadea i6 Accumulator' },
+    { value: 'YADEA_I6_Lithium_Battery', label: 'Yadea i6 Lithium Battery' },
+    { value: 'YADEA_IFUN', label: 'Yadea iFun' },
+    { value: 'YADEA_IGO', label: 'Yadea iGo' },
+    // Xe đạp trợ lực
+    { value: 'YADEA_VITO', label: 'Yadea Vito' },
+    { value: 'YADEA_FLIT', label: 'Yadea Flit' }
+  ];
+
+  const loadPackagesForVehicles = async (vehiclesData) => {
+  try {
+    setPackageLoading(true);
+    const packagesMap = {};
+    
+    // Lặp qua từng xe để lấy gói phù hợp
+    for (const vehicle of vehiclesData) {
+      const vehicleName = getVehicleProperty(vehicle, 'name');
+      if (vehicleName && vehicleName !== 'N/A') {
+        try {
+          console.log(`Loading packages for vehicle: ${vehicleName}`);
+          const response = await vehicleAPI.getPackageByVehicleName(vehicleName);
+          
+          let packagesData = [];
+          if (response && Array.isArray(response)) {
+            packagesData = response;
+          } else if (response && response.data && Array.isArray(response.data)) {
+            packagesData = response.data;
+          } else if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
+            packagesData = response.data.data;
+          } else if (response && response.data && response.data.isSuccess && Array.isArray(response.data.data)) {
+            packagesData = response.data.data;
+          }
+          
+          packagesMap[getVehicleProperty(vehicle, 'vin')] = packagesData;
+          console.log(`Packages for ${vehicleName}:`, packagesData);
+        } catch (err) {
+          console.error(`Error loading packages for ${vehicleName}:`, err);
+          packagesMap[getVehicleProperty(vehicle, 'vin')] = [];
+        }
+      }
+    }
+    
+    setVehiclePackages(packagesMap);
+  } catch (err) {
+    console.error('Error loading vehicle packages:', err);
+  } finally {
+    setPackageLoading(false);
+  }
+};
+
   const handleOpenBooking = () => {
     window.location.href = "/booking";
   };
@@ -44,111 +133,166 @@ const Vehicle = () => {
   }, []);
 
   const loadVehicles = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      console.log('Loading all vehicles...');
-      
-      // Lấy tất cả vehicles từ API
-      const response = await authAPI.getAllVehicles();
-      console.log('All vehicles API Response:', response);
-      
-      let vehiclesData = [];
-      
-      // Xử lý các cấu trúc response khác nhau
-      if (response && Array.isArray(response)) {
-        vehiclesData = response;
-      } else if (response && response.data && Array.isArray(response.data)) {
-        vehiclesData = response.data;
-      } else if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
-        vehiclesData = response.data.data;
-      } else if (response && response.data && response.data.isSuccess && Array.isArray(response.data.data)) {
-        vehiclesData = response.data.data;
-      } else if (response && response.data && response.data.result && Array.isArray(response.data.result)) {
-        vehiclesData = response.data.result;
-      } else {
-        console.warn('Unexpected response structure:', response);
-        // Thử tìm mảng trong response
-        const findArray = (obj) => {
-          if (Array.isArray(obj)) return obj;
-          if (typeof obj === 'object' && obj !== null) {
-            for (let key in obj) {
-              if (Array.isArray(obj[key])) {
-                return obj[key];
-              }
-            }
-          }
-          return null;
-        };
-        
-        const foundArray = findArray(response);
-        if (foundArray) {
-          vehiclesData = foundArray;
-        }
-      }
-      
-      console.log('Extracted vehicles data:', vehiclesData);
+  try {
+    setLoading(true);
+    setError('');
+    console.log('Loading vehicles for current customer...');
+    
+    const response = await vehicleAPI.getCurrentUserVehicles();
+    console.log('Current user vehicles API Response:', response);
+    
+    let vehiclesData = [];
+    
+    if (response && Array.isArray(response)) {
+      vehiclesData = response;
+    } else if (response && response.data && Array.isArray(response.data)) {
+      vehiclesData = response.data;
+    } else if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
+      vehiclesData = response.data.data;
+    } else if (response && response.data && response.data.isSuccess && Array.isArray(response.data.data)) {
+      vehiclesData = response.data.data;
+    } else {
+      console.warn('Unexpected response structure:', response);
+      setError('Không thể tải danh sách xe');
+      setVehicles({});
+      return;
+    }
+    
+    console.log('Extracted user vehicles data:', vehiclesData);
 
-      // Lấy thông tin user hiện tại từ JWT
-      const currentUser = getCurrentUserPayload();
-      console.log('Current user from JWT:', currentUser);
+    if (vehiclesData && vehiclesData.length > 0) {
+      const activeVehicles = vehiclesData.filter(vehicle => 
+        getVehicleProperty(vehicle, 'status')?.toLowerCase() === 'active'
+      );
       
-      if (vehiclesData && vehiclesData.length > 0) {
-        // Lọc vehicles của user hiện tại
-        const userVehicles = filterUserVehicles(vehiclesData, currentUser);
-        console.log('User vehicles after filtering:', userVehicles);
+      console.log('Active user vehicles:', activeVehicles);
+      
+      if (activeVehicles.length > 0) {
+        const vehicleTypes = {};
+        activeVehicles.forEach(vehicle => {
+          const type = vehicle.vehicle_type || vehicle.type || vehicle.vehicleType || 'Khác';
+          if (!vehicleTypes[type]) {
+            vehicleTypes[type] = [];
+          }
+          vehicleTypes[type].push(vehicle);
+        });
         
-        if (userVehicles.length > 0) {
-          const vehicleTypes = {};
-          userVehicles.forEach(vehicle => {
-            const type = vehicle.vehicle_type || vehicle.type || vehicle.vehicleType || 'Khác';
-            if (!vehicleTypes[type]) {
-              vehicleTypes[type] = [];
-            }
-            vehicleTypes[type].push(vehicle);
-          });
-          
-          console.log('Grouped vehicles:', vehicleTypes);
-          setVehicles(vehicleTypes);
-        } else {
-          setError('Không có xe nào trong tài khoản của bạn');
-          setVehicles({});
-        }
+        console.log('Grouped active vehicles:', vehicleTypes);
+        setVehicles(vehicleTypes);
+        
+        // Load packages cho các xe
+        await loadPackagesForVehicles(activeVehicles);
       } else {
-        setError('Không có xe nào trong hệ thống');
+        setError('Không có xe nào đang hoạt động trong tài khoản của bạn');
         setVehicles({});
       }
-    } catch (err) {
-      console.error('Error loading vehicles:', err);
+    } else {
+      setError('Không có xe nào trong tài khoản của bạn');
+      setVehicles({});
+    }
+  } catch (err) {
+    console.error('Error loading vehicles:', err);
+    if (err.response?.status === 401 || err.response?.status === 403) {
+      setError('Bạn không có quyền truy cập danh sách xe');
+    } else {
       const errorMessage = err?.response?.data?.message || 
                           err?.message || 
                           'Lỗi khi tải danh sách phương tiện. Vui lòng thử lại sau';
       setError(errorMessage);
-      setVehicles({});
+    }
+    setVehicles({});
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const handleCreateVehicle = async () => {
+    try {
+      setCreating(true);
+      setError('');
+
+      // Validate required fields
+      if (!newVehicle.vin.trim()) {
+        setError('Vui lòng nhập VIN');
+        return;
+      }
+      if (!newVehicle.vehicleName.trim()) {
+        setError('Vui lòng chọn tên xe');
+        return;
+      }
+      if (!newVehicle.batteryId.trim()) {
+        setError('Vui lòng nhập Battery ID');
+        return;
+      }
+
+      console.log('Creating new vehicle:', newVehicle);
+
+      // Gọi API link_vehicle với đầy đủ tham số
+      const formData = new FormData();
+      formData.append('VIN', newVehicle.vin);
+      formData.append('VehicleName', newVehicle.vehicleName);
+      formData.append('VehicleType', newVehicle.vehicleType);
+      formData.append('BatteryId', newVehicle.batteryId);
+
+      const response = await vehicleAPI.linkVehicle(formData);
+      console.log('Create vehicle response:', response);
+
+      // Đóng modal và reset form
+      setShowCreateModal(false);
+      setNewVehicle({
+        vin: '',
+        vehicleName: '',
+        vehicleType: 'electric_motorbike',
+        batteryId: ''
+      });
+
+      // Load lại danh sách xe
+      await loadVehicles();
+
+    } catch (err) {
+      console.error('Error creating vehicle:', err);
+      const errorMessage = err?.response?.data?.message || 
+                          err?.message || 
+                          'Lỗi khi tạo xe. Vui lòng thử lại sau';
+      setError(errorMessage);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDeleteVehicle = async (vehicleId) => {
+    try {
+      if (!window.confirm('Bạn có chắc muốn xóa xe này?')) {
+        return;
+      }
+
+      setLoading(true);
+      setError('');
+      console.log('Deleting vehicle with ID:', vehicleId);
+
+      // Gọi API unlink_vehicle
+      const formData = new FormData();
+      formData.append('vehicleId', vehicleId);
+
+      const response = await vehicleAPI.unlinkVehicle(formData);
+      console.log('Delete vehicle response:', response);
+
+      // Load lại danh sách xe
+      await loadVehicles();
+
+    } catch (err) {
+      console.error('Error deleting vehicle:', err);
+      const errorMessage = err?.response?.data?.message || 
+                          err?.message || 
+                          'Lỗi khi xóa xe. Vui lòng thử lại sau';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  // Hàm lọc vehicles của user hiện tại
-  const filterUserVehicles = (allVehicles, currentUser) => {
-    if (!currentUser || !allVehicles) return [];
-    
-    // Các trường có thể chứa ID của user
-    const userIdentifier = currentUser.nameid || currentUser.sub || currentUser.userId || currentUser.id;
-    console.log('User identifier:', userIdentifier);
-    
-    return allVehicles.filter(vehicle => {
-      // Kiểm tra các trường có thể chứa thông tin user
-      const vehicleUserId = vehicle.accountId || vehicle.userId || vehicle.AccountID || vehicle.UserID;
-      console.log('Vehicle user ID:', vehicleUserId, 'for vehicle:', vehicle);
-      
-      return vehicleUserId === userIdentifier;
-    });
-  };
-
   const handleSelectVehicle = (vehicle) => {
-  navigate('/plans', { state: { selectedVehicle: vehicle } });
+    navigate('/plans', { state: { selectedVehicle: vehicle } });
   };
 
   const handleGoBack = () => {
@@ -157,16 +301,17 @@ const Vehicle = () => {
 
   const getVehicleIcon = (type) => {
     const icons = {
-      'electric_bike': '🏍️',
+      'electric_bike': '🚲',
       'electric_scooter': '🛴',
       'electric_car': '🚗',
+      'electric_motorbike': '🏍️',
       'motorcycle': '🏍️',
       'bicycle': '🚲',
       'scooter': '🛴',
       'Bike': '🚲',
       'Car': '🚗'
     };
-    return icons[type] || '';
+    return icons[type] || '🚗';
   };
 
   // Helper to safely get vehicle properties
@@ -193,8 +338,8 @@ const Vehicle = () => {
 
   return (
     <div className="vehicle-page" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
-       {/* HeaderDriver là lớp trên cùng của màn hình */}
-       <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+      {/* HeaderDriver là lớp trên cùng của màn hình */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
         <HeaderDriver
           onToggleTheme={handleToggleTheme}
           theme={theme}
@@ -204,6 +349,7 @@ const Vehicle = () => {
           onOpenBooking={handleOpenBooking}
         />
       </div>
+      
       {/* Animated Background */}
       <div className="animated-bg">
         <div className="gradient-orb orb-1"></div>
@@ -243,6 +389,17 @@ const Vehicle = () => {
               Khám phá và quản lý phương tiện của bạn một cách thông minh
             </p>
           </div>
+
+          {/* Nút Tạo Xe - chỉ hiển thị cho EvDriver */}
+          {isInRole('EvDriver') && (
+            <button 
+              className="create-vehicle-btn"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <span className="btn-icon">+</span>
+              <span>Tạo Xe Mới</span>
+            </button>
+          )}
         </div>
 
         {/* Loading State */}
@@ -279,20 +436,6 @@ const Vehicle = () => {
           </div>
         )}
 
-        {/* Debug Info - Remove in production */}
-        {process.env.NODE_ENV === 'development' && !loading && (
-          <div style={{ 
-            background: 'rgba(0,0,0,0.1)', 
-            padding: '10px', 
-            margin: '10px 0', 
-            borderRadius: '5px',
-            fontSize: '12px',
-            color: '#666'
-          }}>
-            <strong>Debug Info:</strong> Found {vehicleTypes.length} vehicle types with {vehicleTypes.reduce((total, type) => total + vehicles[type].length, 0)} total vehicles
-          </div>
-        )}
-
         {/* Vehicle Grid */}
         {!loading && vehicleTypes.length > 0 && (
           <div className="vehicles-wrapper">
@@ -324,10 +467,21 @@ const Vehicle = () => {
                         <div className="vehicle-icon-large">
                           {getVehicleIcon(getVehicleProperty(vehicle, 'type'))}
                         </div>
-                        <span className={`status-badge ${getVehicleProperty(vehicle, 'status')?.toLowerCase()}`}>
-                          <span className="status-dot"></span>
-                          {getVehicleProperty(vehicle, 'status') === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
-                        </span>
+                        <div className="card-actions">
+                          <span className={`status-badge ${getVehicleProperty(vehicle, 'status')?.toLowerCase()}`}>
+                            <span className="status-dot"></span>
+                            {getVehicleProperty(vehicle, 'status') === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
+                          </span>
+                          {isInRole('EvDriver') && (
+                            <button 
+                              className="delete-vehicle-btn"
+                              onClick={() => handleDeleteVehicle(getVehicleProperty(vehicle, 'vin'))}
+                              title="Xóa xe"
+                            >
+                              🗑️
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       <div className="card-body">
@@ -378,15 +532,96 @@ const Vehicle = () => {
         {!loading && vehicleTypes.length === 0 && !error && (
           <div className="empty-state">
             <div className="empty-icon">🚗</div>
-            <h3 className="empty-title">Chưa có xe nào</h3>
-            <p className="empty-text">Bạn chưa có phương tiện nào trong tài khoản</p>
-            <button className="primary-btn" onClick={() => navigate('/plans')}>
-              <span>Khám phá gói dịch vụ</span>
-              <span className="btn-arrow">→</span>
-            </button>
+            <h3 className="empty-title">Không có xe đang hoạt động</h3>
+            <p className="empty-text">
+              Tất cả xe trong tài khoản của bạn đang ở trạng thái không hoạt động
+            </p>
+            {isInRole('EvDriver') && (
+              <button className="primary-btn" onClick={() => setShowCreateModal(true)}>
+                <span>Tạo xe mới</span>
+                <span className="btn-arrow">→</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Modal Tạo Xe */}
+        {showCreateModal && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <h2>Tạo Xe Mới</h2>
+              
+              <div className="form-group">
+                <label>VIN *</label>
+                <input
+                  type="text"
+                  value={newVehicle.vin}
+                  onChange={(e) => setNewVehicle({...newVehicle, vin: e.target.value})}
+                  placeholder="Nhập VIN của xe"
+                  className="form-input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Tên xe *</label>
+                <select
+                  value={newVehicle.vehicleName}
+                  onChange={(e) => setNewVehicle({...newVehicle, vehicleName: e.target.value})}
+                  className="form-select"
+                >
+                  <option value="">Chọn tên xe</option>
+                  {vehicleNameOptions.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Loại xe *</label>
+                <select 
+                  value={newVehicle.vehicleType} 
+                  onChange={(e) => setNewVehicle({...newVehicle, vehicleType: e.target.value})}
+                  className="form-select"
+                >
+                  <option value="electric_motorbike">electric_motorbike</option>
+                  <option value="electric_bike">electric_bike</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Battery ID *</label>
+                <input
+                  type="text"
+                  value={newVehicle.batteryId}
+                  onChange={(e) => setNewVehicle({...newVehicle, batteryId: e.target.value})}
+                  placeholder="Nhập Battery ID"
+                  className="form-input"
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button 
+                  className="btn-cancel" 
+                  onClick={() => setShowCreateModal(false)}
+                  disabled={creating}
+                >
+                  Hủy
+                </button>
+                <button 
+                  className="btn-confirm" 
+                  onClick={handleCreateVehicle}
+                  disabled={creating || !newVehicle.vin.trim() || !newVehicle.vehicleName.trim() || !newVehicle.batteryId.trim()}
+                >
+                  {creating ? 'Đang tạo...' : 'Tạo xe'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
+       <Footer />
     </div>
   );
 };
