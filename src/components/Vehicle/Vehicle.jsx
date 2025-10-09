@@ -503,40 +503,40 @@ const getVehicleImage = (vehicleName) => {
                       <div className="card-glow"></div>
                       
                       <div className="card-header">
-  <div className="vehicle-image-container">
-    <img 
-      src={getVehicleImage(getVehicleProperty(vehicle, 'name'))} 
-      alt={getVehicleProperty(vehicle, 'name')}
-      className="vehicle-image"
-      onError={(e) => {
-        // Fallback nếu ảnh lỗi
-        e.target.style.display = 'none';
-        e.target.nextSibling.style.display = 'block';
-      }}
-    />
-    {/* Fallback emoji nếu không có ảnh */}
-    <div 
-      className="vehicle-icon-fallback"
-      style={{display: 'none'}}
-    >
-      {getVehicleIcon(getVehicleProperty(vehicle, 'type'))}
-    </div>
-  </div>
-  <div className="card-actions">
-                          <span className={`status-badge ${getVehicleProperty(vehicle, 'status')?.toLowerCase()}`}>
-                            <span className="status-dot"></span>
-                            {getVehicleProperty(vehicle, 'status') === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
-                          </span>
-                          {isInRole('EvDriver') && (
-                            <button 
-                              className="delete-vehicle-btn"
-                              onClick={() => handleDeleteVehicle(getVehicleProperty(vehicle, 'vin'))}
-                              title="Xóa xe"
-                            >
-                              🗑️
-                            </button>
-                          )}
+                        <div className="vehicle-image-container">
+                          <img 
+                            src={getVehicleImage(getVehicleProperty(vehicle, 'name'))} 
+                            alt={getVehicleProperty(vehicle, 'name')}
+                            className="vehicle-image"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div 
+                            className="vehicle-icon-fallback"
+                            style={{display: 'none'}}
+                          >
+                            {getVehicleIcon(getVehicleProperty(vehicle, 'type'))}
+                          </div>
                         </div>
+                      </div>
+
+                      {/* Status và Delete button */}
+                      <div className="card-actions">
+                        <span className={`status-badge ${getVehicleProperty(vehicle, 'status')?.toLowerCase()}`}>
+                          <span className="status-dot"></span>
+                          {getVehicleProperty(vehicle, 'status') === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
+                        </span>
+                        {isInRole('EvDriver') && (
+                          <button 
+                            className="delete-vehicle-btn"
+                            onClick={() => handleDeleteVehicle(getVehicleProperty(vehicle, 'vin'))}
+                            title="Xóa xe"
+                          >
+                            🗑️
+                          </button>
+                        )}
                       </div>
 
                       <div className="card-body">
