@@ -461,7 +461,7 @@ export default function StationForUser() {
                             fontSize: '0.9rem',
                             fontWeight: '500'
                           }}>
-                            ⭐ {st.rating ?? "-"}
+                            ⭐ {typeof st.rating === "number" ? st.rating.toFixed(1) : "-"}
                           </span>
                         </div>
                       </div>
