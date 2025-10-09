@@ -258,7 +258,9 @@ export default function Station() {
                           <div className="station-subinfo">
                             <span className="sub-location">{station.location ?? "-"}</span>
                             <span className="sub-sep">•</span>
-                            <span className="sub-rating">⭐ {station.rating ?? "-"}</span>
+                            <span className="sub-rating">
+                              ⭐ {station.rating != null ? Number(station.rating).toFixed(1) : "-"}
+                            </span>
                           </div>
 
                           <div className={`station-status ${ (station.status ?? "").toLowerCase() === "active" ? "active": "inactive"}`}>
