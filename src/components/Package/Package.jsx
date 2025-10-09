@@ -182,173 +182,179 @@ const Package = () => {
 
   // 🎯 CORE FUNCTION: Get battery specification from vehicle
   const getVehicleBatterySpecification = async (vehicle) => {
-    try {
-      // Ưu tiên 1: Lấy trực tiếp từ vehicle data
-      if (vehicle.batteryData && vehicle.batteryData.specification) {
-        return vehicle.batteryData.specification;
-      }
-      
-      if (vehicle.specification) {
-        return vehicle.specification;
-      }
-      
-      if (vehicle.battery && vehicle.battery.specification) {
-        return vehicle.battery.specification;
-      }
-      
-      // Ưu tiên 2: Dùng battery ID để lookup specification
-      const batteryId = getVehicleProperty(vehicle, 'battery');
-      if (batteryId && batteryId !== 'N/A') {
-        const batterySpecMap = {
-          'BAT001': 'V48_Ah12',
-          'BAT002': 'V72_Ah38',
-          'BAT003': 'V60_Ah22',
-          'BAT004': 'V72_Ah50',
-          'BAT005': 'V48_Ah22',
-          'Pn0UwQo3JUCTX24UUHzU': 'V72_Ah38',
-          'bXJcwpwU502tkngq3J42': 'V48_Ah12',
-          'RWw47dk850-dAqKsO7Gy': 'V72_Ah38',
-          'hyg3kYjBCUKeHJmbg3xT': 'V72_Ah38',
-          'OEsBV7ZMaUSEqe7YTfg-': 'V72_Ah38'
-        };
-        
-        return batterySpecMap[batteryId] || 'V72_Ah38';
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('Error getting battery specification:', error);
+  try {
+    const vehicleId = getVehicleProperty(vehicle, 'vin');
+    
+    if (!vehicleId || vehicleId === 'N/A') {
+      console.warn('⚠️ Vehicle ID not found');
       return null;
     }
-  };
+
+    console.log('🔋 Fetching battery for vehicle:', vehicleId);
+    
+    // BƯỚC 1: Gọi API để lấy battery của vehicle
+    const batteryResponse = await vehicleAPI.getBatteryByVehicleId(vehicleId);
+    
+    // Extract battery data từ response
+    let batteryData = null;
+    if (batteryResponse && batteryResponse.data) {
+      batteryData = batteryResponse.data;
+    } else if (batteryResponse && batteryResponse.isSuccess) {
+      batteryData = batteryResponse.data;
+    } else {
+      batteryData = batteryResponse;
+    }
+
+    console.log('📦 Battery response:', batteryData);
+
+    if (!batteryData) {
+      console.warn('❌ No battery data found for vehicle');
+      return null;
+    }
+
+    // BƯỚC 2: Lấy specification từ battery
+    const specification = batteryData.specification || 
+                         batteryData.Specification || 
+                         batteryData.batterySpecification;
+
+    if (!specification) {
+      console.warn('❌ No specification found in battery data:', batteryData);
+      return null;
+    }
+
+    console.log('✅ Found battery specification:', specification);
+    return specification;
+
+  } catch (error) {
+    console.error('💥 Error getting battery specification:', error);
+    
+    // Fallback: Thử lấy specification từ vehicle data trực tiếp
+    try {
+      const directSpec = getVehicleProperty(vehicle, 'specification');
+      if (directSpec && directSpec !== 'N/A') {
+        console.log('🔄 Using fallback specification from vehicle:', directSpec);
+        return directSpec;
+      }
+    } catch (fallbackError) {
+      console.error('💥 Fallback also failed:', fallbackError);
+    }
+    
+    return null;
+  }
+};
 
   // 🎯 MAIN FUNCTION: Load packages với multi-fallback strategy
   const loadPackagesForSelectedVehicle = async (forceRefresh = false) => {
-    if (!selectedVehicle) {
+  if (!selectedVehicle) {
+    setPackages([]);
+    setBatterySpecification(null);
+    return;
+  }
+
+  try {
+    setLoading(true);
+    setError('');
+    
+    // BƯỚC 1: Lấy battery specification từ vehicle
+    const specification = await getVehicleBatterySpecification(selectedVehicle);
+    
+    if (!specification) {
+      setError('Không thể xác định thông số kỹ thuật pin của xe. Vui lòng kiểm tra thông tin xe.');
       setPackages([]);
       setBatterySpecification(null);
       return;
     }
 
-    try {
-      setLoading(true);
-      setError('');
-      
-      // BƯỚC 1: Lấy battery specification từ vehicle
-      const specification = await getVehicleBatterySpecification(selectedVehicle);
-      
-      if (!specification) {
-        setError('Không thể xác định thông số kỹ thuật pin của xe. Vui lòng kiểm tra thông tin xe.');
-        setPackages([]);
-        setBatterySpecification(null);
-        return;
-      }
+    console.log('🔄 Loading packages for battery specification:', specification);
+    setBatterySpecification(specification);
 
-      console.log('🔄 Loading packages for battery specification:', specification);
-      setBatterySpecification(specification);
-
-      // Kiểm tra cache trước
-      const cacheKey = `${specification}_${getVehicleProperty(selectedVehicle, 'vin')}`;
-      if (packagesCache[cacheKey] && !forceRefresh) {
-        console.log('📦 Using cached packages');
-        setPackages(packagesCache[cacheKey]);
-        setLoading(false);
-        return;
-      }
-
-      let packagesData = [];
-      let apiSource = 'unknown';
-      
-      // BƯỚC 2: ƯU TIÊN - Dùng API get_package_by_battery_type
-      try {
-        console.log('🔍 Trying get_package_by_battery_type API...');
-        const batteryTypeResponse = await packageAPI.getPackageByBatteryType(specification);
-        packagesData = extractPackagesFromResponse(batteryTypeResponse);
-        apiSource = 'battery_type';
-        console.log('✅ Packages from battery type API:', packagesData.length);
-      } catch (batteryTypeError) {
-        console.warn('❌ Battery type API failed, trying fallback 1...', batteryTypeError);
-        
-        // BƯỚC 3: FALLBACK 1 - Dùng vehicle name để lấy package
-        try {
-          const vehicleName = getVehicleProperty(selectedVehicle, 'name');
-          if (vehicleName && vehicleName !== 'N/A') {
-            console.log('🔍 Trying get_package_by_vehicle_name API...', vehicleName);
-            const vehicleNameResponse = await vehicleAPI.getPackageByVehicleName(vehicleName);
-            packagesData = extractPackagesFromResponse(vehicleNameResponse);
-            apiSource = 'vehicle_name';
-            console.log('✅ Packages from vehicle name API:', packagesData.length);
-          } else {
-            throw new Error('Vehicle name not available');
-          }
-        } catch (vehicleNameError) {
-          console.warn('❌ Vehicle name API failed, trying fallback 2...', vehicleNameError);
-          
-          // BƯỚC 4: FALLBACK 2 - Lấy tất cả packages và filter thủ công
-          try {
-            console.log('🔍 Trying get_all_packages API...');
-            const allPackagesResponse = await packageAPI.getAllPackages();
-            const allPackages = extractPackagesFromResponse(allPackagesResponse);
-            packagesData = filterPackagesBySpecification(allPackages, specification);
-            apiSource = 'all_packages_filtered';
-            console.log('✅ Packages from all packages API (filtered):', packagesData.length);
-          } catch (allPackagesError) {
-            console.error('❌ All fallbacks failed:', allPackagesError);
-            throw new Error('Không thể tải danh sách gói dịch vụ từ bất kỳ nguồn nào');
-          }
-        }
-      }
-
-      console.log(`📊 Final packages from ${apiSource}:`, packagesData);
-
-      // BƯỚC 5: Thêm package hiện tại của vehicle (nếu có)
-      const currentPackageId = getVehicleProperty(selectedVehicle, 'package');
-      let currentPackage = null;
-      
-      if (currentPackageId && currentPackageId !== 'N/A') {
-        try {
-          console.log('🔍 Fetching current package details:', currentPackageId);
-          const currentPackageResponse = await packageAPI.getPackageById(currentPackageId);
-          if (currentPackageResponse && currentPackageResponse.data) {
-            currentPackage = currentPackageResponse.data;
-            // Đảm bảo package hiện tại có trong danh sách
-            if (!packagesData.some(pkg => getPackageProperty(pkg, 'id') === currentPackageId)) {
-              packagesData.push(currentPackage);
-              console.log('✅ Added current package to list');
-            }
-          }
-        } catch (err) {
-          console.warn('⚠️ Cannot fetch current package details:', err);
-        }
-      }
-
-      // BƯỚC 6: Lọc packages active và hiển thị
-      const activePackages = packagesData.filter(pkg => 
-        !isPackageDecommissioned(pkg) || getPackageProperty(pkg, 'id') === currentPackageId
-      );
-      
-      // Cache kết quả
-      setPackagesCache(prev => ({
-        ...prev,
-        [cacheKey]: activePackages
-      }));
-      
-      setPackages(activePackages);
-      
-      if (activePackages.length === 0) {
-        setError(`Không có gói nào phù hợp với loại pin ${formatBatterySpecification(specification)} của xe này`);
-      } else {
-        console.log(`🎯 Displaying ${activePackages.length} active packages`);
-      }
-
-    } catch (err) {
-      console.error('💥 Error loading packages:', err);
-      setError('Không thể tải danh sách gói dịch vụ: ' + (err.message || 'Vui lòng thử lại sau'));
-      setPackages([]);
-    } finally {
+    // Kiểm tra cache trước
+    const cacheKey = `${specification}_${getVehicleProperty(selectedVehicle, 'vin')}`;
+    if (packagesCache[cacheKey] && !forceRefresh) {
+      console.log('📦 Using cached packages');
+      setPackages(packagesCache[cacheKey]);
       setLoading(false);
+      return;
     }
-  };
+
+    let packagesData = [];
+    let apiSource = 'unknown';
+    
+    // BƯỚC 2: SỬ DỤNG FLOW MỚI - Dùng battery specification để lấy package
+    try {
+      console.log('🔍 Using NEW FLOW: get_package_by_battery_type with:', specification);
+      const batteryTypeResponse = await packageAPI.getPackageByBatteryType(specification);
+      packagesData = extractPackagesFromResponse(batteryTypeResponse);
+      apiSource = 'battery_specification';
+      console.log('✅ Packages from battery specification API:', packagesData.length);
+    } catch (batteryTypeError) {
+      console.warn('❌ Battery specification API failed, trying fallbacks...', batteryTypeError);
+      
+      // Fallback đến các method cũ nếu cần
+      try {
+        const vehicleName = getVehicleProperty(selectedVehicle, 'name');
+        if (vehicleName && vehicleName !== 'N/A') {
+          console.log('🔍 Trying vehicle name fallback...', vehicleName);
+          const vehicleNameResponse = await vehicleAPI.getPackageByVehicleName(vehicleName);
+          packagesData = extractPackagesFromResponse(vehicleNameResponse);
+          apiSource = 'vehicle_name_fallback';
+        }
+      } catch (fallbackError) {
+        console.warn('❌ All API methods failed, using empty list');
+        packagesData = [];
+      }
+    }
+
+    console.log(`📊 Final packages from ${apiSource}:`, packagesData);
+
+    // BƯỚC 3: Thêm package hiện tại của vehicle (nếu có)
+    const currentPackageId = getVehicleProperty(selectedVehicle, 'package');
+    let currentPackage = null;
+    
+    if (currentPackageId && currentPackageId !== 'N/A') {
+      try {
+        console.log('🔍 Fetching current package details:', currentPackageId);
+        const currentPackageResponse = await packageAPI.getPackageById(currentPackageId);
+        if (currentPackageResponse && currentPackageResponse.data) {
+          currentPackage = currentPackageResponse.data;
+          // Đảm bảo package hiện tại có trong danh sách
+          if (!packagesData.some(pkg => getPackageProperty(pkg, 'id') === currentPackageId)) {
+            packagesData.push(currentPackage);
+            console.log('✅ Added current package to list');
+          }
+        }
+      } catch (err) {
+        console.warn('⚠️ Cannot fetch current package details:', err);
+      }
+    }
+
+    // BƯỚC 4: Lọc packages active và hiển thị
+    const activePackages = packagesData.filter(pkg => 
+      !isPackageDecommissioned(pkg) || getPackageProperty(pkg, 'id') === currentPackageId
+    );
+    
+    // Cache kết quả
+    setPackagesCache(prev => ({
+      ...prev,
+      [cacheKey]: activePackages
+    }));
+    
+    setPackages(activePackages);
+    
+    if (activePackages.length === 0) {
+      setError(`Không có gói nào phù hợp với loại pin ${formatBatterySpecification(specification)} của xe này`);
+    } else {
+      console.log(`🎯 Displaying ${activePackages.length} active packages for battery spec: ${specification}`);
+    }
+
+  } catch (err) {
+    console.error('💥 Error loading packages:', err);
+    setError('Không thể tải danh sách gói dịch vụ: ' + (err.message || 'Vui lòng thử lại sau'));
+    setPackages([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // 🔄 FORMATTING FUNCTIONS
   const formatBatterySpecification = (spec) => {
@@ -771,11 +777,14 @@ const Package = () => {
                     </div>
                     
                     <div className="info-item">
-                      <span className="info-label">⚡ Thông số pin:</span>
-                      <span className="info-value specification">
-                        {batterySpecification ? formatBatterySpecification(batterySpecification) : 'Đang tải...'}
-                      </span>
-                    </div>
+  <span className="info-label">⚡ Thông số pin:</span>
+  <span className="info-value specification">
+    {batterySpecification ? 
+      formatBatterySpecification(batterySpecification) : 
+      loading ? 'Đang tải...' : 'Chưa xác định'
+    }
+  </span>
+</div>
                     
                     {getVehicleProperty(selectedVehicle, 'package') && getVehicleProperty(selectedVehicle, 'package') !== 'N/A' && (
                       <div className="current-package-badge">

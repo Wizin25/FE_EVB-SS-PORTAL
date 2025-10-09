@@ -139,4 +139,15 @@ export const vehicleAPI = {
     throw error;
   }
 },
+
+getBatteryByVehicleId: async (vehicleId) => {
+  try {
+    const response = await api.get('/api/Vehicle/get_battery_by_vehicle_id', {
+      params: { vehicleId }
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+},
 };
