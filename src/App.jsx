@@ -10,7 +10,7 @@ import FormPage from './components/Admin/pages/Form.jsx';
 import CalendarPage from './components/Admin/pages/Calendar.jsx';
 import StationForUser from './components/Home/StationforUser.jsx';
 import HomePage from './components/Home/homePage.jsx';
-import StaffPage from './components/Admin/pages/Staff.jsx';
+import StaffPage from './components/Staff/Staff.jsx';
 import ControllerPage from './components/Admin/pages/Controller.jsx';
 import Profile from './components/Profile/Profile.jsx';
 import Booking from './components/Form/Booking.jsx'
