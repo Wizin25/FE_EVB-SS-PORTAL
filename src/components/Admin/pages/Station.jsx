@@ -444,7 +444,7 @@ export default function Station() {
                             <button className="btn danger small" onClick={()=>handleDelete(station.stationId)}>Xóa</button>
                             <button className="btn primary small"
                                     onClick={() => handleAddStaffClick(station.stationId, station.stationName)}>
-                              Thêm/Xóa Staff
+                              Thêm Staff
                             </button>
                           </div>
                         </div>
