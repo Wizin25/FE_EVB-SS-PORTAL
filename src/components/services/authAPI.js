@@ -431,4 +431,73 @@ addBatteryToStation: async (batteryId, stationId) => {
       throw new Error(msg);
     }
   },
+
+  // Staff-Station Management APIs
+  getAllStaff: async () => {
+    try {
+      const res = await api.get('/api/Account/get_all_staff_for_admin');
+      if (res?.data?.isSuccess) {
+        return res.data.data || [];
+      }
+      return [];
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Lấy danh sách nhân viên thất bại';
+      throw new Error(msg);
+    }
+  },
+
+  addStaffToStation: async ({ staffId, stationId }) => {
+    try {
+      const res = await api.post('/api/Station/add_staff_to_station_for_admin', {
+        staffId,
+        stationId,
+      });
+      return res.data;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Thêm nhân viên vào trạm thất bại';
+      throw new Error(msg);
+    }
+  },
+
+  removeStaffFromStation: async ({ staffId, stationId }) => {
+    try {
+      const res = await api.delete('/api/Station/remove_staff_from_station_for_admin', {
+        params: { stationId ,staffId },
+      });
+      return res.data;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Xóa nhân viên khỏi trạm thất bại';
+      throw new Error(msg);
+    }
+  },
+
+  getStationByStaffId: async (staffId) => {
+    try {
+      const res = await api.get('/api/Station/get_station_by_staff_id_for_staff', {
+        params: { staffId }
+      });
+      if (res?.data?.isSuccess) {
+        return res.data.data || null;
+      }
+      return null;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Lấy thông tin trạm của nhân viên thất bại';
+      throw new Error(msg);
+    }
+  },
+
+  getStaffsByStationId: async (stationId) => {
+    try {
+      const res = await api.get('/api/Station/get_staffs_by_station_id_for_admin', {
+        params: { stationId }
+      });
+      if (res?.data?.isSuccess) {
+        return res.data.data || [];
+      }
+      return [];
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Lấy danh sách nhân viên của trạm thất bại';
+      throw new Error(msg);
+    }
+  },
 };
