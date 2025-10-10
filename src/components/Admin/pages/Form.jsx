@@ -14,6 +14,10 @@ export default function FormPage() {
   const [customerDetails, setCustomerDetails] = useState({});
   const [detailLoading, setDetailLoading] = useState({});
 
+  // Thêm state mới cho station details
+  const [stationDetails, setStationDetails] = useState({});
+  const [stationLoading, setStationLoading] = useState({});
+
   // State cho form tạo mới
   const [formData, setFormData] = useState({
     title: '',
@@ -22,9 +26,9 @@ export default function FormPage() {
     stationId: ''
   });
 
-  // State cho tìm kiếm và sắp xếp
-  const [searchAccountId, setSearchAccountId] = useState('');
-  const [searchStation, setSearchStation] = useState('');
+  // State cho tìm kiếm và sắp xếp - ĐÃ CẬP NHẬT
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
   const [sortBy, setSortBy] = useState('date');
   const [sortDirection, setSortDirection] = useState('desc');
 
@@ -66,6 +70,27 @@ export default function FormPage() {
     }
   };
 
+  // Hàm lấy thông tin station theo stationId
+  const fetchStationDetails = async (stationId, formId) => {
+    if (!stationId || stationDetails[stationId]) return;
+
+    setStationLoading(prev => ({ ...prev, [stationId]: true }));
+    
+    try {
+      const response = await authAPI.getStationByIdForAdmin(stationId);
+      if (response) {
+        setStationDetails(prev => ({
+          ...prev,
+          [stationId]: response
+        }));
+      }
+    } catch (error) {
+      console.error(`Error fetching station details for station ${stationId}:`, error);
+    } finally {
+      setStationLoading(prev => ({ ...prev, [stationId]: false }));
+    }
+  };
+
   // Lấy tất cả forms
   const fetchAllForms = async () => {
     setLoading(true);
@@ -79,6 +104,13 @@ export default function FormPage() {
         formsData.forEach(form => {
           if (form.accountId) {
             fetchCustomerDetails(form.accountId, form.id);
+          }
+        });
+
+        // Fetch station details cho mỗi form
+        formsData.forEach(form => {
+          if (form.stationId) {
+            fetchStationDetails(form.stationId, form.id);
           }
         });
       } else {
@@ -184,24 +216,41 @@ export default function FormPage() {
     }
   };
 
-  // Lọc và sắp xếp forms
+  // Lọc và sắp xếp forms - ĐÃ CẬP NHẬT
   const filteredAndSortedForms = useMemo(() => {
     let results = [...forms];
 
-    // Tìm kiếm theo AccountID
-    if (searchAccountId) {
-      const accountIdLower = searchAccountId.toLowerCase();
-      results = results.filter(form => 
-        form.accountId && form.accountId.toLowerCase().includes(accountIdLower)
-      );
+    // Tìm kiếm theo nhiều trường
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      results = results.filter(form => {
+        // Tìm customer tương ứng với form.accountId
+        const customer = customerDetails[form.accountId];
+        // Tìm station tương ứng với form.stationId
+        const station = stationDetails[form.stationId];
+        
+        // Tìm kiếm theo các trường
+        const accountIdMatch = form.accountId && form.accountId.toLowerCase().includes(term);
+        const stationMatch = form.stationId && form.stationId.toLowerCase().includes(term);
+        const stationNameMatch = station && station.stationName && station.stationName.toLowerCase().includes(term);
+        const titleMatch = form.title && form.title.toLowerCase().includes(term);
+        const descriptionMatch = form.description && form.description.toLowerCase().includes(term);
+        
+        // Tìm kiếm theo customer details (nếu có)
+        const customerNameMatch = customer && customer.name && customer.name.toLowerCase().includes(term);
+        const customerUserNameMatch = customer && customer.username && customer.username.toLowerCase().includes(term);
+        const customerPhoneMatch = customer && customer.phone && customer.phone.toLowerCase().includes(term);
+        const customerEmailMatch = customer && customer.email && customer.email.toLowerCase().includes(term);
+
+        return accountIdMatch || stationMatch || stationNameMatch || titleMatch || descriptionMatch || 
+               customerNameMatch || customerUserNameMatch|| customerPhoneMatch || customerEmailMatch;
+      });
     }
 
-    // Tìm kiếm theo Station Name hoặc Station ID
-    if (searchStation) {
-      const stationLower = searchStation.toLowerCase();
+    // Lọc theo status
+    if (statusFilter !== 'All') {
       results = results.filter(form => 
-        (form.stationId && form.stationId.toLowerCase().includes(stationLower)) ||
-        (form.stationName && form.stationName.toLowerCase().includes(stationLower))
+        form.status && form.status.toLowerCase() === statusFilter.toLowerCase()
       );
     }
 
@@ -228,7 +277,7 @@ export default function FormPage() {
     }
 
     return results;
-  }, [forms, searchAccountId, searchStation, sortBy, sortDirection]);
+  }, [forms, searchTerm, statusFilter, sortBy, sortDirection, customerDetails, stationDetails]);
 
   // Tính toán phân trang
   const totalItems = filteredAndSortedForms.length;
@@ -240,7 +289,7 @@ export default function FormPage() {
   // Reset về trang 1 khi filters thay đổi
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchAccountId, searchStation, sortBy, sortDirection]);
+  }, [searchTerm, statusFilter, sortBy, sortDirection]);
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
@@ -371,66 +420,107 @@ export default function FormPage() {
         </section>
       )}
 
-      {/* Tìm kiếm và sắp xếp */}
+      {/* Tìm kiếm và sắp xếp - GIỐNG CONTROLLER.JSX */}
       <section style={{ marginBottom: 40, padding: 20, border: '1px solid #e2e8f0', borderRadius: 8 }}>
         <h2 style={{ marginBottom: 16 }}>Tìm kiếm & Sắp xếp Form</h2>
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'end' }}>
+        
+        <div className="controller-tools" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'end' }}>
           
-          {/* Tìm kiếm theo Account ID */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 200 }}>
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Tìm theo Account</span>
+          {/* Search Box - GIỐNG CONTROLLER.JSX */}
+          <div className="search-box" style={{ position: 'relative', minWidth: 300 }}>
             <input
-              placeholder="Nhập Account ..."
-              value={searchAccountId}
-              onChange={(e) => setSearchAccountId(e.target.value)}
-              style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }}
+              type="text"
+              placeholder="Search by Username, Customer Name, Phone, Station..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+              style={{
+                width: '100%',
+                padding: '10px 40px 10px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'border-color 0.2s'
+              }}
             />
+            <span 
+              className="search-icon" 
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: '#64748b'
+              }}
+            >
+              🔍
+            </span>
           </div>
 
-          {/* Tìm kiếm theo Station */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 200 }}>
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Tìm theo Station</span>
-            <input
-              placeholder="Nhập Station ..."
-              value={searchStation}
-              onChange={(e) => setSearchStation(e.target.value)}
-              style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }}
-            />
+          {/* Role Filter - GIỐNG CONTROLLER.JSX */}
+          <div className="role-filter" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Filter by Status</span>
+            <select 
+              value={statusFilter} 
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{ 
+                padding: '8px 12px', 
+                borderRadius: '6px', 
+                border: '1px solid #cbd5e1',
+                fontSize: '14px'
+              }}
+            >
+              <option value="All">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="completed">Completed</option>
+            </select>
           </div>
 
-          {/* Sắp xếp */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Sắp xếp theo</span>
+          {/* Sort Controls - GIỐNG CONTROLLER.JSX */}
+          <div className="sort-controls" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Sort by</span>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <select 
                 value={sortBy} 
                 onChange={(e) => handleSort(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }}
+                style={{ 
+                  padding: '8px 12px', 
+                  borderRadius: '6px', 
+                  border: '1px solid #cbd5e1',
+                  fontSize: '14px'
+                }}
               >
-                <option value="date">Ngày tạo</option>
-                <option value="title">Tiêu đề</option>
-                <option value="status">Trạng thái</option>
+                <option value="date">Date</option>
+                <option value="title">Title</option>
+                <option value="status">Status</option>
               </select>
+              
               <button 
                 onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
                 style={{ 
                   padding: '8px 12px', 
                   background: '#3b82f6', 
                   color: 'white', 
-                  borderRadius: 6,
-                  minWidth: 100
+                  borderRadius: '6px',
+                  border: 'none',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  minWidth: '100px'
                 }}
               >
-                {sortDirection === 'asc' ? '↑ Tăng dần' : '↓ Giảm dần'}
+                {sortDirection === 'asc' ? '↑ Asc' : '↓ Desc'}
               </button>
             </div>
           </div>
 
-          {/* Thống kê */}
+          {/* Stats - GIỐNG CONTROLLER.JSX */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginLeft: 'auto' }}>
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Kết quả</span>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Results</span>
             <div style={{ fontSize: 14, color: '#64748b' }}>
-              Hiển thị: {filteredAndSortedForms.length} / {forms.length} forms
+              Showing: {filteredAndSortedForms.length} / {forms.length} forms
             </div>
           </div>
         </div>
@@ -519,7 +609,9 @@ export default function FormPage() {
             <div style={{ display: 'grid', gap: 12 }}>
               {currentForms.map((form) => {
                 const customer = customerDetails[form.accountId];
-                const isLoading = detailLoading[form.accountId];
+                const station = stationDetails[form.stationId];
+                const isCustomerLoading = detailLoading[form.accountId];
+                const isStationLoading = stationLoading[form.stationId];
                 
                 return (
                   <div 
@@ -538,11 +630,20 @@ export default function FormPage() {
                       <h3 style={{ margin: '0 0 8px 0', fontSize: 18, fontWeight: 600 }}>{form.title}</h3>
                       <p style={{ margin: '4px 0', color: '#64748b' }}>{form.description}</p>
                       
-                      {/* Thông tin Form cơ bản */}
+                      {/* Thông tin Form cơ bản - ĐÃ CẬP NHẬT VỚI STATION NAME */}
                       <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 14, flexWrap: 'wrap' }}>
-                        <span><strong>ID:</strong> {form.id}</span>
-                        {form.accountId && <span><strong>Account ID:</strong> {form.accountId}</span>}
-                        {form.stationId && <span><strong>Station ID:</strong> {form.stationId}</span>}
+                        {form.stationId && (
+                          <span>
+                            <strong>Station: </strong> 
+                            {isStationLoading ? (
+                              'Đang tải...'
+                            ) : station ? (
+                              `${station.stationName || 'N/A'}`
+                            ) : (
+                              form.stationId
+                            )}
+                          </span>
+                        )}
                         {form.date && (
                           <span>
                             <strong>Ngày tạo:</strong> {formatDate(form.date)}
@@ -554,7 +655,7 @@ export default function FormPage() {
                       {form.accountId && (
                         <div style={{ marginTop: 12, padding: 12, background: '#f8fafc', borderRadius: 6 }}>
                           <h4 style={{ margin: '0 0 8px 0', fontSize: 14, fontWeight: 600 }}>Thông tin Customer:</h4>
-                          {isLoading ? (
+                          {isCustomerLoading ? (
                             <p style={{ margin: 0, fontSize: 14, color: '#64748b' }}>Đang tải thông tin...</p>
                           ) : customer ? (
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8, fontSize: 14 }}>
@@ -573,6 +674,11 @@ export default function FormPage() {
                               {customer.customerID && (
                                 <div>
                                   <strong>Customer ID:</strong> {customer.customerID}
+                                </div>
+                              )}
+                              {customer.username && (
+                                <div>
+                                  <strong>Username:</strong> {customer.username}
                                 </div>
                               )}
                               {customer.status && (

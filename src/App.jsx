@@ -19,6 +19,7 @@ import BookingForm from './components/Home/BookingForm.jsx';
 import Package from './components/Package/Package.jsx'
 import Vehicle from './components/Vehicle/Vehicle.jsx'
 import PackageManager from './components/Admin/pages/PackageManager.jsx'
+import Contact from './components/Contact/contact.jsx'
 function App() {
   return (
     <Router>
@@ -46,6 +47,7 @@ function App() {
           <Route path="/booking" element={<Booking />} />
           <Route path="/plans" element={<Package />} />
           <Route path="/vehicles" element={<Vehicle />} />
+          <Route path="/contact" element={<Contact />} />
         </Routes>
       </div>
     </Router>

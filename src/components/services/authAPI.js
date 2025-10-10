@@ -500,4 +500,19 @@ addBatteryToStation: async (batteryId, stationId) => {
       throw new Error(msg);
     }
   },
+
+  getStationByIdForAdmin: async (stationId) => {
+  try {
+    const res = await api.get('/api/Station/get_station_by_id_for_admin', {
+      params: { stationId }
+    });
+    if (res?.data?.isSuccess) {
+      return res.data.data;
+    }
+    return null;
+  } catch (err) {
+    const msg = err?.response?.data?.message || err?.message || 'Lấy thông tin trạm thất bại';
+    throw new Error(msg);
+  }
+},
 };
