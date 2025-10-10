@@ -1344,3 +1344,39 @@
   align-items: center;
   gap: 2rem;
 }
+
+/* Thêm vào Vehicle.css */
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+  z-index: 10; /* Đảm bảo nút nằm trên cùng */
+}
+
+.delete-vehicle-btn {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  position: relative;
+  z-index: 20; /* Cao hơn các phần tử khác */
+}
+
+.delete-vehicle-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: scale(1.05);
+}
+
+.delete-vehicle-btn:active {
+  transform: scale(0.95);
+}
+
+/* Đảm bảo các phần tử trang trí không chặn click */
+.card-shine, .card-glow {
+  pointer-events: none;
+}
