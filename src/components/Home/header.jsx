@@ -24,7 +24,7 @@ export default function Header({
           <a href="/plans" className="LiquidGlass">Gói dịch vụ</a>
           <a href="/vehicles" className="LiquidGlass">Phương tiện</a>
           <a href="/payments" className="LiquidGlass">Thanh toán</a>
-          <a href="/support" className="LiquidGlass">Hỗ trợ</a>
+          <a href="/contact" className="LiquidGlass">Hỗ trợ</a>
         </nav>
       </div>
 

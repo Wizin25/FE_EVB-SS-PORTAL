@@ -495,10 +495,11 @@ const getVehicleImage = (vehicleName) => {
                 <div className="vehicle-grid">
                   {vehicles[type].map((vehicle, vIdx) => (
                     <div 
-                      key={getVehicleProperty(vehicle, 'vin')} 
-                      className="vehicle-card-modern"
-                      style={{animationDelay: `${(idx * 0.1) + (vIdx * 0.05)}s`}}
-                    >
+  key={getVehicleProperty(vehicle, 'vin')} 
+  className="vehicle-card-modern"
+  style={{animationDelay: `${(idx * 0.1) + (vIdx * 0.05)}s`}}
+  onClick={() => handleSelectVehicle(vehicle)}
+>
                       <div className="card-shine"></div>
                       <div className="card-glow"></div>
                       
@@ -524,20 +525,24 @@ const getVehicleImage = (vehicleName) => {
 
                       {/* Status và Delete button */}
                       <div className="card-actions">
-                        <span className={`status-badge ${getVehicleProperty(vehicle, 'status')?.toLowerCase()}`}>
-                          <span className="status-dot"></span>
-                          {getVehicleProperty(vehicle, 'status') === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
-                        </span>
-                        {isInRole('EvDriver') && (
-                          <button 
-                            className="delete-vehicle-btn"
-                            onClick={() => handleDeleteVehicle(getVehicleProperty(vehicle, 'vin'))}
-                            title="Xóa xe"
-                          >
-                            🗑️
-                          </button>
-                        )}
-                      </div>
+  <span className={`status-badge ${getVehicleProperty(vehicle, 'status')?.toLowerCase()}`}>
+    <span className="status-dot"></span>
+    {getVehicleProperty(vehicle, 'status') === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
+  </span>
+  {isInRole('EvDriver') && (
+    <button 
+      className="delete-vehicle-btn"
+      onClick={(e) => {
+        e.stopPropagation(); // Quan trọng: Ngăn sự kiện click lan ra ngoài
+        e.preventDefault();
+        handleDeleteVehicle(getVehicleProperty(vehicle, 'vin'));
+      }}
+      title="Xóa xe"
+    >
+      🗑️
+    </button>
+  )}
+</div>
 
                       <div className="card-body">
                         <h3 className="vehicle-name">{getVehicleProperty(vehicle, 'name')}</h3>
