@@ -151,12 +151,12 @@ section {
   padding: 80px 24px;
 }
 
-.section-header {
+.section-headerh {
   text-align: center;
   margin-bottom: 60px;
 }
 
-.section-header h2 {
+.section-headerh h2 {
   font-size: 2.5rem;
   font-weight: 700;
   margin-bottom: 16px;
@@ -166,7 +166,7 @@ section {
   background-clip: text;
 }
 
-.section-header p {
+.section-headerh p {
   font-size: 1.2rem;
   color: var(--text-secondary);
   max-width: 500px;
@@ -600,7 +600,7 @@ section {
     font-size: 2.5rem;
   }
   
-  .section-header h2 {
+  .section-headerh h2 {
     font-size: 2rem;
   }
   

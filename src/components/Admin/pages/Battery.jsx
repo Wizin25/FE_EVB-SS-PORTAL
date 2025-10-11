@@ -13,6 +13,7 @@ export default function BatteryManagementPage() {
   const [batteryTypeFilter, setBatteryTypeFilter] = useState("");
   const [specificationFilter, setSpecificationFilter] = useState("");
   const [stationFilter, setStationFilter] = useState("");
+  const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
 
   // sorting
   const [sortBy, setSortBy] = useState("");

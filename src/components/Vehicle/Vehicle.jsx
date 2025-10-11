@@ -209,10 +209,15 @@ const getVehicleImage = (vehicleName) => {
     console.log('Extracted user vehicles data:', vehiclesData);
 
     if (vehiclesData && vehiclesData.length > 0) {
-      // CHỈ LỌC XE ACTIVE - ẨN XE INACTIVE
-      const activeVehicles = vehiclesData.filter(vehicle => 
-        getVehicleProperty(vehicle, 'status')?.toLowerCase() === 'active'
-      );
+      // SỬA: Lọc xe active với các trạng thái khác nhau từ enum
+      const activeVehicles = vehiclesData.filter(vehicle => {
+        const status = getVehicleProperty(vehicle, 'status');
+        // Kiểm tra nhiều trạng thái có thể được coi là "active"
+        return status === 'Active' || 
+               status === 'active' || 
+               status === 'linked' || 
+               status === 'Linked';
+      });
       
       console.log('Active user vehicles:', activeVehicles);
       
@@ -373,6 +378,26 @@ const getVehicleImage = (vehicleName) => {
   return 'N/A';
 };
 
+  // Hàm hiển thị status text
+  const getStatusDisplayText = (status) => {
+    switch(status) {
+      case 'Active':
+      case 'active':
+        return 'Hoạt động';
+      case 'Inactive':
+      case 'inactive':
+        return 'Không hoạt động';
+      case 'Linked':
+      case 'linked':
+        return 'Đã liên kết';
+      case 'Unlinked':
+      case 'unlinked':
+        return 'Chưa liên kết';
+      default:
+        return status || 'Không xác định';
+    }
+  };
+
   const vehicleTypes = Object.keys(vehicles);
 
   return (
@@ -527,7 +552,7 @@ const getVehicleImage = (vehicleName) => {
                       <div className="card-actions">
   <span className={`status-badge ${getVehicleProperty(vehicle, 'status')?.toLowerCase()}`}>
     <span className="status-dot"></span>
-    {getVehicleProperty(vehicle, 'status') === 'Active' ? 'Hoạt động' : 'Không hoạt động'}
+    {getStatusDisplayText(getVehicleProperty(vehicle, 'status'))}
   </span>
   {isInRole('EvDriver') && (
     <button 

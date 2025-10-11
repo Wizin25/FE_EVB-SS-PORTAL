@@ -166,7 +166,7 @@ const SupportCenter = ({ theme = 'light' }) => {
 
       {/* Contact Methods */}
       <section className="contact-methods-section">
-        <div className="section-header">
+        <div className="section-headerh">
           <h2>Liên hệ hỗ trợ</h2>
           <p>Nhiều cách để kết nối với chúng tôi</p>
         </div>
@@ -189,7 +189,7 @@ const SupportCenter = ({ theme = 'light' }) => {
 
       {/* FAQ Categories */}
       <section className="faq-section">
-        <div className="section-header">
+        <div className="section-headerh">
           <h2>Câu hỏi thường gặp</h2>
           <p>Chọn chủ đề để xem câu trả lời</p>
         </div>

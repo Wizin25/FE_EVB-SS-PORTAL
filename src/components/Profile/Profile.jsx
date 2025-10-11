@@ -66,6 +66,9 @@ function Profile({ theme = "light" }) {
     const roles = getUserRoles();
     setUserRoles(roles);
     
+    console.log('Current user roles:', roles);
+    console.log('Current user:', user);
+    
     if (roles.includes('EvDriver') && user) {
       fetchForms();
     }
@@ -78,35 +81,56 @@ function Profile({ theme = "light" }) {
   }, []);
 
   const fetchForms = async () => {
-    if (!isInRole('EvDriver') || !user || !user.id) return;
+    if (!isInRole('EvDriver') || !user) {
+      console.log('User is not EvDriver or user not loaded');
+      return;
+    }
     
     setLoadingForms(true);
     try {
-      // SỬ DỤNG getFormsByAccountId THAY VÌ getAllFormsDriver
-      const response = await formAPI.getFormsByAccountId(user.id);
-      if (response.isSuccess) {
+      // Sử dụng accountId thay vì id
+      const accountId = user.accountId || user.id;
+      if (!accountId) {
+        console.error('No account ID found for user:', user);
+        return;
+      }
+
+      console.log('Fetching forms for account ID:', accountId);
+      const response = await formAPI.getFormsByAccountId(accountId);
+      console.log('Forms API response:', response);
+      
+      // Kiểm tra cấu trúc response
+      if (response && response.isSuccess) {
         setForms(response.data || []);
+        console.log('Forms loaded successfully:', response.data?.length || 0, 'forms');
       } else {
-        console.error('Error fetching forms:', response.message);
+        console.error('Error fetching forms:', response?.message || 'Unknown error');
+        // Có thể hiển thị thông báo lỗi cho user
       }
     } catch (error) {
       console.error('Error fetching forms:', error);
+      // Xử lý lỗi, ví dụ: hiển thị thông báo
     } finally {
       setLoadingForms(false);
     }
   };
 
   const fetchFormDetail = async (formId) => {
-    if (!isInRole('EvDriver')) return;
+    if (!isInRole('EvDriver') || !formId) {
+      console.log('Cannot fetch form detail - missing formId or not EvDriver');
+      return;
+    }
     
     setLoadingFormDetail(true);
     try {
-      // SỬ DỤNG getFormById THAY VÌ getFormByIdDriver
+      console.log('Fetching form detail for ID:', formId);
       const response = await formAPI.getFormById(formId);
-      if (response.isSuccess) {
+      console.log('Form detail response:', response);
+      
+      if (response && response.isSuccess) {
         setFormDetail(response.data);
       } else {
-        console.error('Error fetching form detail:', response.message);
+        console.error('Error fetching form detail:', response?.message || 'Unknown error');
       }
     } catch (error) {
       console.error('Error fetching form detail:', error);
@@ -117,24 +141,24 @@ function Profile({ theme = "light" }) {
 
   if (loading) {
     return (
-      <div className={`rounded-lg p-4 ${theme === "dark" ? "bg-gray-800 text-gray-200" : "bg-white text-gray-800"} border`}>
-        <p className="text-sm">Đang tải thông tin...</p>
+      <div className={`profile-loading-state ${theme === "dark" ? "dark" : ""}`}>
+        <p>Đang tải thông tin...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className={`rounded-lg p-4 ${theme === "dark" ? "bg-gray-800 text-red-300" : "bg-white text-red-600"} border`}>
-        <p className="text-sm">Lỗi: {error}</p>
+      <div className={`profile-error-state ${theme === "dark" ? "dark" : ""}`}>
+        <p>Lỗi: {error}</p>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className={`rounded-lg p-4 ${theme === "dark" ? "bg-gray-800 text-gray-200" : "bg-white text-gray-800"} border`}>
-        <p className="text-sm">Chưa đăng nhập</p>
+      <div className={`profile-empty ${theme === "dark" ? "dark" : ""}`}>
+        <p>Chưa đăng nhập</p>
       </div>
     );
   }
@@ -288,12 +312,11 @@ function Profile({ theme = "light" }) {
   const getSidebarItems = () => {
     const baseItems = [
       { key: "profile", label: "Hồ sơ", icon: "👤", onClick: () => setActiveSidebar("profile") },
-      { key: "paymentHistory", label: "Lịch sử thanh toán", icon: "💳", onClick: () => setActiveSidebar("paymentHistory") },
-      { key: "changePassword", label: "Thay đổi mật khẩu", icon: "🔒", onClick: () => setActiveSidebar("changePassword") },
     ];
 
+    // Chỉ thêm "Lịch sử Đặt lịch" cho EvDriver
     if (userRoles.includes('EvDriver')) {
-      baseItems.splice(1, 0, {
+      baseItems.push({
         key: "bookingHistory", 
         label: "Lịch sử Đặt lịch", 
         icon: "📋", 
@@ -301,13 +324,18 @@ function Profile({ theme = "light" }) {
       });
     }
 
-    baseItems.push({
-      key: "home", 
-      label: "Trở về trang chủ", 
-      icon: "🏠", 
-      onClick: () => navigate('/home'),
-      isHome: true
-    });
+    // Các item khác
+    baseItems.push(
+      { key: "paymentHistory", label: "Lịch sử thanh toán", icon: "💳", onClick: () => setActiveSidebar("paymentHistory") },
+      { key: "changePassword", label: "Thay đổi mật khẩu", icon: "🔒", onClick: () => setActiveSidebar("changePassword") },
+      {
+        key: "home", 
+        label: "Trở về trang chủ", 
+        icon: "🏠", 
+        onClick: () => navigate('/home'),
+        isHome: true
+      }
+    );
 
     return baseItems;
   };
@@ -346,11 +374,11 @@ function Profile({ theme = "light" }) {
         </div>
 
         {loadingForms ? (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
+          <div className="profile-loading-state">
             <p>Đang tải lịch sử đặt lịch...</p>
           </div>
         ) : forms.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+          <div className="profile-empty">
             <p>Bạn chưa có lịch sử đặt lịch nào.</p>
             <button 
               onClick={() => navigate('/booking')}
@@ -436,7 +464,7 @@ function Profile({ theme = "light" }) {
                     background: theme === 'dark' ? '#1f2937' : '#f9fafb'
                   }}>
                     {loadingFormDetail ? (
-                      <div style={{ textAlign: 'center' }}>
+                      <div className="profile-loading-state">
                         <p>Đang tải chi tiết...</p>
                       </div>
                     ) : formDetail ? (
@@ -486,7 +514,7 @@ function Profile({ theme = "light" }) {
                         </div>
                       </div>
                     ) : (
-                      <div style={{ textAlign: 'center', color: '#ef4444' }}>
+                      <div className="profile-error-state">
                         Không thể tải chi tiết đặt lịch
                       </div>
                     )}
