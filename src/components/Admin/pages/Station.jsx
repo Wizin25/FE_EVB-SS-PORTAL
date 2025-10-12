@@ -13,7 +13,7 @@ export default function Station() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [locationFilter, setLocationFilter] = useState("");
 
-  const [sortBy, setSortBy] = useState(""); // stationName | batteryNumber | status
+  const [sortBy, setSortBy] = useState(""); // stationName | batteryNumber | status | startDate | updateDate
   const [sortOrder, setSortOrder] = useState("asc");
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -179,6 +179,8 @@ export default function Station() {
         case "stationName": return (st.stationName || st.Name || "").toString().toLowerCase();
         case "batteryNumber": return Number.isFinite(Number(st.batteryNumber)) ? Number(st.batteryNumber) : Number.NEGATIVE_INFINITY;
         case "status": return (st.status || "").toString().toLowerCase();
+        case "startDate": return st.startDate ? new Date(st.startDate).getTime() : 0;
+        case "updateDate": return st.updateDate ? new Date(st.updateDate).getTime() : 0;
         default: return "";
       }
     };
@@ -381,6 +383,8 @@ export default function Station() {
           <option value="stationName">Tên trạm</option>
           <option value="batteryNumber">BatteryNumber</option>
           <option value="status">Trạng thái</option>
+          <option value="startDate">Ngày tạo</option>
+          <option value="updateDate">Ngày cập nhật</option>
         </select>
         <select className="station-select" value={sortOrder} onChange={(e)=>setSortOrder(e.target.value)}>
           <option value="asc">Tăng dần</option>

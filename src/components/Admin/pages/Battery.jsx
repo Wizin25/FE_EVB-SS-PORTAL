@@ -303,6 +303,10 @@ export default function BatteryManagementPage() {
           return Number.isFinite(Number(item.capacity)) ? Number(item.capacity) : Number.NEGATIVE_INFINITY;
         case "batteryQuality":
           return Number.isFinite(Number(item.batteryQuality)) ? Number(item.batteryQuality) : Number.NEGATIVE_INFINITY;
+        case "startDate":
+          return item.startDate ? new Date(item.startDate).getTime() : Number.NEGATIVE_INFINITY;
+        case "updateDate":
+          return item.updateDate ? new Date(item.updateDate).getTime() : Number.NEGATIVE_INFINITY;
         default:
           return "";
       }
@@ -600,6 +604,8 @@ export default function BatteryManagementPage() {
             <option value="specification">Specification</option>
             <option value="batteryQuality">BatteryQuality</option>
             <option value="status">Trạng thái</option>
+            <option value="startDate">Ngày tạo</option>
+            <option value="updateDate">Ngày cập nhật</option>
           </select>
           <select
             className="input"
