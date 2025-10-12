@@ -73,10 +73,15 @@ export default function Station() {
    */
   const normalizeStationStaffForDisplay = (rawList, stationId, accountIdToStaffMeta, stationStaffIds) => {
     if (!Array.isArray(rawList)) return [];
-    // Tạo một bản sao mảng staffId của trạm để dùng dần khi fallback
-    const pendingStaffIds = [...(stationStaffIds || [])];
+    
+    console.log('normalizeStationStaffForDisplay:', {
+      rawListLength: rawList.length,
+      stationId,
+      stationStaffIds,
+      rawList: rawList.map(item => ({ accountId: item?.accountId, username: item?.username }))
+    });
 
-    return rawList.map((item) => {
+    return rawList.map((item, index) => {
       const username = item?.username ?? "";
       const name = item?.name ?? "";
       const phone = item?.phone ?? "";
@@ -88,20 +93,21 @@ export default function Station() {
       const meta = accountIdToStaffMeta.get(accountId);
       if (meta && Array.isArray(meta.bssStaffs)) {
         const found = meta.bssStaffs.find((x) => x?.stationId === stationId && x?.staffId);
-        if (found?.staffId) staffId = found.staffId;
+        if (found?.staffId) {
+          staffId = found.staffId;
+          console.log(`Found staffId from allStaff mapping: ${staffId} for accountId: ${accountId}`);
+        }
       }
 
-      // Fallback: nếu không tìm được, lấy 1 staffId còn lại trong pendingStaffIds (nếu danh sách không mơ hồ)
-      if (!staffId && pendingStaffIds.length === 1) {
-        staffId = pendingStaffIds[0];
-      }
-      if (staffId) {
-        // loại staffId đã dùng khỏi pending để giảm mơ hồ
-        const idx = pendingStaffIds.indexOf(staffId);
-        if (idx >= 0) pendingStaffIds.splice(idx, 1);
+      // Fallback: nếu không tìm được từ allStaff, thử lấy từ stationStaffIds theo thứ tự
+      if (!staffId && Array.isArray(stationStaffIds) && stationStaffIds.length > index) {
+        staffId = stationStaffIds[index];
+        console.log(`Fallback staffId from stationStaffIds[${index}]: ${staffId} for accountId: ${accountId}`);
       }
 
-      return { username, name, phone, email, accountId, staffId };
+      const result = { username, name, phone, email, accountId, staffId };
+      console.log(`Normalized staff item:`, result);
+      return result;
     });
   };
 

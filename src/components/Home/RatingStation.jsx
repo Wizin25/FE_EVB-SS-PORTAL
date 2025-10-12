@@ -9,6 +9,7 @@ export default function RatingStation({ stationId, accountId, onClose, onSuccess
   const [error, setError] = useState("");
   const [allRatings, setAllRatings] = useState([]);
   const [loadingList, setLoadingList] = useState(false);
+  const [filterRating, setFilterRating] = useState(0); // 0 = all ratings
 
   const stars = useMemo(() => [1,2,3,4,5], []);
 
@@ -49,6 +50,8 @@ export default function RatingStation({ stationId, accountId, onClose, onSuccess
       const filtered = items.filter((r) =>
         (r.stationId && r.stationId === stationId) || (r.station?.stationId && r.station.stationId === stationId)
       );
+      // Sort by newest date first
+      filtered.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
       setAllRatings(filtered);
     } catch (e) {
       // silent
@@ -60,6 +63,12 @@ export default function RatingStation({ stationId, accountId, onClose, onSuccess
   React.useEffect(() => {
     loadRatings();
   }, [loadRatings]);
+
+  // Filter ratings based on selected rating filter
+  const filteredRatings = useMemo(() => {
+    if (filterRating === 0) return allRatings;
+    return allRatings.filter(r => Math.round(r.rating1 || 0) === filterRating);
+  }, [allRatings, filterRating]);
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
@@ -115,13 +124,36 @@ export default function RatingStation({ stationId, accountId, onClose, onSuccess
         <div style={{ padding: 16 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
             <h4 style={{ margin: 0, fontWeight: 700 }}>Đánh giá của trạm</h4>
-            {loadingList && <span style={{ fontSize: 12, color: '#64748b' }}>Đang tải...</span>}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <select
+                value={filterRating}
+                onChange={(e) => setFilterRating(Number(e.target.value))}
+                style={{
+                  padding: "4px 8px",
+                  borderRadius: 6,
+                  border: "1px solid #e5e7eb",
+                  fontSize: 12,
+                  background: "white",
+                  cursor: "pointer"
+                }}
+              >
+                <option value={0}>Tất cả</option>
+                <option value={1}>1 sao</option>
+                <option value={2}>2 sao</option>
+                <option value={3}>3 sao</option>
+                <option value={4}>4 sao</option>
+                <option value={5}>5 sao</option>
+              </select>
+              {loadingList && <span style={{ fontSize: 12, color: '#64748b' }}>Đang tải...</span>}
+            </div>
           </div>
           <div style={{ maxHeight: 280, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 8 }}>
-            {allRatings.length === 0 ? (
-              <div style={{ padding: 12, color: '#64748b' }}>Chưa có đánh giá cho trạm này</div>
+            {filteredRatings.length === 0 ? (
+              <div style={{ padding: 12, color: '#64748b' }}>
+                {filterRating === 0 ? 'Chưa có đánh giá cho trạm này' : `Chưa có đánh giá ${filterRating} sao cho trạm này`}
+              </div>
             ) : (
-              allRatings.map((r) => (
+              filteredRatings.map((r) => (
                 <div key={r.ratingId} style={{ padding: 12, borderBottom: '1px solid #f1f5f9' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                     <div style={{ fontWeight: 600 }}>
