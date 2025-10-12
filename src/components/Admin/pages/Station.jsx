@@ -500,12 +500,12 @@ export default function Station() {
 
                       {/* Chi tiết trạm */}
                       <div className={`station-detail ${isExpanded ? "open" : ""}`}>
-                        <div className="counts-grid">
+                        {/* <div className="counts-grid">
                           <div className="count-item"><div className="count-num">{batteryCount}</div><div className="count-label">Batteries</div></div>
                           <div className="count-item"><div className="count-num">{safeLen(station.batteryReports)}</div><div className="count-label">Reports</div></div>
                           <div className="count-item"><div className="count-num">{safeLen(station.slots)}</div><div className="count-label">Slots</div></div>
                           <div className="count-item"><div className="count-num">{getStaffCountForStation(station)}</div><div className="count-label">Staff</div></div>
-                        </div>
+                        </div> */}
 
                         {/* DANH SÁCH NHÂN VIÊN CỦA TRẠM: username, name, phone, email */}
                         <div className="staff-section">
