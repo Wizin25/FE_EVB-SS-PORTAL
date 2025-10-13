@@ -412,7 +412,7 @@ addBatteryToStation: async (batteryId, stationId) => {
     }
   },
   // Booking/Form APIs
-  createForm: async ({ accountId, title, description, date, stationId }) => {
+  createForm: async ({ accountId, title, description, date, stationId, vin, batteryId }) => {
     try {
       const form = new FormData();
       // Field names must match backend exactly
@@ -421,6 +421,9 @@ addBatteryToStation: async (batteryId, stationId) => {
       form.append('Description', description ?? '');
       form.append('Date', date ?? '');
       form.append('StationId', stationId ?? '');
+      // New required fields per BE update
+      if (vin) form.append('VIN', vin);
+      if (batteryId) form.append('BatteryID', batteryId);
 
       const res = await api.post('/api/Form/create-form', form, {
         headers: { 'Content-Type': 'multipart/form-data' },

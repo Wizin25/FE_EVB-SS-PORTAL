@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { authAPI } from "../services/authAPI";
+import { vehicleAPI } from "../services/vehicleAPI";
 import HeaderDriver from "./header";
 import Footer from "./footer";
 import "../Admin/pages/Station.css";
@@ -50,6 +51,11 @@ export default function StationForUser() {
   const [error, setError] = useState("");
   const [openRatingFor, setOpenRatingFor] = useState(null);
   const [currentAccountId, setCurrentAccountId] = useState("");
+  // Vehicles linked to current user
+  const [vehicles, setVehicles] = useState([]);
+  const [selectedVehicleVin, setSelectedVehicleVin] = useState("");
+  // State to track expanded battery details for each station
+  const [expandedStations, setExpandedStations] = useState(new Set());
 
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -79,6 +85,31 @@ export default function StationForUser() {
 
   useEffect(() => { fetchStations(); }, []);
 
+  // Load linked vehicles for current user
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await vehicleAPI.getCurrentUserVehicles();
+        let list = [];
+        if (Array.isArray(res)) list = res;
+        else if (res?.data?.data && Array.isArray(res.data.data)) list = res.data.data;
+        else if (res?.data && Array.isArray(res.data)) list = res.data;
+        // only active/linked
+        const filtered = list.filter(v => {
+          const s = (v.status || v.Status || '').toString().toLowerCase();
+          return s === 'active' || s === 'linked';
+        });
+        setVehicles(filtered);
+        if (filtered.length > 0) {
+          const vin = vprop(filtered[0], 'vin');
+          setSelectedVehicleVin(vin);
+        }
+      } catch (e) {
+        // silent
+      }
+    })();
+  }, []);
+
   useEffect(() => {
     // Try get current user info to fill AccountId
     (async () => {
@@ -91,15 +122,52 @@ export default function StationForUser() {
     })();
   }, []);
 
+  // helper to get property with multiple possible keys
+  const vprop = (obj, key) => {
+    const map = {
+      vin: ['VIN','vin','vehicleId','vehicleID','id'],
+      batteryId: ['BatteryID','batteryId','batteryID','battery'],
+      batteryName: ['batteryName','BatteryName','name','Name'],
+      batteryType: ['batteryType','BatteryType','type','Type'],
+      batterySpec: ['specification','Specification','spec','Spec'],
+      batteryCapacity: ['capacity','Capacity'],
+      batteryQuality: ['batteryQuality','BatteryQuality','quality','Quality'],
+      vehicleName: ['vehicle_name','vehicleName','name','model','vehicle_name']
+    };
+    const keys = map[key] || [key];
+    for (const k of keys) if (obj && obj[k] != null) return obj[k];
+    return '';
+  };
+
+  // Determine selected vehicle battery requirements
+  const selectedVehicle = useMemo(() => vehicles.find(v => vprop(v,'vin') === selectedVehicleVin), [vehicles, selectedVehicleVin]);
+  const selectedVehicleBatteryType = useMemo(() => vprop(selectedVehicle?.battery || selectedVehicle, 'batteryType').toString().toLowerCase(), [selectedVehicle]);
+  const selectedVehicleBatterySpec = useMemo(() => vprop(selectedVehicle?.battery || selectedVehicle, 'batterySpec').toString().toLowerCase(), [selectedVehicle]);
+
+  const batteryCompatible = (battery) => {
+    if (!selectedVehicleVin) return true; // no vehicle chosen, show all
+    const bType = vprop(battery, 'batteryType').toString().toLowerCase();
+    const bSpec = vprop(battery, 'batterySpec').toString().toLowerCase();
+    const typeOk = !selectedVehicleBatteryType || !bType || bType === selectedVehicleBatteryType;
+    const specOk = !selectedVehicleBatterySpec || !bSpec || bSpec === selectedVehicleBatterySpec;
+    return typeOk && specOk;
+  };
+
   const filtered = useMemo(() => {
     const text = q.trim().toLowerCase();
     return stations.filter((st) => {
       if (statusFilter !== "All" && (st.status ?? "").toLowerCase() !== statusFilter.toLowerCase()) return false;
       if (!text) return true;
       const candidate = `${st.stationName ?? st.Name ?? ""} ${st.location ?? ""}`.toLowerCase();
-      return candidate.includes(text);
+      if (!candidate.includes(text)) return false;
+      // If a vehicle is selected, only keep stations having at least one compatible battery
+      if (selectedVehicleVin) {
+        const bs = Array.isArray(st.batteries) ? st.batteries : [];
+        return bs.some(batteryCompatible);
+      }
+      return true;
     });
-  }, [stations, q, statusFilter]);
+  }, [stations, q, statusFilter, selectedVehicleVin, selectedVehicleBatteryType, selectedVehicleBatterySpec]);
 
   const totalItems = filtered.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -112,6 +180,19 @@ export default function StationForUser() {
   }, [q, statusFilter]);
 
   const safeLen = (arr) => (Array.isArray(arr) ? arr.length : 0);
+
+  // Function to toggle battery details visibility for a station
+  const toggleStationDetails = (stationId) => {
+    setExpandedStations(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(stationId)) {
+        newSet.delete(stationId);
+      } else {
+        newSet.add(stationId);
+      }
+      return newSet;
+    });
+  };
 
   return (
     <div
@@ -330,6 +411,18 @@ export default function StationForUser() {
         </div>
 
         <div className="station-controls">
+          <select
+            className="station-select"
+            value={selectedVehicleVin}
+            onChange={(e)=>setSelectedVehicleVin(e.target.value)}
+          >
+            <option value="">🚗 Chọn xe đã liên kết (lọc theo pin phù hợp)</option>
+            {vehicles.map(v => (
+              <option key={vprop(v,'vin')} value={vprop(v,'vin')}>
+                {vprop(v,'vehicleName') || vprop(v,'name') || 'Vehicle'}
+              </option>
+            ))}
+          </select>
           <input
             className="station-search"
             placeholder="🔍 Tìm tên trạm hoặc location..."
@@ -365,9 +458,12 @@ export default function StationForUser() {
             <div className="station-empty">🔍 Không tìm thấy trạm nào phù hợp.</div>
           ) : (
             <div className="station-grid">
-              {currentItems.map((st, idx) => (
+              {currentItems.map((st, idx) => {
+                const stationUniqueId = st.stationId ?? st.StationId ?? st.id ?? idx;
+                const isExpanded = expandedStations.has(stationUniqueId);
+                return (
                 <article 
-                  key={st.stationId} 
+                  key={stationUniqueId} 
                   className="station-card" 
                   style={{ 
                     animationDelay: `${idx * 40}ms`,
@@ -531,6 +627,198 @@ export default function StationForUser() {
                       </div>
                     </div>
 
+                    {/* Batteries detail list - Đẹp trai, lung linh hơn */}
+                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+                      <button
+                        type="button"
+                        onClick={() => toggleStationDetails(stationUniqueId)}
+                        style={{
+                          padding: '10px 18px',
+                          borderRadius: '9999px',
+                          border: 'none',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                          color: '#fff',
+                          boxShadow: '0 8px 20px rgba(37, 99, 235, 0.25)',
+                          transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 12px 30px rgba(37, 99, 235, 0.35)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 8px 20px rgba(37, 99, 235, 0.25)';
+                        }}
+                      >
+                        {isExpanded ? 'Thu gon danh sach pin tai tram' : 'Xem danh sach pin tai tram'}
+                      </button>
+                    </div>
+                    {isExpanded && (
+                    <div
+                      style={{
+                        marginTop: '20px',
+                        marginBottom: '20px',
+                        borderTop: theme === 'dark' ? '2px solid #2563eb' : '2px solid #3b82f6',
+                        paddingTop: '20px',
+                        background: theme === 'dark' ? 'rgba(16,24,39,0.70)' : 'rgba(236,245,255,0.70)',
+                        borderRadius: 12,
+                        boxShadow: theme === 'dark'
+                          ? '0 2px 12px rgba(30,41,59,.10)'
+                          : '0 4px 16px rgba(59,130,246,0.09)'
+                      }}
+                    >
+                      <h3
+                        style={{
+                          margin: '0 0 24px 0',
+                          fontSize: '1.27rem',
+                          color: theme === 'dark' ? '#60a5fa' : '#2563eb',
+                          fontWeight: 'bold',
+                          letterSpacing: 0.2,
+                          textAlign: 'center'
+                        }}
+                      >
+                        🪫 Danh sách pin tại trạm
+                      </h3>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                          gap: '18px'
+                        }}
+                      >
+                        {(Array.isArray(st.batteries) ? st.batteries : []).map((b) => {
+                          const bid = vprop(b,'batteryId') || vprop(b,'id') || vprop(b,'BatteryId');
+                          const bname = vprop(b,'batteryName') || bid || 'N/A';
+                          const btype = vprop(b,'batteryType') || '-';
+                          const bspec = vprop(b,'batterySpec') || '-';
+                          const bcap = vprop(b,'batteryCapacity');
+                          const bqual = vprop(b,'batteryQuality');
+                          const bstatus = (b.status || b.Status || '').toString();
+                          const compatible = batteryCompatible(b);
+                          const isBooked = bstatus.toLowerCase() === 'booked';
+
+                          // Smart icon and status color
+                          let statusChipColor = '#eab308', statusIcon = '🟡';
+                          if (bstatus.toLowerCase() === 'active') { statusChipColor = '#22c55e'; statusIcon = '🟢'; }
+                          else if (isBooked) { statusChipColor = '#f87171'; statusIcon = '🔴'; }
+                          else if (bstatus.toLowerCase().includes('ready')) { statusChipColor = '#06b6d4'; statusIcon = '🔋'; }
+
+                          // Compose battery card
+                          return (
+                            <div
+                              key={String(bid)}
+                              style={{
+                                border: compatible
+                                  ? '1px solid #22c55e'
+                                  : (theme === 'dark' ? '1.5px solid #334155' : '1.5px solid #e5e7eb'),
+                                borderRadius: 14,
+                                background: compatible
+                                  ? (theme === 'dark' ? 'linear-gradient(100deg,#14532d30 10%,#111827 90%)' : 'linear-gradient(100deg, #f0fdf4 80%, #bbf7d0 100%)')
+                                  : (theme === 'dark' ? '#151a23' : '#f8fafc'),
+                                boxShadow: compatible
+                                  ? (theme === 'dark'
+                                    ? '0 2px 12px #22c55e1a'
+                                    : '0 2px 9px #36d39919')
+                                  : undefined,
+                                padding: '16px 14px 14px 14px',
+                                transition: 'all 0.18s'
+                              }}
+                            >
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                marginBottom: '10px',
+                                gap: '8px'
+                              }}>
+                                <span style={{
+                                  fontSize: 22,
+                                  verticalAlign: 'middle',
+                                }}>
+                                  {statusIcon}
+                                </span>
+                                <span style={{
+                                  display: 'inline-block',
+                                  fontSize: 13,
+                                  fontWeight: '700',
+                                  color: statusChipColor,
+                                  background: theme === 'dark'
+                                    ? '#1e293b' : '#f3f4f6',
+                                  borderRadius: 15,
+                                  padding: '2px 10px',
+                                  border: `1px solid ${statusChipColor}`,
+                                  letterSpacing: '0.04em',
+                                  boxShadow: theme === 'dark' ? undefined : '0 1px 3px #c7d2fe19'
+                                }}>
+                                  {bstatus ? bstatus : 'Chưa rõ trạng thái'}
+                                </span>
+                              </div>
+                              <div style={{
+                                fontSize: 14.5,
+                                fontWeight: 600,
+                                marginBottom: 7,
+                                color: theme === 'dark' ? '#bae6fd' : '#0369a1',
+                                textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap"
+                              }}>
+                                <span style={{
+                                  marginRight: 6,
+                                  letterSpacing: 0.02
+                                }}>🔋 {bname}</span>
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 12.5,
+                                  color: theme === 'dark' ? '#cbd5e1' : '#374151',
+                                  marginBottom: 5,
+                                  display: 'grid',
+                                  rowGap: '3px'
+                                }}>
+                                <div>BatteryID: <b>{bid || 'N/A'}</b></div>
+                                <div>Loại: <b>{btype}</b></div>
+                                <div>Dung lượng: <b>{bcap ?? '-'}</b> | Spec: <b>{bspec}</b></div>
+                                <div>Chất lượng: <b>{bqual ?? '-'}</b></div>
+                              </div>
+                              <div style={{
+                                display: 'flex',
+                                justifyContent: 'flex-end',
+                                marginTop: 12
+                              }}>
+                                <a
+                                  className="btn small"
+                                  href={
+                                    (!compatible || isBooked)
+                                      ? undefined
+                                      : `/booking?stationId=${encodeURIComponent(st.stationId)}&batteryId=${encodeURIComponent(bid)}&batteryName=${encodeURIComponent(bname)}${selectedVehicleVin ? `&vin=${encodeURIComponent(selectedVehicleVin)}` : ''}`
+                                  }
+                                  style={{
+                                    background: (compatible && !isBooked)
+                                      ? 'linear-gradient(93deg, #22d3ee 0%, #38bdf8 29%, #22c55e 100%)'
+                                      : (theme === 'dark' ? '#334155' : '#e5e7eb'),
+                                    color: (compatible && !isBooked) ? 'white' : (theme === 'dark' ? '#cbd5e1' : '#0f172a'),
+                                    border: (compatible && !isBooked)
+                                      ? 'none'
+                                      : (theme === 'dark' ? '1px solid #334155' : '1px solid #d1d5db'),
+                                    fontWeight: 700,
+                                    padding: '7px 16px',
+                                    borderRadius: '18px',
+                                    textDecoration: 'none',
+                                    transition: 'all 0.17s',
+                                    pointerEvents: (compatible && !isBooked) ? 'auto' : 'none',
+                                    opacity: (compatible && !isBooked) ? 1 : 0.5,
+                                    fontSize: 13
+                                  }}
+                                >
+                                  {(compatible && !isBooked) ? '🔁 Chọn pin này' : (isBooked ? 'Đã được đặt' : 'Không phù hợp')}
+                                </a>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    )}
+
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <button
                         className="btn"
@@ -575,7 +863,8 @@ export default function StationForUser() {
                     </div>
                   </div>
                 </article>
-              ))}
+                );
+              })}
             </div>
           )
         )}

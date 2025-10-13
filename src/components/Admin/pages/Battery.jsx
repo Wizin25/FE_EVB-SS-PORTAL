@@ -91,7 +91,7 @@ export default function BatteryManagementPage() {
       const ns = normalizeOptions(specs);
 
       setBatteryTypeOptions(nt.length ? nt : ["Lithium", "Accumulator", "LFP"]);
-      setSpecificationOptions(ns.length ? ns : ["V48_Ah12", "V60_Ah22", "V72_Ah38", "V72_Ah54"]);
+      setSpecificationOptions(ns.length ? ns : ["V48_Ah12", "V48_Ah13", "V48_Ah20", "V48_Ah22", "V60_Ah20", "V60_Ah22", "V72_Ah22", "V72_Ah30", "V72_Ah38", "V72_Ah50", "V36_Ah7_8", "V36_Ah10_4"]);
 
       // default values for create form if empty
       setCreateForm((prev) => ({

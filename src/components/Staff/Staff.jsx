@@ -334,7 +334,13 @@ function StaffPage() {
   };
 
   return (
-    <div style={{ padding: 20, maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{ 
+      padding: 20, 
+      maxWidth: 1200, 
+      margin: '0 auto',
+      height: '100vh',
+      overflowY: 'auto'
+    }}>
       <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 30 }}>Quản lý Form</h1>
 
       {/* Form tạo mới - Chỉ hiển thị cho EvDriver */}
@@ -509,7 +515,13 @@ function StaffPage() {
       </section>
 
       {/* Danh sách forms */}
-      <section style={{ padding: 20, border: '1px solid #e2e8f0', borderRadius: 8 }}>
+      <section style={{ 
+        padding: 20, 
+        border: '1px solid #e2e8f0', 
+        borderRadius: 8,
+        maxHeight: '70vh',
+        overflowY: 'auto'
+      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h2>
             Danh sách Forms 
@@ -560,7 +572,13 @@ function StaffPage() {
           </div>
         ) : (
           <>
-            <div style={{ display: 'grid', gap: 12 }}>
+            <div style={{ 
+              display: 'grid', 
+              gap: 12,
+              maxHeight: '50vh',
+              overflowY: 'auto',
+              paddingRight: 8
+            }}>
               {currentForms.map((form) => {
                 const customer = customerDetails[form.accountId];
                 const station = stationDetails[form.stationId];
@@ -754,7 +772,8 @@ function StaffPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000
+          zIndex: 1000,
+          overflowY: 'auto'
         }}>
           <div style={{
             background: 'white',
@@ -762,8 +781,9 @@ function StaffPage() {
             borderRadius: 8,
             maxWidth: 600,
             width: '90%',
-            maxHeight: '80%',
-            overflow: 'auto'
+            maxHeight: '90vh',
+            overflow: 'auto',
+            margin: '20px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h2>Form Chi Tiết</h2>
@@ -774,8 +794,19 @@ function StaffPage() {
                 Đóng
               </button>
             </div>
-            <div style={{ padding: 16, background: '#f8fafc', borderRadius: 6 }}>
-              <pre style={{ whiteSpace: 'pre-wrap', fontSize: 14 }}>
+            <div style={{ 
+              padding: 16, 
+              background: '#f8fafc', 
+              borderRadius: 6,
+              maxHeight: '60vh',
+              overflowY: 'auto'
+            }}>
+              <pre style={{ 
+                whiteSpace: 'pre-wrap', 
+                fontSize: 14,
+                margin: 0,
+                wordBreak: 'break-word'
+              }}>
                 {JSON.stringify(selectedForm, null, 2)}
               </pre>
               <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>

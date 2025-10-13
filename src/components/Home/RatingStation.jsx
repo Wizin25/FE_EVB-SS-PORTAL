@@ -158,12 +158,12 @@ export default function RatingStation({ stationId, accountId, onClose, onSuccess
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                     <div style={{ fontWeight: 600 }}>
                       {"⭐".repeat(Math.round(r.rating1 || 0))}
-                      <span style={{ marginLeft: 8, color: '#64748b', fontSize: 12 }}>Trạm: {r.station?.stationName || r.stationId}</span>
+                      <span style={{ marginLeft: 8, color: '#64748b', fontSize: 12 }}>Trạm: {r.stationName || r.station?.stationName || 'N/A'}</span>
                     </div>
                     <span style={{ color: '#94a3b8', fontSize: 12 }}>{new Date(r.startDate).toLocaleString()}</span>
                   </div>
                   <div style={{ color: '#1f2937' }}>{r.description}</div>
-                  <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>By {r.account?.name || r.accountId}</div>
+                  <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>By {r.accountName || r.account?.name || 'N/A'}</div>
                 </div>
               ))
             )}

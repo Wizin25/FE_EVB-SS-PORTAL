@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import HeaderDriver from "./header";
 import Footer from "./footer";
 import { authAPI } from "../services/authAPI";
+import { vehicleAPI } from "../services/vehicleAPI";
 import "../Admin/pages/Station.css";
 import "./booking.css";
 
@@ -21,6 +22,10 @@ export default function BookingForm() {
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(""); // ISO string or yyyy-MM-ddTHH:mm
   const [stationId, setStationId] = useState("");
+  const [vin, setVin] = useState("");
+  const [batteryId, setBatteryId] = useState("");
+  const [selectedBatteryName, setSelectedBatteryName] = useState("");
+  const [myVehicles, setMyVehicles] = useState([]);
 
   const handleToggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
@@ -60,9 +65,33 @@ export default function BookingForm() {
         // Preselect from query if present
         const params = new URLSearchParams(window.location.search);
         const preselect = params.get('stationId');
+        const qVin = params.get('vin');
+        const qBatteryId = params.get('batteryId') || params.get('batteryID');
+        const qBatteryName = params.get('batteryName');
         const found = Array.isArray(allStations) && allStations.find(s=>String(s.stationId)===String(preselect));
         if (preselect && found) setStationId(found.stationId);
         else if (Array.isArray(allStations) && allStations.length > 0) setStationId(allStations[0].stationId);
+        if (qVin) setVin(qVin);
+        if (qBatteryId) setBatteryId(qBatteryId);
+        const initialBatteryName = qBatteryName || '';
+        setSelectedBatteryName(initialBatteryName);
+        // Load my linked vehicles for convenience
+        try {
+          const res = await vehicleAPI.getCurrentUserVehicles();
+          let list = [];
+          if (Array.isArray(res)) list = res;
+          else if (res?.data?.data && Array.isArray(res.data.data)) list = res.data.data;
+          else if (res?.data && Array.isArray(res.data)) list = res.data;
+          const active = list.filter(v => {
+            const s = (v.status || v.Status || '').toString().toLowerCase();
+            return s === 'active' || s === 'linked';
+          });
+          setMyVehicles(active);
+          if (!qVin && active.length > 0) {
+            const vin0 = (active[0].VIN || active[0].vin || active[0].vehicleId || active[0].id || '').toString();
+            setVin(vin0);
+          }
+        } catch {}
       } catch (err) {
         setError(err?.message || "Không tải được dữ liệu ban đầu");
       } finally {
@@ -80,6 +109,14 @@ export default function BookingForm() {
       setError("Vui lòng nhập đủ Title, Description, Date và chọn Station.");
       return;
     }
+    if (!vin) {
+      setError("Thiếu VIN. Vui lòng chọn xe hoặc quay lại chọn từ trạm.");
+      return;
+    }
+    if (!batteryId) {
+      setError("Thiếu BatteryID. Vui lòng chọn pin từ trạm.");
+      return;
+    }
     if (!user?.accountId && !user?.accountID && !user?.AccountId) {
       setError("Không tìm thấy AccountId. Hãy đăng nhập lại.");
       return;
@@ -87,12 +124,13 @@ export default function BookingForm() {
     const accountId = user.accountId || user.accountID || user.AccountId;
     try {
       setLoading(true);
-      await authAPI.createForm({ accountId, title, description, date, stationId });
+      await authAPI.createForm({ accountId, title, description, date, stationId, vin, batteryId });
       setSuccess("Đặt lịch thành công.");
       setTitle("");
       setDescription("");
       setDate("");
       // giữ stationId như cũ
+      // keep vin and batteryId as well
     } catch (err) {
       setError(err?.message || "Đặt lịch thất bại");
     } finally {
@@ -157,6 +195,25 @@ export default function BookingForm() {
                     <option key={st.stationId} value={st.stationId}>{st.stationName || st.stationId} — {st.location}</option>
                   ))}
                 </select>
+              </label>
+            </div>
+
+            <div className="form-row">
+              <label className="form-field">
+                <span>VIN</span>
+                <select className="form-input" value={vin} onChange={(e)=>setVin(e.target.value)}>
+                  <option value="">Chọn VIN</option>
+                  {myVehicles.map(v => {
+                    const vvin = (v.VIN || v.vin || v.vehicleId || v.id || '').toString();
+                    const vname = (v.vehicle_name || v.vehicleName || v.name || 'Vehicle');
+                    return <option key={vvin} value={vvin}>{vname}</option>
+                  })}
+                </select>
+              </label>
+              <label className="form-field">
+                <span>Pin</span>
+                <input className="form-input" type="text" value={selectedBatteryName} onChange={()=>{}} readOnly placeholder="Tên pin được chọn" />
+                <input style={{ display: 'none' }} type="text" value={batteryId} readOnly />
               </label>
             </div>
 
