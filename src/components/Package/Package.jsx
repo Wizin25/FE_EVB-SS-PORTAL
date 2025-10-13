@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { vehicleAPI } from '../services/vehicleAPI';
 import { packageAPI } from '../services/packageAPI';
+import { authAPI } from '../services/authAPI';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getCurrentUserPayload } from '../services/jwt';
 import './Package.css';
@@ -17,6 +18,7 @@ const Package = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [batterySpecification, setBatterySpecification] = useState(null);
   const [packagesCache, setPackagesCache] = useState({});
+  const [batteryDetails, setBatteryDetails] = useState({});
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState(null);
@@ -64,7 +66,9 @@ const Package = () => {
       duration: ['duration', 'period', 'validity', 'Duration'],
       description: ['description', 'desc', 'details', 'Description'],
       battery: ['batteryId', 'batteryID', 'battery', 'BatteryId', 'BatteryID'],
-      status: ['status', 'Status']
+      status: ['status', 'Status'],
+      expiredDate: ['expiredDate', 'expired', 'expiry', 'expiration', 'expiredDate'],
+      batteryType: ['batteryType', 'Battery_type', 'battery_type', 'BatteryType']
     };
     
     const keys = possibleKeys[property] || [property];
@@ -74,6 +78,98 @@ const Package = () => {
       }
     }
     return property === 'price' ? 0 : 'N/A';
+  };
+
+  // Hàm lấy tên pin để hiển thị
+  const getBatteryDisplayName = (vehicle) => {
+    const batteryId = getVehicleProperty(vehicle, 'battery');
+    
+    // Ưu tiên lấy từ batteryDetails trước
+    if (batteryId && batteryDetails[batteryId]) {
+      const battery = batteryDetails[batteryId];
+      return battery.name || battery.batteryName || `Pin ${batteryId}`;
+    }
+    
+    // Fallback: lấy từ vehicle property
+    const batteryName = getVehicleProperty(vehicle, 'batteryName');
+    if (batteryName !== 'N/A') {
+      return batteryName;
+    }
+    
+    // Cuối cùng hiển thị batteryId
+    return batteryId !== 'N/A' ? `Pin ${batteryId}` : 'Chưa có pin';
+  };
+
+  // Hàm lấy battery details
+  const loadBatteryDetails = async (batteryId) => {
+    if (!batteryId || batteryId === 'N/A' || batteryDetails[batteryId]) {
+      return;
+    }
+
+    try {
+      console.log(`Loading battery details for batteryId: ${batteryId}`);
+      const batteryResponse = await authAPI.getBatteryById(batteryId);
+      
+      let batteryData = null;
+      if (batteryResponse && batteryResponse.data) {
+        batteryData = batteryResponse.data;
+      } else if (batteryResponse) {
+        batteryData = batteryResponse;
+      }
+
+      if (batteryData) {
+        setBatteryDetails(prev => ({
+          ...prev,
+          [batteryId]: batteryData
+        }));
+        console.log(`Battery details for ${batteryId}:`, batteryData);
+      }
+    } catch (err) {
+      console.error(`Error loading battery details for ${batteryId}:`, err);
+    }
+  };
+
+  const getCurrentPackageName = (vehicle) => {
+  const packageId = getVehicleProperty(vehicle, 'package');
+  
+  if (!packageId || packageId === 'N/A') {
+    return 'N/A';
+  }
+
+  // Tìm package trong danh sách packages đã load
+  const currentPackage = packages.find(pkg => 
+    getPackageProperty(pkg, 'id') === packageId
+  );
+
+  if (currentPackage) {
+    return getPackageDisplayName(currentPackage);
+  }
+
+  return packageId;
+};
+
+
+
+  // 🆕 HÀM MỚI: Format thời hạn package với expiredDate
+  const getPackageDurationText = (pkg) => {
+    const expiredDate = getPackageProperty(pkg, 'expiredDate');
+    
+    if (expiredDate && expiredDate !== 'N/A') {
+      if (expiredDate === 1) return '1 ngày';
+      if (expiredDate === 30) return '30 ngày';
+      if (expiredDate === 90) return '3 tháng';
+      if (expiredDate === 180) return '6 tháng';
+      if (expiredDate === 365) return '1 năm';
+      return `${expiredDate} ngày`;
+    }
+    
+    // Fallback nếu không có expiredDate
+    const duration = getPackageProperty(pkg, 'duration');
+    if (duration && duration !== 'N/A') {
+      return duration;
+    }
+    
+    return '???';
   };
 
   const getPackageDisplayName = (pkg) => {
@@ -255,6 +351,10 @@ const Package = () => {
     setLoading(true);
     setError('');
     
+    // Load battery details cho selected vehicle
+    const batteryId = getVehicleProperty(selectedVehicle, 'battery');
+    await loadBatteryDetails(batteryId);
+    
     // BƯỚC 1: Lấy battery specification từ vehicle
     const specification = await getVehicleBatterySpecification(selectedVehicle);
     
@@ -306,6 +406,51 @@ const Package = () => {
     }
 
     console.log(`📊 Final packages from ${apiSource}:`, packagesData);
+
+    // 🆕 BƯỚC 2.5: LẤY CHI TIẾT TỪNG PACKAGE ĐỂ CÓ expiredDate
+    if (packagesData.length > 0) {
+      console.log('🔍 Fetching detailed package information for expiredDate...');
+      const detailedPackages = [];
+      
+      for (const pkg of packagesData) {
+        const packageId = getPackageProperty(pkg, 'id');
+        if (packageId && packageId !== 'N/A') {
+          try {
+            console.log(`📦 Fetching details for package: ${packageId}`);
+            const packageDetailResponse = await packageAPI.getPackageById(packageId);
+            
+            // Extract chi tiết package từ response
+            let packageDetail = null;
+            if (packageDetailResponse && packageDetailResponse.data) {
+              packageDetail = packageDetailResponse.data;
+            } else if (packageDetailResponse && packageDetailResponse.isSuccess) {
+              packageDetail = packageDetailResponse.data;
+            } else {
+              packageDetail = packageDetailResponse;
+            }
+            
+            if (packageDetail) {
+              // Kết hợp dữ liệu chi tiết với dữ liệu cơ bản
+              detailedPackages.push({
+                ...pkg,
+                ...packageDetail
+              });
+              console.log(`✅ Got detailed package:`, packageDetail);
+            } else {
+              detailedPackages.push(pkg);
+            }
+          } catch (detailError) {
+            console.warn(`⚠️ Cannot fetch details for package ${packageId}:`, detailError);
+            detailedPackages.push(pkg);
+          }
+        } else {
+          detailedPackages.push(pkg);
+        }
+      }
+      
+      packagesData = detailedPackages;
+      console.log('📦 Final packages with details:', packagesData);
+    }
 
     // BƯỚC 3: Thêm package hiện tại của vehicle (nếu có)
     const currentPackageId = getVehicleProperty(selectedVehicle, 'package');
@@ -726,11 +871,11 @@ const Package = () => {
                 <option value="">-- Chọn xe --</option>
                 {vehicles.map(vehicle => (
                   <option key={getVehicleProperty(vehicle, 'vin')} value={getVehicleProperty(vehicle, 'vin')}>
-                    {getVehicleProperty(vehicle, 'name')} - {getVehicleProperty(vehicle, 'type')}
-                    {getVehicleProperty(vehicle, 'package') && getVehicleProperty(vehicle, 'package') !== 'N/A' && 
-                      ` (Đang dùng gói: ${getVehicleProperty(vehicle, 'package')})`
-                    }
-                  </option>
+  {getVehicleProperty(vehicle, 'name')} - {getVehicleProperty(vehicle, 'type')}
+  {getVehicleProperty(vehicle, 'package') && getVehicleProperty(vehicle, 'package') !== 'N/A' && 
+    ` (Đang dùng gói: ${getCurrentPackageName(vehicle)})`
+  }
+</option>
                 ))}
               </select>
             </div>
@@ -772,8 +917,8 @@ const Package = () => {
                   
                   <div className="vehicle-additional-info">
                     <div className="info-item">
-                      <span className="info-label">🔋 Pin ID:</span>
-                      <span className="info-value">{getVehicleProperty(selectedVehicle, 'battery')}</span>
+                      <span className="info-label">🔋 Pin:</span>
+                      <span className="info-value">{getBatteryDisplayName(selectedVehicle)}</span>
                     </div>
                     
                     <div className="info-item">
@@ -787,10 +932,10 @@ const Package = () => {
 </div>
                     
                     {getVehicleProperty(selectedVehicle, 'package') && getVehicleProperty(selectedVehicle, 'package') !== 'N/A' && (
-                      <div className="current-package-badge">
-                        ⭐ Đang sử dụng gói: {getVehicleProperty(selectedVehicle, 'package')}
-                      </div>
-                    )}
+  <div className="current-package-badge">
+    ⭐ Đang sử dụng gói: {getCurrentPackageName(selectedVehicle)}
+  </div>
+)}
                   </div>
                 </div>
               </div>
@@ -870,7 +1015,8 @@ const Package = () => {
                           
                           <h3>{packageDisplayName}</h3>
                           <p className="package-price">{getPackageProperty(pkg, 'price')?.toLocaleString('vi-VN')} VND</p>
-                          <p className="package-duration">⏱️ {getPackageProperty(pkg, 'duration') || '30 ngày'}</p>
+                          {/* 🆕 THAY THẾ DÒNG NÀY: Sử dụng getPackageDurationText */}
+                          <p className="package-duration">⏱️ {getPackageDurationText(pkg)}</p>
                           <p className="package-description">{getPackageProperty(pkg, 'description') || 'Không có mô tả'}</p>
                           
                           <div className="package-card-actions">
@@ -962,8 +1108,11 @@ const Package = () => {
                 <h4>{getPackageDisplayName(selectedPackage)}</h4>
                 <p><strong>Mã gói:</strong> {getPackageProperty(selectedPackage, 'id')}</p>
                 <p><strong>Giá:</strong> {getPackageProperty(selectedPackage, 'price')?.toLocaleString('vi-VN')} VND</p>
-                <p><strong>Thời hạn:</strong> {getPackageProperty(selectedPackage, 'duration') || '30 ngày'}</p>
+                {/* 🆕 THAY THẾ DÒNG NÀY: Sử dụng getPackageDurationText */}
+                <p><strong>Thời hạn:</strong> {getPackageDurationText(selectedPackage)}</p>
                 <p><strong>Mô tả:</strong> {getPackageProperty(selectedPackage, 'description') || 'Không có mô tả'}</p>
+                {/* 🆕 THÊM DÒNG NÀY: Hiển thị expiredDate chi tiết */}
+                <p><strong>Chi tiết thời hạn:</strong> {getPackageProperty(selectedPackage, 'expiredDate')} ngày</p>
                 
                 <div className="vehicle-info-box">
                   <strong>Áp dụng cho xe:</strong> {getVehicleProperty(selectedVehicle, 'name')}
@@ -971,6 +1120,8 @@ const Package = () => {
                   <strong>Loại xe:</strong> {getVehicleProperty(selectedVehicle, 'type')}
                   <br />
                   <strong>VIN:</strong> {getVehicleProperty(selectedVehicle, 'vin')}
+                  <br />
+                  <strong>Pin:</strong> {getBatteryDisplayName(selectedVehicle)}
                   <br />
                   <strong>Thông số pin:</strong> {formatBatterySpecification(batterySpecification)}
                 </div>

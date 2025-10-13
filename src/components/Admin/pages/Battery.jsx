@@ -13,7 +13,6 @@ export default function BatteryManagementPage() {
   const [batteryTypeFilter, setBatteryTypeFilter] = useState("");
   const [specificationFilter, setSpecificationFilter] = useState("");
   const [stationFilter, setStationFilter] = useState("");
-  const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
 
   // sorting
   const [sortBy, setSortBy] = useState("");
@@ -54,6 +53,9 @@ export default function BatteryManagementPage() {
   const [selectedBatteryForAssign, setSelectedBatteryForAssign] = useState(null);
   const [stations, setStations] = useState([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
+
+  // status update
+  const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
 
   // helper: normalize options (API might return strings or objects)
   const normalizeOptions = (arr) => {
@@ -110,6 +112,32 @@ export default function BatteryManagementPage() {
     fetchBatteries();
     fetchOptions();
   }, []);
+
+  // Hàm cập nhật battery status
+  const handleUpdateBatteryStatus = async (batteryId, newStatus) => {
+    if (!batteryId) return;
+    
+    setStatusUpdateLoading(true);
+    try {
+      await authAPI.updateBatteryStatus(batteryId, newStatus);
+      
+      // Cập nhật local state
+      setBatteries(prev => prev.map(b => 
+        b.batteryId === batteryId ? { ...b, status: newStatus } : b
+      ));
+      
+      // Cập nhật selected battery nếu đang mở modal
+      if (selectedBattery?.batteryId === batteryId) {
+        setSelectedBattery(prev => ({ ...prev, status: newStatus }));
+      }
+      
+      alert(`Đã cập nhật trạng thái thành ${newStatus}`);
+    } catch (error) {
+      alert("Cập nhật trạng thái thất bại: " + error.message);
+    } finally {
+      setStatusUpdateLoading(false);
+    }
+  };
 
   // ---------- CREATE ----------
   const handleCreate = async (e) => {
@@ -557,7 +585,7 @@ export default function BatteryManagementPage() {
             <option value="Available">Available</option>
             <option value="InUse">InUse</option>
             <option value="Charging">Charging</option>
-            <option value="Faulty">Faulty</option>
+            <option value="Maintenance">Maintenance</option>
             <option value="Decommissioned">Decommissioned</option>
           </select>
         </div>
@@ -654,8 +682,9 @@ export default function BatteryManagementPage() {
           </button>
         </div>
       </div>
-     {/* Total count display */}
-     <div className="station-summary">
+
+      {/* Total count display */}
+      <div className="station-summary">
         <span className="total-count">
           Tổng số pin: <strong>{totalItems}</strong>
           {totalItems > 0 && (
@@ -676,17 +705,33 @@ export default function BatteryManagementPage() {
                 <div className="batt-item" key={b.batteryId}>
                   <div className="batt-top">
                     <div className="batt-left">
-                      {/* 
-                        Sửa lại: Khi hiển thị danh sách, ưu tiên hiển thị tên pin (batteryName).
-                        Nếu không có tên pin thì mới fallback sang batteryId.
-                        Điều này đảm bảo khi tạo mới, pin sẽ hiển thị theo tên (nếu có).
-                      */}
                       <div className="batt-id">{b.batteryName ? b.batteryName : b.batteryId}</div>
                       <div className="batt-meta">{b.batteryType} • {b.capacity}% • {b.specification}</div>
                       <div className="batt-submeta">Trạm: {b.station?.stationName || b.station?.stationId || "Chưa gán"}</div>
                     </div>
                     <div className="batt-right">
-                      <div className="batt-status-pill">{b.status}</div>
+                      {/* Status Select */}
+                      <div className="status-select-container">
+                        <select 
+                          value={b.status || ''} 
+                          onChange={(e) => handleUpdateBatteryStatus(b.batteryId, e.target.value)}
+                          disabled={statusUpdateLoading}
+                          className={`status-select ${
+                            b.status === 'Available' ? 'status-available' :
+                            b.status === 'InUse' ? 'status-inuse' :
+                            b.status === 'Charging' ? 'status-charging' :
+                            b.status === 'Maintenance' ? 'status-maintenance' :
+                            b.status === 'Decommissioned' ? 'status-decommissioned' : ''
+                          }`}
+                        >
+                          <option value="Available">Available</option>
+                          <option value="InUse">InUse</option>
+                          <option value="Charging">Charging</option>
+                          <option value="Maintenance">Maintenance</option>
+                          <option value="Decommissioned">Decommissioned</option>
+                        </select>
+                      </div>
+                      
                       <div className="batt-quality">SoH: <strong>{b.batteryQuality ?? "-"}%</strong></div>
                       <div className="batt-actions">
                         <button
@@ -722,7 +767,6 @@ export default function BatteryManagementPage() {
             {detailLoading ? <div className="station-loading">Đang tải...</div> : (
               <>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  {/* Ưu tiên hiển thị tên pin, nếu không có thì mới dùng batteryId */}
                   <h2>Chi tiết Pin {selectedBattery.batteryName ? selectedBattery.batteryName : selectedBattery.batteryId}</h2>
                   <div>
                     <button className="btn small" onClick={() => setIsEditingInModal(prev => !prev)}>{isEditingInModal ? "Hủy sửa" : "Sửa"}</button>
@@ -806,13 +850,36 @@ export default function BatteryManagementPage() {
                   </div>
                 ) : (
                   <div style={{ marginTop: 12 }}>
-                    {/* Ưu tiên hiển thị tên pin, nếu không có thì mới dùng batteryId */}
                     <p><b>Tên pin:</b> {selectedBattery.batteryName ? selectedBattery.batteryName : selectedBattery.batteryId}</p>
                     <p><b>Loại:</b> {selectedBattery.batteryType}</p>
                     <p><b>Capacity:</b> {selectedBattery.capacity}%</p>
                     <p><b>Specification:</b> {selectedBattery.specification}</p>
                     <p><b>SoH:</b> {selectedBattery.batteryQuality}%</p>
-                    <p><b>Trạng thái:</b> {selectedBattery.status}</p>
+                    
+                    {/* Status Select trong modal */}
+                    <div className="status-section" style={{ marginBottom: '12px' }}>
+                      <label><b>Trạng thái:</b></label>
+                      <select 
+                        value={selectedBattery.status || ''} 
+                        onChange={(e) => handleUpdateBatteryStatus(selectedBattery.batteryId, e.target.value)}
+                        disabled={statusUpdateLoading}
+                        className={`status-select ${
+                          selectedBattery.status === 'Available' ? 'status-available' :
+                          selectedBattery.status === 'InUse' ? 'status-inuse' :
+                          selectedBattery.status === 'Charging' ? 'status-charging' :
+                          selectedBattery.status === 'Maintenance' ? 'status-maintenance' :
+                          selectedBattery.status === 'Decommissioned' ? 'status-decommissioned' : ''
+                        }`}
+                        style={{ marginLeft: '8px' }}
+                      >
+                        <option value="Available">Available</option>
+                        <option value="InUse">InUse</option>
+                        <option value="Charging">Charging</option>
+                        <option value="Maintenance">Maintenance</option>
+                        <option value="Decommissioned">Decommissioned</option>
+                      </select>
+                    </div>
+
                     <p><b>Station:</b> {selectedBattery.station?.stationName || selectedBattery.station?.stationId || "Chưa gán"}</p>
 
                     <div style={{ marginTop: 10 }}>
@@ -844,7 +911,6 @@ export default function BatteryManagementPage() {
       {showAssignModal && selectedBatteryForAssign && (
         <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            {/* Ưu tiên hiển thị tên pin, nếu không có thì mới dùng batteryId */}
             <h2>Chọn trạm để gán cho {selectedBatteryForAssign.batteryName ? selectedBatteryForAssign.batteryName : selectedBatteryForAssign.batteryId}</h2>
             <ul className="station-list">
               {stations.map(st => (
@@ -861,36 +927,38 @@ export default function BatteryManagementPage() {
           </div>
         </div>
       )}
-        {totalPages > 1 && (
-          <div className="pagination">
-            <button 
-              className="btn small" 
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              ← Trước
-            </button>
-            
-            <div className="page-numbers">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  className={`btn small ${page === currentPage ? 'active' : ''}`}
-                  onClick={() => handlePageChange(page)}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
-            
-            <button 
-              className="btn small" 
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              Sau →
-            </button>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button 
+            className="btn small" 
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            ← Trước
+          </button>
+          
+          <div className="page-numbers">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button
+                key={page}
+                className={`btn small ${page === currentPage ? 'active' : ''}`}
+                onClick={() => handlePageChange(page)}
+              >
+                {page}
+              </button>
+            ))}
           </div>
+          
+          <button 
+            className="btn small" 
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            Sau →
+          </button>
+        </div>
       )}
     </div>
   );

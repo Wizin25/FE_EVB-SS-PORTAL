@@ -37,6 +37,9 @@ export default function Station() {
   // Danh sách nhân viên (đã gắn staffId đúng) của mỗi trạm để hiển thị trong chi tiết
   const [stationStaff, setStationStaff] = useState({}); // stationId -> [{ username,name,phone,email, staffId }]
 
+  // Thêm state cho status update
+  const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
+
   // ===== STRICT: chỉ trả staffId thật khi đào sâu các nhánh có thể chứa =====
   const getStaffIdStrict = (node) => {
     if (!node || typeof node !== "object") return null;
@@ -131,6 +134,27 @@ export default function Station() {
     };
     fetchAllStaff();
   }, []);
+
+  // Hàm cập nhật station status
+  const handleUpdateStationStatus = async (stationId, newStatus) => {
+    if (!stationId) return;
+    
+    setStatusUpdateLoading(true);
+    try {
+      await authAPI.updateStationStatus(stationId, newStatus);
+      
+      // Cập nhật local state
+      setStations(prev => prev.map(st => 
+        st.stationId === stationId ? { ...st, status: newStatus } : st
+      ));
+      
+      alert(`Đã cập nhật trạng thái thành ${newStatus}`);
+    } catch (error) {
+      alert("Cập nhật trạng thái thất bại: " + error.message);
+    } finally {
+      setStatusUpdateLoading(false);
+    }
+  };
 
   // Lấy stations + lưu sẵn mảng staffId của trạm (từ bssStaffs)
   const fetchStations = async () => {
@@ -425,7 +449,19 @@ export default function Station() {
                           <div className="station-subinfo">
                             <span className="sub-location">{station.location ?? "-"}</span>
                             <span className="sub-sep">•</span>
-                            <span className="sub-rating">⭐ {station.rating != null ? Number(station.rating).toFixed(1) : "-"}</span>
+                            
+                            {/* Status Select */}
+                            <div className="status-select-container">
+                              <select 
+                                value={station.status || ''} 
+                                onChange={(e) => handleUpdateStationStatus(station.stationId, e.target.value)}
+                                disabled={statusUpdateLoading}
+                                className={`status-select ${station.status === 'Active' ? 'status-active' : station.status === 'Inactive' ? 'status-inactive' : ''}`}
+                              >
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                              </select>
+                            </div>
                           </div>
                           <div className={`station-status ${ (station.status ?? "").toLowerCase() === "active" ? "active": "inactive"}`}>
                             {station.status ?? "Unknown"}

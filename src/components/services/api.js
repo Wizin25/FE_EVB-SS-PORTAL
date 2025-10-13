@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://localhost:7000'; // giữ nguyên nếu BE chạy đây
+const API_BASE_URL = 'https://localhost:5001'; // giữ nguyên nếu BE chạy đây
 
 const api = axios.create({
   baseURL: API_BASE_URL,

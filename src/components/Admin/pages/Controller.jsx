@@ -25,6 +25,9 @@ export default function ControllerPage() {
   const [customerDetails, setCustomerDetails] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  // Thêm state cho status update
+  const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
+
   const checkAuth = () => {
     const token = localStorage.getItem('authToken');
     if (!token) {
@@ -48,6 +51,31 @@ export default function ControllerPage() {
       setError('Invalid token. Please sign in again.');
       setLoading(false);
       return false;
+    }
+  };
+
+  // Hàm cập nhật account status
+  const handleUpdateAccountStatus = async (accountId, newStatus) => {
+    if (!accountId) return;
+    
+    setStatusUpdateLoading(true);
+    try {
+      await authAPI.updateAccountStatus(accountId, newStatus);
+      
+      // Cập nhật local state
+      setUsers(prev => prev.map(user => 
+        user.accountId === accountId ? { ...user, status: newStatus } : user
+      ));
+      
+      setFilteredUsers(prev => prev.map(user => 
+        user.accountId === accountId ? { ...user, status: newStatus } : user
+      ));
+      
+      alert(`Đã cập nhật trạng thái thành ${newStatus}`);
+    } catch (error) {
+      alert("Cập nhật trạng thái thất bại: " + error.message);
+    } finally {
+      setStatusUpdateLoading(false);
     }
   };
 
@@ -476,9 +504,15 @@ export default function ControllerPage() {
                   <td>{user.address}</td>
                   <td>{user.email}</td>
                   <td>
-                    <span className={`status-${user.status ? user.status.toLowerCase() : 'null'}`}>
-                    {user.status}
-                    </span>
+                    <select 
+                      value={user.status || 'Active'} 
+                      onChange={(e) => handleUpdateAccountStatus(user.accountId, e.target.value)}
+                      disabled={statusUpdateLoading}
+                      className={`status-select ${user.status === 'Active' ? 'status-active' : user.status === 'Inactive' ? 'status-inactive' : ''}`}
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
                   </td>
 
                   <td>{formatDate(user.startDate)}</td>

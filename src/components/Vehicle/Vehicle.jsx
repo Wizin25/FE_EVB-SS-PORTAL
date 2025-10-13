@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { vehicleAPI } from '../services/vehicleAPI';
+import { authAPI } from '../services/authAPI';
+import { packageAPI } from '../services/packageAPI';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUserPayload, isInRole } from '../services/jwt';
 import './Vehicle.css';
@@ -14,6 +16,9 @@ const Vehicle = () => {
   const [creating, setCreating] = useState(false);
   const [vehiclePackages, setVehiclePackages] = useState({});
   const [packageLoading, setPackageLoading] = useState(false);
+  const [batteryDetails, setBatteryDetails] = useState({});
+  const [packageDetails, setPackageDetails] = useState({});
+  const [allPackages, setAllPackages] = useState([]);
   const [newVehicle, setNewVehicle] = useState({
     vin: '',
     vehicleName: '',
@@ -73,88 +78,204 @@ const Vehicle = () => {
     { value: 'electric_assist_bicycle', label: 'Xe đạp trợ lực' }
   ];
 
-  // Thêm vào Vehicle.jsx
-const vehicleImageMapping = {
-  // Xe máy điện
-  'YADEA_VELAX': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Velax-Anh-nho-ben-tren.png',
-  'YADEA_VOLTGUARD_U': 'https://www.yadea.com.vn/wp-content/uploads/2025/01/V002-U-anh-chinh-1-480x361.png',
-  'YADEA_VOLTGUARD_P': 'https://www.yadea.com.vn/wp-content/uploads/2025/01/Anh-sp-chinh-1200x880-den.png',
-  'YADEA_ORLA': 'https://www.yadea.com.vn/wp-content/uploads/2023/10/orla-black-detail.png',
-  'YADEA_ORIS': 'https://www.yadea.com.vn/wp-content/uploads/2024/06/oris-xam.png',
-  'YADEA_OSSY': 'https://www.yadea.com.vn/wp-content/uploads/2024/05/c.png',
-  'YADEA_OCEAN': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/ocean-cyan-banner-001.png',
-  'YADEA_ICUTE': 'https://www.yadea.com.vn/wp-content/uploads/2023/10/icute-banner-cyan.png',
-  'YADEA_ODORA_S': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/odoras-xanh-banner.png',
-  'YADEA_ODORA_S2': 'https://www.yadea.com.vn/wp-content/uploads/2025/09/Anh-ngang-to-1280x880px-den.png',
-  'YADEA_M6I': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/m6i-blue-banner.png',
-  'YADEA_VIGOR': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/virgo-grey-banner.png',
-  'YADEA_X_ZONE': 'https://www.yadea.com.vn/wp-content/uploads/2024/08/xzone-den-ngang-1280x880-1.png',
-  'YADEA_VEKOO': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Vekoo_4_Hong-anh-dao.png',
-  'YADEA_X_MEN_NEO': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/xmen-red-banner-1.png',
-  'YADEA_X_SKY': 'https://www.yadea.com.vn/wp-content/uploads/2025/02/XSKY-Anh-ngang-chinh-1280x880px.png',
-  'YADEA_X_BULL': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/xbull.png',
-  'YADEA_VEKOO_SOOBIN': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Vekoo_3_Xanh-lam-anh-ngoc.png',
-  'YADEA_VELAX_SOOBIN': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Velax_3_Xanh-Bentley.png',
-  'YADEA_ORIS_SOOBIN': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Oris_3_Hong-anh-dao.png',
-  
-  // Xe đạp điện
-  'YADEA_I8_VINTAGE': 'https://www.yadea.com.vn/wp-content/uploads/2025/03/Anh-dau-banner-i8-gau-xanh-1280x880px.png',
-  'YADEA_I8': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/Anh-sp-banner-1280x880-trang-sua-i8-moi.png',
-  'YADEA_I6_Accumulator': 'https://product.hstatic.net/200000859553/product/hong_cb6790de6aa84124ae1f359932b6b20c_master.png',
-  'YADEA_I6_Lithium_Battery': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/i6-black2.png',
-  'YADEA_IFUN': 'https://www.yadea.com.vn/wp-content/uploads/2024/08/YADEA-iFUN-xanh-anh-ngang.webp',
-  'YADEA_IGO': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/igo-black-banner-1.png',
-  
-  // Xe đạp trợ lực
-  'YADEA_VITO': 'https://www.yadea.com.vn/wp-content/uploads/2025/09/Anh-ngang-VITO-xanh.png',
-  'YADEA_FLIT': 'https://www.yadea.com.vn/wp-content/uploads/2025/09/Anh-ngang-FLIT-trang.png'
-};
-
-// Hàm lấy ảnh xe
-const getVehicleImage = (vehicleName) => {
-  return vehicleImageMapping[vehicleName] || '#DEFAULT_VEHICLE_IMAGE_URL';
-};
-
-  const loadPackagesForVehicles = async (vehiclesData) => {
-  try {
-    setPackageLoading(true);
-    const packagesMap = {};
+  // Mapping ảnh xe
+  const vehicleImageMapping = {
+    // Xe máy điện
+    'YADEA_VELAX': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Velax-Anh-nho-ben-tren.png',
+    'YADEA_VOLTGUARD_U': 'https://www.yadea.com.vn/wp-content/uploads/2025/01/V002-U-anh-chinh-1-480x361.png',
+    'YADEA_VOLTGUARD_P': 'https://www.yadea.com.vn/wp-content/uploads/2025/01/Anh-sp-chinh-1200x880-den.png',
+    'YADEA_ORLA': 'https://www.yadea.com.vn/wp-content/uploads/2023/10/orla-black-detail.png',
+    'YADEA_ORIS': 'https://www.yadea.com.vn/wp-content/uploads/2024/06/oris-xam.png',
+    'YADEA_OSSY': 'https://www.yadea.com.vn/wp-content/uploads/2024/05/c.png',
+    'YADEA_OCEAN': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/ocean-cyan-banner-001.png',
+    'YADEA_ICUTE': 'https://www.yadea.com.vn/wp-content/uploads/2023/10/icute-banner-cyan.png',
+    'YADEA_ODORA_S': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/odoras-xanh-banner.png',
+    'YADEA_ODORA_S2': 'https://www.yadea.com.vn/wp-content/uploads/2025/09/Anh-ngang-to-1280x880px-den.png',
+    'YADEA_M6I': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/m6i-blue-banner.png',
+    'YADEA_VIGOR': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/virgo-grey-banner.png',
+    'YADEA_X_ZONE': 'https://www.yadea.com.vn/wp-content/uploads/2024/08/xzone-den-ngang-1280x880-1.png',
+    'YADEA_VEKOO': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Vekoo_4_Hong-anh-dao.png',
+    'YADEA_X_MEN_NEO': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/xmen-red-banner-1.png',
+    'YADEA_X_SKY': 'https://www.yadea.com.vn/wp-content/uploads/2025/02/XSKY-Anh-ngang-chinh-1280x880px.png',
+    'YADEA_X_BULL': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/xbull.png',
+    'YADEA_VEKOO_SOOBIN': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Vekoo_3_Xanh-lam-anh-ngoc.png',
+    'YADEA_VELAX_SOOBIN': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Velax_3_Xanh-Bentley.png',
+    'YADEA_ORIS_SOOBIN': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Oris_3_Hong-anh-dao.png',
     
-    // Lặp qua từng xe để lấy gói phù hợp
-    for (const vehicle of vehiclesData) {
-      const vehicleName = getVehicleProperty(vehicle, 'name');
-      if (vehicleName && vehicleName !== 'N/A') {
-        try {
-          console.log(`Loading packages for vehicle: ${vehicleName}`);
-          const response = await vehicleAPI.getPackageByVehicleName(vehicleName);
-          
-          let packagesData = [];
-          if (response && Array.isArray(response)) {
-            packagesData = response;
-          } else if (response && response.data && Array.isArray(response.data)) {
-            packagesData = response.data;
-          } else if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
-            packagesData = response.data.data;
-          } else if (response && response.data && response.data.isSuccess && Array.isArray(response.data.data)) {
-            packagesData = response.data.data;
+    // Xe đạp điện
+    'YADEA_I8_VINTAGE': 'https://www.yadea.com.vn/wp-content/uploads/2025/03/Anh-dau-banner-i8-gau-xanh-1280x880px.png',
+    'YADEA_I8': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/Anh-sp-banner-1280x880-trang-sua-i8-moi.png',
+    'YADEA_I6_Accumulator': 'https://product.hstatic.net/200000859553/product/hong_cb6790de6aa84124ae1f359932b6b20c_master.png',
+    'YADEA_I6_Lithium_Battery': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/i6-black2.png',
+    'YADEA_IFUN': 'https://www.yadea.com.vn/wp-content/uploads/2024/08/YADEA-iFUN-xanh-anh-ngang.webp',
+    'YADEA_IGO': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/igo-black-banner-1.png',
+    
+    // Xe đạp trợ lực
+    'YADEA_VITO': 'https://www.yadea.com.vn/wp-content/uploads/2025/09/Anh-ngang-VITO-xanh.png',
+    'YADEA_FLIT': 'https://www.yadea.com.vn/wp-content/uploads/2025/09/Anh-ngang-FLIT-trang.png'
+  };
+
+  // Hàm lấy ảnh xe
+  const getVehicleImage = (vehicleName) => {
+    return vehicleImageMapping[vehicleName] || '#DEFAULT_VEHICLE_IMAGE_URL';
+  };
+
+  // Hàm lấy thông tin chi tiết pin
+  const loadBatteryDetails = async (vehiclesData) => {
+    try {
+      const batteryMap = {};
+      
+      for (const vehicle of vehiclesData) {
+        const batteryId = getVehicleProperty(vehicle, 'battery');
+        if (batteryId && batteryId !== 'N/A') {
+          try {
+            console.log(`Loading battery details for batteryId: ${batteryId}`);
+            const batteryResponse = await authAPI.getBatteryById(batteryId);
+            
+            let batteryData = null;
+            if (batteryResponse && batteryResponse.data) {
+              batteryData = batteryResponse.data;
+            } else if (batteryResponse) {
+              batteryData = batteryResponse;
+            }
+            
+            if (batteryData) {
+              batteryMap[batteryId] = batteryData;
+              console.log(`Battery details for ${batteryId}:`, batteryData);
+            }
+          } catch (err) {
+            console.error(`Error loading battery details for ${batteryId}:`, err);
           }
-          
-          packagesMap[getVehicleProperty(vehicle, 'vin')] = packagesData;
-          console.log(`Packages for ${vehicleName}:`, packagesData);
-        } catch (err) {
-          console.error(`Error loading packages for ${vehicleName}:`, err);
-          packagesMap[getVehicleProperty(vehicle, 'vin')] = [];
         }
       }
+      
+      setBatteryDetails(batteryMap);
+    } catch (err) {
+      console.error('Error loading battery details:', err);
+    }
+  };
+
+  // HÀM MỚI: Load tất cả packages
+  const loadAllPackages = async () => {
+    try {
+      const response = await packageAPI.getAllPackages();
+      let packagesData = [];
+      
+      if (response && Array.isArray(response)) {
+        packagesData = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        packagesData = response.data;
+      } else if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
+        packagesData = response.data.data;
+      } else if (response && response.data && response.data.isSuccess && Array.isArray(response.data.data)) {
+        packagesData = response.data.data;
+      }
+      
+      setAllPackages(packagesData);
+      console.log('All packages loaded:', packagesData);
+    } catch (err) {
+      console.error('Error loading all packages:', err);
+    }
+  };
+
+  // Helper to safely get package properties
+  const getPackageProperty = (pkg, property) => {
+    const possibleKeys = {
+      id: ['packageId', 'id', 'packageID', 'PackageId'],
+      name: ['packageName', 'name', 'PackageName', 'package_name']
+    };
+    
+    const keys = possibleKeys[property] || [property];
+    for (let key of keys) {
+      if (pkg[key] !== undefined && pkg[key] !== null) {
+        return pkg[key];
+      }
+    }
+    return 'N/A';
+  };
+
+  // HÀM MỚI: Lấy tên package từ allPackages
+  const getPackageDisplayName = (vehicle) => {
+    const packageId = getVehicleProperty(vehicle, 'package');
+    
+    if (!packageId || packageId === 'N/A') {
+      return 'Chưa có gói';
+    }
+
+    // Tìm package trong allPackages
+    const foundPackage = allPackages.find(pkg => {
+      const pkgId = getPackageProperty(pkg, 'id');
+      return pkgId === packageId;
+    });
+
+    if (foundPackage) {
+      const packageName = getPackageProperty(foundPackage, 'name');
+      return packageName || `Gói ${packageId}`;
+    }
+
+    return `Gói ${packageId}`;
+  };
+
+  // Hàm lấy tên pin để hiển thị
+  const getBatteryDisplayName = (vehicle) => {
+    const batteryId = getVehicleProperty(vehicle, 'battery');
+    
+    // Ưu tiên lấy từ batteryDetails trước
+    if (batteryId && batteryDetails[batteryId]) {
+      const battery = batteryDetails[batteryId];
+      return battery.name || battery.batteryName || `Pin ${batteryId}`;
     }
     
-    setVehiclePackages(packagesMap);
-  } catch (err) {
-    console.error('Error loading vehicle packages:', err);
-  } finally {
-    setPackageLoading(false);
-  }
-};
+    // Fallback: lấy từ vehicle property
+    const batteryName = getVehicleProperty(vehicle, 'batteryName');
+    if (batteryName !== 'N/A') {
+      return batteryName;
+    }
+    
+    // Cuối cùng hiển thị batteryId
+    return batteryId !== 'N/A' ? `Pin ${batteryId}` : 'Chưa có pin';
+  };
+
+  const loadPackagesForVehicles = async (vehiclesData) => {
+    try {
+      setPackageLoading(true);
+      const packagesMap = {};
+      
+      // Lặp qua từng xe để lấy gói phù hợp
+      for (const vehicle of vehiclesData) {
+        const vehicleName = getVehicleProperty(vehicle, 'name');
+        if (vehicleName && vehicleName !== 'N/A') {
+          try {
+            console.log(`Loading packages for vehicle: ${vehicleName}`);
+            const response = await vehicleAPI.getPackageByVehicleName(vehicleName);
+            
+            let packagesData = [];
+            if (response && Array.isArray(response)) {
+              packagesData = response;
+            } else if (response && response.data && Array.isArray(response.data)) {
+              packagesData = response.data;
+            } else if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
+              packagesData = response.data.data;
+            } else if (response && response.data && response.data.isSuccess && Array.isArray(response.data.data)) {
+              packagesData = response.data.data;
+            }
+            
+            packagesMap[getVehicleProperty(vehicle, 'vin')] = packagesData;
+            console.log(`Packages for ${vehicleName}:`, packagesData);
+          } catch (err) {
+            console.error(`Error loading packages for ${vehicleName}:`, err);
+            packagesMap[getVehicleProperty(vehicle, 'vin')] = [];
+          }
+        }
+      }
+      
+      setVehiclePackages(packagesMap);
+    } catch (err) {
+      console.error('Error loading vehicle packages:', err);
+    } finally {
+      setPackageLoading(false);
+    }
+  };
 
   const handleOpenBooking = () => {
     window.location.href = "/booking";
@@ -178,87 +299,91 @@ const getVehicleImage = (vehicleName) => {
 
   useEffect(() => {
     loadVehicles();
+    loadAllPackages(); // Load all packages when component mounts
   }, []);
 
   const loadVehicles = async () => {
-  try {
-    setLoading(true);
-    setError('');
-    console.log('Loading vehicles for current customer...');
-    
-    const response = await vehicleAPI.getCurrentUserVehicles();
-    console.log('Current user vehicles API Response:', response);
-    
-    let vehiclesData = [];
-    
-    if (response && Array.isArray(response)) {
-      vehiclesData = response;
-    } else if (response && response.data && Array.isArray(response.data)) {
-      vehiclesData = response.data;
-    } else if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
-      vehiclesData = response.data.data;
-    } else if (response && response.data && response.data.isSuccess && Array.isArray(response.data.data)) {
-      vehiclesData = response.data.data;
-    } else {
-      console.warn('Unexpected response structure:', response);
-      setError('Không thể tải danh sách xe');
-      setVehicles({});
-      return;
-    }
-    
-    console.log('Extracted user vehicles data:', vehiclesData);
+    try {
+      setLoading(true);
+      setError('');
+      console.log('Loading vehicles for current customer...');
+      
+      const response = await vehicleAPI.getCurrentUserVehicles();
+      console.log('Current user vehicles API Response:', response);
+      
+      let vehiclesData = [];
+      
+      if (response && Array.isArray(response)) {
+        vehiclesData = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        vehiclesData = response.data;
+      } else if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
+        vehiclesData = response.data.data;
+      } else if (response && response.data && response.data.isSuccess && Array.isArray(response.data.data)) {
+        vehiclesData = response.data.data;
+      } else {
+        console.warn('Unexpected response structure:', response);
+        setError('Không thể tải danh sách xe');
+        setVehicles({});
+        return;
+      }
+      
+      console.log('Extracted user vehicles data:', vehiclesData);
 
-    if (vehiclesData && vehiclesData.length > 0) {
-      // SỬA: Lọc xe active với các trạng thái khác nhau từ enum
-      const activeVehicles = vehiclesData.filter(vehicle => {
-        const status = getVehicleProperty(vehicle, 'status');
-        // Kiểm tra nhiều trạng thái có thể được coi là "active"
-        return status === 'Active' || 
-               status === 'active' || 
-               status === 'linked' || 
-               status === 'Linked';
-      });
-      
-      console.log('Active user vehicles:', activeVehicles);
-      
-      if (activeVehicles.length > 0) {
-        const vehicleTypes = {};
-        activeVehicles.forEach(vehicle => {
-          const type = vehicle.vehicle_type || vehicle.type || vehicle.vehicleType || 'Khác';
-          if (!vehicleTypes[type]) {
-            vehicleTypes[type] = [];
-          }
-          vehicleTypes[type].push(vehicle);
+      if (vehiclesData && vehiclesData.length > 0) {
+        // Lọc xe active với các trạng thái khác nhau từ enum
+        const activeVehicles = vehiclesData.filter(vehicle => {
+          const status = getVehicleProperty(vehicle, 'status');
+          // Kiểm tra nhiều trạng thái có thể được coi là "active"
+          return status === 'Active' || 
+                 status === 'active' || 
+                 status === 'linked' || 
+                 status === 'Linked';
         });
         
-        console.log('Grouped active vehicles:', vehicleTypes);
-        setVehicles(vehicleTypes);
+        console.log('Active user vehicles:', activeVehicles);
         
-        // Load packages cho các xe
-        await loadPackagesForVehicles(activeVehicles);
+        if (activeVehicles.length > 0) {
+          const vehicleTypes = {};
+          activeVehicles.forEach(vehicle => {
+            const type = vehicle.vehicle_type || vehicle.type || vehicle.vehicleType || 'Khác';
+            if (!vehicleTypes[type]) {
+              vehicleTypes[type] = [];
+            }
+            vehicleTypes[type].push(vehicle);
+          });
+          
+          console.log('Grouped active vehicles:', vehicleTypes);
+          setVehicles(vehicleTypes);
+          
+          // Load packages và battery details song song
+          await Promise.all([
+            loadPackagesForVehicles(activeVehicles),
+            loadBatteryDetails(activeVehicles)
+          ]);
+        } else {
+          setError('Không có xe nào đang hoạt động trong tài khoản của bạn');
+          setVehicles({});
+        }
       } else {
-        setError('Không có xe nào đang hoạt động trong tài khoản của bạn');
+        setError('Không có xe nào trong tài khoản của bạn');
         setVehicles({});
       }
-    } else {
-      setError('Không có xe nào trong tài khoản của bạn');
+    } catch (err) {
+      console.error('Error loading vehicles:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setError('Bạn không có quyền truy cập danh sách xe');
+      } else {
+        const errorMessage = err?.response?.data?.message || 
+                            err?.message || 
+                            'Lỗi khi tải danh sách phương tiện. Vui lòng thử lại sau';
+        setError(errorMessage);
+      }
       setVehicles({});
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error('Error loading vehicles:', err);
-    if (err.response?.status === 401 || err.response?.status === 403) {
-      setError('Bạn không có quyền truy cập danh sách xe');
-    } else {
-      const errorMessage = err?.response?.data?.message || 
-                          err?.message || 
-                          'Lỗi khi tải danh sách phương tiện. Vui lòng thử lại sau';
-      setError(errorMessage);
-    }
-    setVehicles({});
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleCreateVehicle = async () => {
     try {
@@ -359,34 +484,29 @@ const getVehicleImage = (vehicleName) => {
 
   // Helper to safely get vehicle properties
   const getVehicleProperty = (vehicle, property) => {
-  const possibleKeys = {
-    vin: ['VIN', 'vin', 'vehicleId', 'id', 'vehicleID'],
-    battery: ['BatteryID', 'batteryId', 'batteryID', 'battery'],
-    batteryName: ['BatteryName', 'batteryName', 'battery_name', 'Battery_Name'], // THÊM DÒNG NÀY
-    package: ['PackageID', 'packageId', 'packageID', 'package'],
-    name: ['vehicle_name', 'name', 'vehicleName', 'model', 'vehicle_name'],
-    status: ['status', 'Status', 'state'],
-    type: ['vehicle_type', 'type', 'vehicleType']
-  };
-  
-  const keys = possibleKeys[property] || [property];
-  for (let key of keys) {
-    if (vehicle[key] !== undefined && vehicle[key] !== null) {
-      return vehicle[key];
+    const possibleKeys = {
+      vin: ['VIN', 'vin', 'vehicleId', 'id', 'vehicleID'],
+      battery: ['BatteryID', 'batteryId', 'batteryID', 'battery'],
+      batteryName: ['BatteryName', 'batteryName', 'battery_name', 'Battery_Name'],
+      package: ['PackageID', 'packageId', 'packageID', 'package'],
+      packageName: ['PackageName', 'packageName', 'package_name', 'Package_Name'],
+      name: ['vehicle_name', 'name', 'vehicleName', 'model', 'vehicle_name'],
+      status: ['status', 'Status', 'state'],
+      type: ['vehicle_type', 'type', 'vehicleType']
+    };
+    
+    const keys = possibleKeys[property] || [property];
+    for (let key of keys) {
+      if (vehicle[key] !== undefined && vehicle[key] !== null) {
+        return vehicle[key];
+      }
     }
-  }
-  return 'N/A';
-};
+    return 'N/A';
+  };
 
   // Hàm hiển thị status text
   const getStatusDisplayText = (status) => {
     switch(status) {
-      case 'Active':
-      case 'active':
-        return 'Hoạt động';
-      case 'Inactive':
-      case 'inactive':
-        return 'Không hoạt động';
       case 'Linked':
       case 'linked':
         return 'Đã liên kết';
@@ -520,11 +640,11 @@ const getVehicleImage = (vehicleName) => {
                 <div className="vehicle-grid">
                   {vehicles[type].map((vehicle, vIdx) => (
                     <div 
-  key={getVehicleProperty(vehicle, 'vin')} 
-  className="vehicle-card-modern"
-  style={{animationDelay: `${(idx * 0.1) + (vIdx * 0.05)}s`}}
-  onClick={() => handleSelectVehicle(vehicle)}
->
+                      key={getVehicleProperty(vehicle, 'vin')} 
+                      className="vehicle-card-modern"
+                      style={{animationDelay: `${(idx * 0.1) + (vIdx * 0.05)}s`}}
+                      onClick={() => handleSelectVehicle(vehicle)}
+                    >
                       <div className="card-shine"></div>
                       <div className="card-glow"></div>
                       
@@ -550,24 +670,24 @@ const getVehicleImage = (vehicleName) => {
 
                       {/* Status và Delete button */}
                       <div className="card-actions">
-  <span className={`status-badge ${getVehicleProperty(vehicle, 'status')?.toLowerCase()}`}>
-    <span className="status-dot"></span>
-    {getStatusDisplayText(getVehicleProperty(vehicle, 'status'))}
-  </span>
-  {isInRole('EvDriver') && (
-    <button 
-      className="delete-vehicle-btn"
-      onClick={(e) => {
-        e.stopPropagation(); // Quan trọng: Ngăn sự kiện click lan ra ngoài
-        e.preventDefault();
-        handleDeleteVehicle(getVehicleProperty(vehicle, 'vin'));
-      }}
-      title="Xóa xe"
-    >
-      🗑️
-    </button>
-  )}
-</div>
+                        <span className={`status-badge ${getVehicleProperty(vehicle, 'status')?.toLowerCase()}`}>
+                          <span className="status-dot"></span>
+                          {getStatusDisplayText(getVehicleProperty(vehicle, 'status'))}
+                        </span>
+                        {isInRole('EvDriver') && (
+                          <button 
+                            className="delete-vehicle-btn"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Quan trọng: Ngăn sự kiện click lan ra ngoài
+                              e.preventDefault();
+                              handleDeleteVehicle(getVehicleProperty(vehicle, 'vin'));
+                            }}
+                            title="Xóa xe"
+                          >
+                            🗑️
+                          </button>
+                        )}
+                      </div>
 
                       <div className="card-body">
                         <h3 className="vehicle-name">{getVehicleProperty(vehicle, 'name')}</h3>
@@ -580,16 +700,14 @@ const getVehicleImage = (vehicleName) => {
                           <div className="detail-row">
                             <span className="detail-label">Pin</span>
                             <span className="detail-value battery-id">
-                              🔋 {getVehicleProperty(vehicle, 'batteryName') !== 'N/A' 
-                              ? getVehicleProperty(vehicle, 'batteryName') 
-                              : getVehicleProperty(vehicle, 'battery')}
+                              🔋 {getBatteryDisplayName(vehicle)}
                             </span>
                           </div>
                           <div className="detail-row">
                             <span className="detail-label">Gói hiện tại</span>
                             <span className="detail-value package-id">
                               {getVehicleProperty(vehicle, 'package') && getVehicleProperty(vehicle, 'package') !== 'N/A' ? (
-                                <span className="has-package">📦 {getVehicleProperty(vehicle, 'package')}</span>
+                                <span className="has-package">📦 {getPackageDisplayName(vehicle)}</span>
                               ) : (
                                 <span className="no-package">Chưa có</span>
                               )}
@@ -700,7 +818,7 @@ const getVehicleImage = (vehicleName) => {
           </div>
         )}
       </div>
-       <Footer />
+      <Footer />
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { packageAPI } from '../../services/packageAPI';
+import { authAPI } from '../../services/authAPI';
 import './PackageManager.css';
 
 const PackageManager = () => {
@@ -14,50 +15,129 @@ const PackageManager = () => {
     packageName: '',
     price: '',
     description: '',
-    batteryType: ''
+    batteryType: '',
+    status: 'Active'
   });
 
   const [errors, setErrors] = useState({});
+  const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
 
-  // Load all packages (bao gồm cả inactive)
+  // FIX: Load packages khi component mount
   useEffect(() => {
     loadPackages();
   }, []);
 
+  // Effect riêng cho status update
+  useEffect(() => {
+    if (editingPackage && formData.status !== getDisplayStatus(editingPackage)) {
+      const packageId = getPackageProperty(editingPackage, 'id');
+      if (packageId && packageId !== 'N/A') {
+        handleUpdatePackageStatus(packageId, formData.status);
+      }
+    }
+  }, [formData.status, editingPackage]);
+
   const loadPackages = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Starting to load packages...');
+      
       const response = await packageAPI.getAllPackages();
       
-      console.log('API Response:', response); // Debug response
+      console.log('📦 Full API Response:', response);
+      console.log('🔍 Response structure:', {
+        isArray: Array.isArray(response),
+        hasData: !!response?.data,
+        hasDataData: !!response?.data?.data,
+        hasIsSuccess: response?.isSuccess,
+        responseKeys: Object.keys(response || {})
+      });
       
       let allPackages = [];
       
-      // Handle different response structures - CẢI THIỆN XỬ LÝ RESPONSE
+      // Handle different response structures
       if (response && Array.isArray(response)) {
         allPackages = response;
+        console.log('✅ Case 1: Direct array');
       } else if (response && response.data && Array.isArray(response.data)) {
         allPackages = response.data;
+        console.log('✅ Case 2: response.data is array');
       } else if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
         allPackages = response.data.data;
+        console.log('✅ Case 3: response.data.data is array');
       } else if (response && response.data && response.data.isSuccess && Array.isArray(response.data.data)) {
         allPackages = response.data.data;
+        console.log('✅ Case 4: response.data.isSuccess with data array');
       } else if (response && response.isSuccess && Array.isArray(response.data)) {
         allPackages = response.data;
+        console.log('✅ Case 5: response.isSuccess with data array');
       } else if (response && Array.isArray(response.packages)) {
         allPackages = response.packages;
+        console.log('✅ Case 6: response.packages is array');
       } else if (response && Array.isArray(response.items)) {
         allPackages = response.items;
+        console.log('✅ Case 7: response.items is array');
+      } else {
+        console.log('❌ No matching case structure');
+        // Fallback: try to find any array in response
+        const findArrayInObject = (obj) => {
+          for (let key in obj) {
+            if (Array.isArray(obj[key])) {
+              return obj[key];
+            }
+            if (typeof obj[key] === 'object' && obj[key] !== null) {
+              const found = findArrayInObject(obj[key]);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+        
+        const foundArray = findArrayInObject(response || {});
+        if (foundArray) {
+          allPackages = foundArray;
+          console.log('✅ Fallback: Found array in nested object');
+        }
       }
       
-      console.log('Extracted packages:', allPackages); // Debug extracted data
+      console.log('📊 Extracted packages:', allPackages);
+      console.log('🔢 Number of packages:', allPackages.length);
       
       setPackages(allPackages || []);
+      
     } catch (error) {
-      console.error('Error loading packages:', error);
+      console.error('❌ Error loading packages:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response,
+        status: error.status
+      });
       showAlert('error', 'Không thể tải danh sách gói dịch vụ: ' + (error.message || 'Lỗi không xác định'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdatePackageStatus = async (packageId, newStatus) => {
+    if (!packageId) return;
+    
+    setStatusUpdateLoading(true);
+    try {
+      await authAPI.updatePackageStatus(packageId, newStatus);
+      
+      setPackages(prev => prev.map(pkg => 
+        getPackageProperty(pkg, 'id') === packageId ? { ...pkg, status: newStatus } : pkg
+      ));
+      
+      if (editingPackage && getPackageProperty(editingPackage, 'id') === packageId) {
+        setFormData(prev => ({ ...prev, status: newStatus }));
+      }
+      
+      showAlert('success', `Đã cập nhật trạng thái thành ${newStatus}`);
+    } catch (error) {
+      showAlert('error', 'Cập nhật trạng thái thất bại: ' + error.message);
+    } finally {
+      setStatusUpdateLoading(false);
     }
   };
 
@@ -66,26 +146,25 @@ const PackageManager = () => {
     setTimeout(() => setAlert({ show: false, type: '', message: '' }), 5000);
   };
 
-  // Helper function to get package property
   const getPackageProperty = (pkg, property) => {
-  const possibleKeys = {
-    id: ['packageId', 'id', 'packageID', 'PackageID', 'PackageId'],
-    name: ['packageName', 'packName', 'name', 'packageName', 'title', 'PackageName'],
-    price: ['price', 'cost', 'amount', 'Price'],
-    duration: ['duration', 'period', 'validity', 'Duration'],
-    description: ['description', 'desc', 'details', 'Description'],
-    status: ['status', 'Status', 'state', 'isActive'],
-    batteryType: ['batteryType', 'batterySpecification', 'BatteryType'] // THÊM DÒNG NÀY
-  };
-  
-  const keys = possibleKeys[property] || [property];
-  for (let key of keys) {
-    if (pkg[key] !== undefined && pkg[key] !== null && pkg[key] !== '') {
-      return pkg[key];
+    const possibleKeys = {
+      id: ['packageId', 'id', 'packageID', 'PackageID', 'PackageId'],
+      name: ['packageName', 'packName', 'name', 'packageName', 'title', 'PackageName'],
+      price: ['price', 'cost', 'amount', 'Price'],
+      duration: ['duration', 'period', 'validity', 'Duration'],
+      description: ['description', 'desc', 'details', 'Description'],
+      status: ['status', 'Status', 'state', 'isActive'],
+      batteryType: ['batteryType', 'batterySpecification', 'BatteryType']
+    };
+    
+    const keys = possibleKeys[property] || [property];
+    for (let key of keys) {
+      if (pkg[key] !== undefined && pkg[key] !== null && pkg[key] !== '') {
+        return pkg[key];
+      }
     }
-  }
-  return property === 'price' ? 0 : 'N/A';
-};
+    return property === 'price' ? 0 : 'N/A';
+  };
 
   const getPackageDisplayName = (pkg) => {
     const name = getPackageProperty(pkg, 'name');
@@ -93,14 +172,17 @@ const PackageManager = () => {
     return name !== 'N/A' ? name : `Package ${packageId}`;
   };
 
-  // KIỂM TRA PACKAGE CÓ ACTIVE KHÔNG - CẢI THIỆN LOGIC
   const isPackageActive = (pkg) => {
     const status = getPackageProperty(pkg, 'status');
     const isActive = getPackageProperty(pkg, 'isActive');
     
     return status === 'Active' || status === 'active' || status === true || 
            status === 1 || isActive === true || isActive === 1 ||
-           status === 'N/A' || !status; // Mặc định là active nếu không có status
+           status === 'N/A' || !status;
+  };
+
+  const getDisplayStatus = (pkg) => {
+    return isPackageActive(pkg) ? 'Active' : 'Inactive';
   };
 
   const validateForm = () => {
@@ -125,18 +207,16 @@ const PackageManager = () => {
       }
     }
 
-    
-
     if (formData.description.length > 500) {
       newErrors.description = 'Mô tả không được vượt quá 500 ký tự';
     }
     
     if (!formData.batteryType) {
-    newErrors.batteryType = 'Vui lòng chọn loại pin';
-  }
-  
-  setErrors(newErrors);
-  return Object.keys(newErrors).length === 0;
+      newErrors.batteryType = 'Vui lòng chọn loại pin';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleInputChange = (e) => {
@@ -146,7 +226,6 @@ const PackageManager = () => {
       [name]: value
     }));
     
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -160,7 +239,8 @@ const PackageManager = () => {
       packageName: '',
       price: '',
       description: '',
-      batteryType: ''
+      batteryType: '',
+      status: 'Active'
     });
     setErrors({});
     setEditingPackage(null);
@@ -168,21 +248,16 @@ const PackageManager = () => {
   };
 
   const handleEdit = (pkg) => {
-  // Kiểm tra nếu package không active thì không cho chỉnh sửa
-  if (!isPackageActive(pkg)) {
-    showAlert('error', 'Không thể chỉnh sửa gói dịch vụ đã bị vô hiệu hóa');
-    return;
-  }
-  
-  setEditingPackage(pkg);
-  setFormData({
-    packageName: getPackageProperty(pkg, 'name'),
-    price: getPackageProperty(pkg, 'price'),
-    description: getPackageProperty(pkg, 'description') || '',
-    batteryType: pkg.batteryType || pkg.batterySpecification || '' // CẢI THIỆN LẤY BATTERY TYPE
-  });
-  setShowForm(true);
-};
+    setEditingPackage(pkg);
+    setFormData({
+      packageName: getPackageProperty(pkg, 'name'),
+      price: getPackageProperty(pkg, 'price'),
+      description: getPackageProperty(pkg, 'description') || '',
+      batteryType: pkg.batteryType || pkg.batterySpecification || '',
+      status: getDisplayStatus(pkg)
+    });
+    setShowForm(true);
+  };
 
   const handleCreateNew = () => {
     resetForm();
@@ -190,42 +265,37 @@ const PackageManager = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  // Validate form
-  if (!validateForm()) {
-    showAlert('error', 'Vui lòng kiểm tra lại thông tin trong form');
-    return;
-  }
-
-  try {
-    setSubmitting(true);
-
-    // Chuẩn bị dữ liệu - THÊM BATTERY TYPE
-    const submitData = {
-      packageName: formData.packageName.trim(),
-      price: parseFloat(formData.price),
-      description: formData.description.trim() || '',
-      batteryType: formData.batteryType // THÊM DÒNG NÀY
-    };
-
-    console.log('Sending package data:', submitData);
-
-    let response;
-
-    if (editingPackage) {
-      // Update existing package
-      const updateData = {
-        ...submitData,
-        packageId: getPackageProperty(editingPackage, 'id')
-      };
-      response = await packageAPI.updatePackage(updateData);
-    } else {
-      // Create new package
-      response = await packageAPI.createPackage(submitData);
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      showAlert('error', 'Vui lòng kiểm tra lại thông tin trong form');
+      return;
     }
-      
-      // CẢI THIỆN XỬ LÝ RESPONSE
+
+    try {
+      setSubmitting(true);
+
+      const submitData = {
+        packageName: formData.packageName.trim(),
+        price: parseFloat(formData.price),
+        description: formData.description.trim() || '',
+        batteryType: formData.batteryType
+      };
+
+      console.log('Sending package data:', submitData);
+
+      let response;
+
+      if (editingPackage) {
+        const updateData = {
+          ...submitData,
+          packageId: getPackageProperty(editingPackage, 'id')
+        };
+        response = await packageAPI.updatePackage(updateData);
+      } else {
+        response = await packageAPI.createPackage(submitData);
+      }
+        
       const isSuccess = response?.isSuccess || 
                        response?.data?.isSuccess || 
                        response?.status === 200 ||
@@ -239,7 +309,7 @@ const PackageManager = () => {
         
         showAlert('success', successMessage);
         resetForm();
-        await loadPackages(); // Đợi load lại danh sách
+        await loadPackages();
       } else {
         const errorMsg = response?.message || 
                         response?.data?.message || 
@@ -388,34 +458,34 @@ const PackageManager = () => {
               </div>
 
               <div className="package-manager-form-group">
-             <label className="package-manager-label">
-             Battery Specification *
-            </label>
-            <select
-            name="batteryType"
-            value={formData.batteryType}
-            onChange={handleInputChange}
-            disabled={submitting}
-           className={`package-manager-select ${errors.batteryType ? 'error' : ''}`}
-           required
-           >
-          <option value="">Chọn loại pin</option>
-          <option value="V48_Ah13">48V-13Ah</option>
-          <option value="V60_Ah22">60V-22Ah</option>
-          <option value="V72_Ah38">72V-38Ah</option>
-          <option value="V72_Ah50">72V-50Ah</option>
-          <option value="V48_Ah22">48V-22Ah</option>
-          <option value="V72_Ah30">72V-30Ah</option>
-          <option value="V72_Ah22">72V-22Ah</option>
-          <option value="V60_Ah20">60V-20Ah</option>
-          <option value="V48_Ah12">48V-12Ah</option>
-          <option value="V36_Ah10_4">36V - 10.4Ah / 374.4Wh</option>
-          <option value="V36_Ah7_8">36V - 7.8Ah / 378Wh</option>
-       </select>
-       {errors.batteryType && (
-      <div className="package-manager-error">{errors.batteryType}</div>
-      )}
-    </div>
+                <label className="package-manager-label">
+                  Battery Specification *
+                </label>
+                <select
+                  name="batteryType"
+                  value={formData.batteryType}
+                  onChange={handleInputChange}
+                  disabled={submitting}
+                  className={`package-manager-select ${errors.batteryType ? 'error' : ''}`}
+                  required
+                >
+                  <option value="">Chọn loại pin</option>
+                  <option value="V48_Ah13">48V-13Ah</option>
+                  <option value="V60_Ah22">60V-22Ah</option>
+                  <option value="V72_Ah38">72V-38Ah</option>
+                  <option value="V72_Ah50">72V-50Ah</option>
+                  <option value="V48_Ah22">48V-22Ah</option>
+                  <option value="V72_Ah30">72V-30Ah</option>
+                  <option value="V72_Ah22">72V-22Ah</option>
+                  <option value="V60_Ah20">60V-20Ah</option>
+                  <option value="V48_Ah12">48V-12Ah</option>
+                  <option value="V36_Ah10_4">36V - 10.4Ah / 374.4Wh</option>
+                  <option value="V36_Ah7_8">36V - 7.8Ah / 378Wh</option>
+                </select>
+                {errors.batteryType && (
+                  <div className="package-manager-error">{errors.batteryType}</div>
+                )}
+              </div>
 
               {/* Description */}
               <div className="package-manager-form-group">
@@ -503,11 +573,6 @@ const PackageManager = () => {
                 <div className="package-manager-card-header">
                   <h3 className="package-manager-card-title">
                     {getPackageDisplayName(pkg)}
-                    {!isPackageActive(pkg) ? (
-                      <span className="package-status-badge inactive">INACTIVE</span>
-                    ) : (
-                      <span className="package-status-badge active">ACTIVE</span>
-                    )}
                   </h3>
                   <span className="package-manager-card-id">
                     ID: {getPackageProperty(pkg, 'id')}
@@ -516,30 +581,37 @@ const PackageManager = () => {
                 
                 <div className="package-manager-card-content">
                   <div className="package-manager-card-price">
-                  {getPackageProperty(pkg, 'price')?.toLocaleString('vi-VN')} VND
-                </div>
-  
-                {/* THÊM HIỂN THỊ BATTERY TYPE */}
-                <div className="package-manager-card-battery">
-                 <strong>Loại pin:</strong> {getPackageProperty(pkg, 'batteryType')}
-                </div>
-  
-                <div className="package-manager-card-description">
-               {getPackageProperty(pkg, 'description') || 'Không có mô tả'}
-               </div>
+                    {getPackageProperty(pkg, 'price')?.toLocaleString('vi-VN')} VND
+                  </div>
 
-               {/* Hiển thị trạng thái */}
-               <div className="package-manager-card-status">
-                 <strong>Trạng thái:</strong> {isPackageActive(pkg) ? '🟢 Active' : '🔴 Inactive'}
-              </div>
+                  <div className="package-manager-card-battery">
+                    <strong>Loại pin:</strong> {getPackageProperty(pkg, 'batteryType')}
+                  </div>
+
+                  <div className="package-manager-card-description">
+                    {getPackageProperty(pkg, 'description') || 'Không có mô tả'}
+                  </div>
+
+                  <div className="package-manager-card-status">
+                    <strong>Trạng thái:</strong>
+                    <select 
+                      value={getDisplayStatus(pkg)} 
+                      onChange={(e) => handleUpdatePackageStatus(getPackageProperty(pkg, 'id'), e.target.value)}
+                      disabled={statusUpdateLoading || submitting}
+                      className={`status-select ${isPackageActive(pkg) ? 'status-active' : 'status-inactive'}`}
+                      style={{ marginLeft: '8px' }}
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
                 </div>
                 
                 <div className="package-manager-card-actions">
                   <button
                     onClick={() => handleEdit(pkg)}
-                    disabled={submitting || !isPackageActive(pkg)}
+                    disabled={submitting}
                     className="package-manager-card-btn package-manager-card-btn-edit"
-                    title={!isPackageActive(pkg) ? 'Không thể chỉnh sửa gói đã vô hiệu hóa' : ''}
                   >
                     ✏️ Chỉnh sửa
                   </button>
