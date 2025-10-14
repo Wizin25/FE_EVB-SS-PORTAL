@@ -1,7 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
 import './Contact.css';
 
-const SupportCenter = ({ theme = 'light' }) => {
+const SupportCenter = () => {
+  const navigate = useNavigate();
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') || 'light';
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    setTheme(savedTheme);
+  }, []);
+
   const [activeTab, setActiveTab] = useState('general');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFaq, setExpandedFaq] = useState(null);
@@ -140,6 +154,39 @@ const SupportCenter = ({ theme = 'light' }) => {
 
   return (
     <div className={`support-center ${theme}`}>
+      <div className="support-wrapper">
+        <button
+          onClick={() => navigate('/home')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            marginBottom: '16px',
+            background: 'linear-gradient(to right, #667eea, #764ba2)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 600,
+            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+            transition: 'all 0.3s',
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = 'linear-gradient(to right, #5a67d8, #6b46c1)';
+            e.target.style.transform = 'translateY(-2px) scale(1.05)';
+            e.target.style.boxShadow = '0 6px 20px rgba(90, 103, 216, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = 'linear-gradient(to right, #667eea, #764ba2)';
+            e.target.style.transform = 'translateY(0) scale(1)';
+            e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+          }}
+        >
+          <span>🏠</span>
+          Trở về trang chủ
+        </button>
+
       {/* Hero Section */}
       <section className="support-hero">
         <div className="hero-content">
@@ -295,6 +342,7 @@ const SupportCenter = ({ theme = 'light' }) => {
           </div>
         </div>
       </section>
+      </div>
     </div>
   );
 };

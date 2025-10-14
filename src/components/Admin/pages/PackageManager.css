@@ -1293,3 +1293,10 @@
   font-size: 14px;
   color: #666;
 }
+
+.package-manager-hint {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 4px;
+  font-style: italic;
+}

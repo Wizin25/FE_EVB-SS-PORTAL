@@ -70,20 +70,20 @@ export const authAPI = {
   },
 
   changePassword: async (passwordData) => {
-  try {
-    const response = await api.put('/api/Account/change-password', {
-      oldPassword: passwordData.oldPassword,
-      newPassword: passwordData.newPassword,
-      confirmPassword: passwordData.confirmPassword
-    });
-    
-    // Trả về toàn bộ response data để xử lý
-    return response.data;
-  } catch (error) {
-    // Ném lỗi để component bắt được
-    throw error.response?.data || error;
-  }
-},
+    try {
+      const response = await api.put('/api/Account/change-password', {
+        oldPassword: passwordData.oldPassword,
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword
+      });
+      
+      // Trả về toàn bộ response data để xử lý
+      return response.data;
+    } catch (error) {
+      // Ném lỗi để component bắt được
+      throw error.response?.data || error;
+    }
+  },
 
   getCurrent: async () => {
     try {
@@ -204,6 +204,7 @@ export const authAPI = {
       throw error;
     }
   },
+
   getAllStations: async () => {
     try {
       const res = await api.get('/api/Station/get_all_stations');
@@ -294,19 +295,21 @@ export const authAPI = {
       throw new Error(msg);
     }
   },
-  // Battery APIs
-getAllBatteries: async () => {
-  try {
-    const res = await api.get("api/Battery/get-all-batteries");
-    if (res.data?.isSuccess) {
-      return res.data.data;
-    }
-    return [];
-  } catch (err) {
-    throw new Error(err?.message || "Lỗi khi lấy danh sách pin");
-  }
-},
 
+  // Battery APIs
+  getAllBatteries: async () => {
+    try {
+      const res = await api.get("api/Battery/get-all-batteries");
+      if (res.data?.isSuccess) {
+        return res.data.data;
+      }
+      return [];
+    } catch (err) {
+      throw new Error(err?.message || "Lỗi khi lấy danh sách pin");
+    }
+  },
+
+  // Thêm vào authAPI.js nếu chưa có
 getBatteryById: async (batteryId) => {
   try {
     const res = await api.get(`/api/Battery/get-battery-by-id?batteryId=${batteryId}`);
@@ -319,56 +322,117 @@ getBatteryById: async (batteryId) => {
   }
 },
 
-createBattery: async (formData) => {
-  try {
-    const res = await api.post("/api/Battery/add-battery", formData, {
-      headers: { "Content-Type": "multipart/form-data" }
-    });
-    return res.data;
-  } catch (err) {
-    throw new Error(err?.message || "Tạo pin thất bại");
-  }
-},
+  createBattery: async (formData) => {
+    try {
+      const res = await api.post("/api/Battery/add-battery", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      return res.data;
+    } catch (err) {
+      throw new Error(err?.message || "Tạo pin thất bại");
+    }
+  },
 
-updateBattery: async (formData) => {
-  try {
-    const res = await api.put("/api/Battery/update-battery", formData, {
-      headers: { "Content-Type": "multipart/form-data" }
-    });
-    return res.data;
-  } catch (err) {
-    throw new Error(err?.message || "Cập nhật pin thất bại");
-  }
-},
+  updateBattery: async (formData) => {
+    try {
+      const res = await api.put("/api/Battery/update-battery", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      return res.data;
+    } catch (err) {
+      throw new Error(err?.message || "Cập nhật pin thất bại");
+    }
+  },
 
-deleteBattery: async (batteryId) => {
-  try {
-    const formData = new FormData();
-    formData.append("batteryId", batteryId);
-    const res = await api.put("/api/Battery/delete-battery", formData, {
-      headers: { "Content-Type": "multipart/form-data" }
-    });
-    return res.data;
-  } catch (err) {
-    throw new Error(err?.message || "Xóa pin thất bại");
-  }
-},
+  deleteBattery: async (batteryId) => {
+    try {
+      const formData = new FormData();
+      formData.append("batteryId", batteryId);
+      const res = await api.put("/api/Battery/delete-battery", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      return res.data;
+    } catch (err) {
+      throw new Error(err?.message || "Xóa pin thất bại");
+    }
+  },
 
-addBatteryToStation: async (batteryId, stationId) => {
-  try {
-    const formData = new FormData();
-    formData.append("BatteryId", batteryId);
-    formData.append("StationId", stationId);
-    const res = await api.put("/api/Battery/add-battery-in-station", formData, {
-      headers: { "Content-Type": "multipart/form-data" }
-    });
-    return res.data;
-  } catch (err) {
-    throw new Error(err?.message || "Gán pin vào trạm thất bại");
-  }
-},
+  addBatteryToStation: async (batteryId, stationId) => {
+    try {
+      const formData = new FormData();
+      formData.append("BatteryId", batteryId);
+      formData.append("StationId", stationId);
+      const res = await api.put("/api/Battery/add-battery-in-station", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      return res.data;
+    } catch (err) {
+      throw new Error(err?.message || "Gán pin vào trạm thất bại");
+    }
+  },
 
- getDriverBatteries: async () => {
+  // STATUS MANAGEMENT APIs - MỚI THÊM
+  updateBatteryStatus: async (batteryId, status) => {
+    try {
+      const formData = new FormData();
+      formData.append("BatteryId", batteryId);
+      formData.append("Status", status);
+
+      const response = await api.put('/api/Battery/update_battery_in_station_status', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Update battery status failed');
+    }
+  },
+
+  updatePackageStatus: async (packageId, status) => {
+    try {
+      const formData = new FormData();
+      formData.append("PackageId", packageId);
+      formData.append("Status", status);
+
+      const response = await api.put('/api/Package/update_package_status', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Update package status failed');
+    }
+  },
+
+  updateStationStatus: async (stationId, status) => {
+    try {
+      const formData = new FormData();
+      formData.append("StationId", stationId);
+      formData.append("Status", status);
+
+      const response = await api.put('/api/Station/update_station_status', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Update station status failed');
+    }
+  },
+
+  updateAccountStatus: async (accountId, status) => {
+    try {
+      const formData = new FormData();
+      formData.append("AccountID", accountId);
+      formData.append("Status", status);
+
+      const response = await api.put('/api/Account/update_status', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Update account status failed');
+    }
+  },
+
+  getDriverBatteries: async () => {
     try {
       // Tạm thời dùng getAllBatteries, sau này có API riêng thì thay thế
       const res = await api.get('/api/Battery/get-all-batteries');
@@ -380,6 +444,7 @@ addBatteryToStation: async (batteryId, stationId) => {
       throw new Error(err?.message || 'Lỗi khi lấy danh sách pin của tài xế');
     }
   },
+
   // Rating APIs
   addRating: async ({ rating1, description, stationId, accountId }) => {
     try {
@@ -399,6 +464,7 @@ addBatteryToStation: async (batteryId, stationId) => {
       throw new Error(msg);
     }
   },
+
   getAllRatings: async () => {
     try {
       const res = await api.get('/api/Rating/get_all_ratings');
@@ -411,6 +477,7 @@ addBatteryToStation: async (batteryId, stationId) => {
       throw new Error(msg);
     }
   },
+
   // Booking/Form APIs
   createForm: async ({ accountId, title, description, date, stationId, vin, batteryId }) => {
     try {
@@ -505,17 +572,17 @@ addBatteryToStation: async (batteryId, stationId) => {
   },
 
   getStationByIdForAdmin: async (stationId) => {
-  try {
-    const res = await api.get('/api/Station/get_station_by_id_for_admin', {
-      params: { stationId }
-    });
-    if (res?.data?.isSuccess) {
-      return res.data.data;
+    try {
+      const res = await api.get('/api/Station/get_station_by_id_for_admin', {
+        params: { stationId }
+      });
+      if (res?.data?.isSuccess) {
+        return res.data.data;
+      }
+      return null;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Lấy thông tin trạm thất bại';
+      throw new Error(msg);
     }
-    return null;
-  } catch (err) {
-    const msg = err?.response?.data?.message || err?.message || 'Lấy thông tin trạm thất bại';
-    throw new Error(msg);
-  }
-},
+  },
 };

@@ -1379,3 +1379,144 @@
 .card-shine, .card-glow {
   pointer-events: none;
 }
+
+.status-badge.active,
+.status-badge.linked {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.status-badge.inactive,
+.status-badge.unlinked {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.2));
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #ef4444;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+.expired-date {
+  color: #22c55e; /* Màu xanh cho còn hạn */
+}
+
+.expired-date.expiring-soon {
+  color: #eab308; /* Màu vàng cho sắp hết hạn */
+}
+
+.expired-date.expired {
+  color: #ef4444; /* Màu đỏ cho đã hết hạn */
+}
+
+.battery-info-display {
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+  font-weight: 500;
+  color: #2e7d32;
+}
+
+.battery-info-display {
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+  font-weight: 500;
+  color: #2e7d32;
+  font-size: 14px;
+}
+
+.form-readonly {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+  color: #666;
+  font-size: 14px;
+}
+
+.dark .form-readonly {
+  background: #2d2d2d;
+  border-color: #444;
+  color: #ccc;
+}
+
+.dark .battery-info-display {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.4);
+  color: #81c784;
+}
+
+/* Add to Vehicle.css */
+.battery-type-info {
+  color: #4facfe;
+  font-size: 0.85rem;
+  margin-top: 2px;
+}
+
+.battery-quality-info {
+  color: #ffd93d;
+  font-size: 0.85rem;
+  margin-top: 2px;
+}
+
+.detail-row.compact {
+  padding: 0.5rem 0.75rem;
+  margin-top: -8px;
+}
+
+.detail-row.compact .detail-label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.detail-row.compact .detail-value {
+  font-size: 0.8rem;
+}
+
+/* Vehicle.css - Thêm các style mới */
+
+/* Battery info styles */
+.battery-type, .battery-spec, .battery-quality {
+  font-size: 0.9em;
+  color: var(--text-secondary);
+}
+
+.battery-info-note {
+  font-size: 0.8em;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+.form-readonly {
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.battery-info-display {
+  padding: 0.75rem;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .battery-type, .battery-spec, .battery-quality {
+    font-size: 0.85em;
+  }
+  
+  .battery-info-note {
+    font-size: 0.75em;
+  }
+}
