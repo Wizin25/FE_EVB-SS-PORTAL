@@ -22,7 +22,8 @@ const Vehicle = () => {
   const [newVehicle, setNewVehicle] = useState({
     vin: '',
     vehicleName: '',
-    vehicleType: 'electric_motorbike'
+    vehicleType: 'electric_motorbike',
+    batteryInfo: ''
   });
   
   const navigate = useNavigate();
@@ -36,51 +37,59 @@ const Vehicle = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [nextBooking, setNextBooking] = useState(null);
   
-  // Danh sách các tên xe từ enum
+  // Danh sách các tên xe từ enum - ĐÃ SẮP XẾP THEO LOẠI
   const vehicleNameOptions = [
-    // Xe máy điện
-    { value: 'YADEA_VELAX', label: 'Yadea Velax' },
-    { value: 'YADEA_VOLTGUARD_U', label: 'Yadea Voltguard U' },
-    { value: 'YADEA_VOLTGUARD_P', label: 'Yadea Voltguard P' },
-    { value: 'YADEA_ORLA', label: 'Yadea Orla' },
-    { value: 'YADEA_ORIS', label: 'Yadea Oris' },
-    { value: 'YADEA_OSSY', label: 'Yadea Ossy' },
-    { value: 'YADEA_OCEAN', label: 'Yadea Ocean' },
-    { value: 'YADEA_ICUTE', label: 'Yadea iCute' },
-    { value: 'YADEA_ODORA_S', label: 'Yadea Odora S' },
-    { value: 'YADEA_ODORA_S2', label: 'Yadea Odora S2' },
-    { value: 'YADEA_M6I', label: 'Yadea M6i' },
-    { value: 'YADEA_VIGOR', label: 'Yadea Vigor' },
-    { value: 'YADEA_X_ZONE', label: 'Yadea X-Zone' },
-    { value: 'YADEA_VEKOO', label: 'Yadea Vekoo' },
-    { value: 'YADEA_X_MEN_NEO', label: 'Yadea X-Men Neo' },
-    { value: 'YADEA_X_SKY', label: 'Yadea X-Sky' },
-    { value: 'YADEA_X_BULL', label: 'Yadea X-Bull' },
-    { value: 'YADEA_VEKOO_SOOBIN', label: 'Yadea Vekoo Soobin' },
-    { value: 'YADEA_VELAX_SOOBIN', label: 'Yadea Velax Soobin' },
-    { value: 'YADEA_ORIS_SOOBIN', label: 'Yadea Oris Soobin' },
-    // Xe đạp điện
-    { value: 'YADEA_I8_VINTAGE', label: 'Yadea i8 Vintage' },
-    { value: 'YADEA_I8', label: 'Yadea i8' },
-    { value: 'YADEA_I6_Accumulator', label: 'Yadea i6 Accumulator' },
-    { value: 'YADEA_I6_Lithium_Battery', label: 'Yadea i6 Lithium Battery' },
-    { value: 'YADEA_IFUN', label: 'Yadea iFun' },
-    { value: 'YADEA_IGO', label: 'Yadea iGo' },
-    // Xe đạp trợ lực
-    { value: 'YADEA_VITO', label: 'Yadea Vito' },
-    { value: 'YADEA_FLIT', label: 'Yadea Flit' }
+    // electric_motorbike - Xe máy điện
+    { value: 'YADEA_VELAX', label: 'Yadea Velax', type: 'electric_motorbike' },
+    { value: 'YADEA_VOLTGUARD_U', label: 'Yadea Voltguard U', type: 'electric_motorbike' },
+    { value: 'YADEA_VOLTGUARD_P', label: 'Yadea Voltguard P', type: 'electric_motorbike' },
+    { value: 'YADEA_ORLA', label: 'Yadea Orla', type: 'electric_motorbike' },
+    { value: 'YADEA_ORIS', label: 'Yadea Oris', type: 'electric_motorbike' },
+    { value: 'YADEA_OSSY', label: 'Yadea Ossy', type: 'electric_motorbike' },
+    { value: 'YADEA_OCEAN', label: 'Yadea Ocean', type: 'electric_motorbike' },
+    { value: 'YADEA_ICUTE', label: 'Yadea iCute', type: 'electric_motorbike' },
+    { value: 'YADEA_ODORA_S', label: 'Yadea Odora S', type: 'electric_motorbike' },
+    { value: 'YADEA_ODORA_S2', label: 'Yadea Odora S2', type: 'electric_motorbike' },
+    { value: 'YADEA_M6I', label: 'Yadea M6i', type: 'electric_motorbike' },
+    { value: 'YADEA_VIGOR', label: 'Yadea Vigor', type: 'electric_motorbike' },
+    { value: 'YADEA_X_ZONE', label: 'Yadea X-Zone', type: 'electric_motorbike' },
+    { value: 'YADEA_VEKOO', label: 'Yadea Vekoo', type: 'electric_motorbike' },
+    { value: 'YADEA_X_MEN_NEO', label: 'Yadea X-Men Neo', type: 'electric_motorbike' },
+    { value: 'YADEA_X_SKY', label: 'Yadea X-Sky', type: 'electric_motorbike' },
+    { value: 'YADEA_X_BULL', label: 'Yadea X-Bull', type: 'electric_motorbike' },
+    { value: 'YADEA_VEKOO_SOOBIN', label: 'Yadea Vekoo Soobin', type: 'electric_motorbike' },
+    { value: 'YADEA_VELAX_SOOBIN', label: 'Yadea Velax Soobin', type: 'electric_motorbike' },
+    { value: 'YADEA_ORIS_SOOBIN', label: 'Yadea Oris Soobin', type: 'electric_motorbike' },
+    
+    // electric_bike - Xe đạp điện
+    { value: 'YADEA_I8_VINTAGE', label: 'Yadea i8 Vintage', type: 'electric_bike' },
+    { value: 'YADEA_I8', label: 'Yadea i8', type: 'electric_bike' },
+    { value: 'YADEA_I6_Accumulator', label: 'Yadea i6 Accumulator', type: 'electric_bike' },
+    { value: 'YADEA_I6_Lithium_Battery', label: 'Yadea i6 Lithium Battery', type: 'electric_bike' },
+    { value: 'YADEA_IFUN', label: 'Yadea iFun', type: 'electric_bike' },
+    { value: 'YADEA_IGO', label: 'Yadea iGo', type: 'electric_bike' },
+    
+    // electric_assist_bicycle - Xe đạp trợ lực
+    { value: 'YADEA_VITO', label: 'Yadea Vito', type: 'electric_assist_bicycle' },
+    { value: 'YADEA_FLIT', label: 'Yadea Flit', type: 'electric_assist_bicycle' }
   ];
 
-  // Danh sách loại xe từ enum VehicleTypeEnums
+  // Danh sách loại xe từ enum VehicleTypeEnums - ĐÃ SẮP XẾP
   const vehicleTypeOptions = [
-    { value: 'electric_bike', label: 'Xe đạp điện' },
-    { value: 'electric_motorbike', label: 'Xe máy điện' },
-    { value: 'electric_assist_bicycle', label: 'Xe đạp trợ lực' }
+    { value: 'electric_motorbike', label: 'Electric Motorbike' },
+    { value: 'electric_bike', label: 'Electric Bike' },
+    { value: 'electric_assist_bicycle', label: 'Electric Assist Bicycle' }
   ];
+
+  // Hàm tự động xác định loại xe dựa trên tên xe
+  const getVehicleTypeFromName = (vehicleName) => {
+    const vehicle = vehicleNameOptions.find(v => v.value === vehicleName);
+    return vehicle ? vehicle.type : 'electric_motorbike'; // Mặc định là xe máy điện
+  };
 
   // Mapping ảnh xe
   const vehicleImageMapping = {
-    // Xe máy điện
+    // Xe máy điện - electric_motorbike
     'YADEA_VELAX': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Velax-Anh-nho-ben-tren.png',
     'YADEA_VOLTGUARD_U': 'https://www.yadea.com.vn/wp-content/uploads/2025/01/V002-U-anh-chinh-1-480x361.png',
     'YADEA_VOLTGUARD_P': 'https://www.yadea.com.vn/wp-content/uploads/2025/01/Anh-sp-chinh-1200x880-den.png',
@@ -102,7 +111,7 @@ const Vehicle = () => {
     'YADEA_VELAX_SOOBIN': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Velax_3_Xanh-Bentley.png',
     'YADEA_ORIS_SOOBIN': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Oris_3_Hong-anh-dao.png',
     
-    // Xe đạp điện
+    // Xe đạp điện - electric_bike
     'YADEA_I8_VINTAGE': 'https://www.yadea.com.vn/wp-content/uploads/2025/03/Anh-dau-banner-i8-gau-xanh-1280x880px.png',
     'YADEA_I8': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/Anh-sp-banner-1280x880-trang-sua-i8-moi.png',
     'YADEA_I6_Accumulator': 'https://product.hstatic.net/200000859553/product/hong_cb6790de6aa84124ae1f359932b6b20c_master.png',
@@ -110,7 +119,7 @@ const Vehicle = () => {
     'YADEA_IFUN': 'https://www.yadea.com.vn/wp-content/uploads/2024/08/YADEA-iFUN-xanh-anh-ngang.webp',
     'YADEA_IGO': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/igo-black-banner-1.png',
     
-    // Xe đạp trợ lực
+    // Xe đạp trợ lực - electric_assist_bicycle
     'YADEA_VITO': 'https://www.yadea.com.vn/wp-content/uploads/2025/09/Anh-ngang-VITO-xanh.png',
     'YADEA_FLIT': 'https://www.yadea.com.vn/wp-content/uploads/2025/09/Anh-ngang-FLIT-trang.png'
   };
@@ -118,6 +127,46 @@ const Vehicle = () => {
   // Hàm lấy ảnh xe
   const getVehicleImage = (vehicleName) => {
     return vehicleImageMapping[vehicleName] || '#DEFAULT_VEHICLE_IMAGE_URL';
+  };
+
+  // Hàm lọc danh sách xe theo loại
+  const getVehicleNameOptionsByType = (vehicleType) => {
+    return vehicleNameOptions.filter(vehicle => vehicle.type === vehicleType);
+  };
+
+  // HÀM MỚI: Load chi tiết package bằng packageId
+  const loadPackageDetails = async (vehiclesData) => {
+    try {
+      const packageMap = {};
+      
+      for (const vehicle of vehiclesData) {
+        const packageId = getVehicleProperty(vehicle, 'package');
+        if (packageId && packageId !== 'N/A') {
+          try {
+            console.log(`Loading package details for packageId: ${packageId}`);
+            const packageResponse = await packageAPI.getPackageById(packageId);
+            
+            let packageData = null;
+            if (packageResponse && packageResponse.data) {
+              packageData = packageResponse.data;
+            } else if (packageResponse) {
+              packageData = packageResponse;
+            }
+            
+            if (packageData) {
+              packageMap[packageId] = packageData;
+              console.log(`Package details for ${packageId}:`, packageData);
+            }
+          } catch (err) {
+            console.error(`Error loading package details for ${packageId}:`, err);
+          }
+        }
+      }
+      
+      setPackageDetails(packageMap);
+    } catch (err) {
+      console.error('Error loading package details:', err);
+    }
   };
 
   // Hàm lấy thông tin chi tiết pin
@@ -178,11 +227,45 @@ const Vehicle = () => {
     }
   };
 
+  // HÀM MỚI: Lấy thông tin pin từ vehicle data
+  const getBatteryInfoFromVehicle = (vehicle) => {
+    const batteryId = getVehicleProperty(vehicle, 'battery');
+    
+    // Ưu tiên lấy từ batteryDetails
+    if (batteryId && batteryId !== 'N/A' && batteryDetails[batteryId]) {
+      const battery = batteryDetails[batteryId];
+      return {
+        type: battery.batteryType || battery.type || 'Chưa có thông tin',
+        specification: battery.specification || 'Chưa có thông tin',
+        quality: battery.batteryQuality ? `${battery.batteryQuality}%` : 'Chưa có thông tin'
+      };
+    }
+    
+    return {
+      type: 'Chưa có thông tin',
+      specification: 'Chưa có thông tin',
+      quality: 'Chưa có thông tin'
+    };
+  };
+
+  // Hàm xử lý khi chọn tên xe - TỰ ĐỘNG CẬP NHẬT LOẠI XE
+  const handleVehicleNameChange = (selectedVehicleName) => {
+    const vehicleType = getVehicleTypeFromName(selectedVehicleName);
+    
+    setNewVehicle({
+      ...newVehicle,
+      vehicleName: selectedVehicleName,
+      vehicleType: vehicleType,
+      batteryInfo: '' // Không còn set batteryInfo tĩnh nữa
+    });
+  };
+
   // Helper to safely get package properties
   const getPackageProperty = (pkg, property) => {
     const possibleKeys = {
       id: ['packageId', 'id', 'packageID', 'PackageId'],
-      name: ['packageName', 'name', 'PackageName', 'package_name']
+      name: ['packageName', 'name', 'PackageName', 'package_name'],
+      expiredDate: ['expiredDate', 'expired_date', 'endDate', 'end_date', 'validUntil', 'expiryDate']
     };
     
     const keys = possibleKeys[property] || [property];
@@ -194,15 +277,27 @@ const Vehicle = () => {
     return 'N/A';
   };
 
-  // HÀM MỚI: Lấy tên package từ allPackages
-  const getPackageDisplayName = (vehicle) => {
+  // HÀM CẬP NHẬT: Lấy thông tin package từ packageDetails
+  const getPackageDisplayInfo = (vehicle) => {
     const packageId = getVehicleProperty(vehicle, 'package');
     
     if (!packageId || packageId === 'N/A') {
-      return 'Chưa có gói';
+      return { name: 'Chưa có gói', expiredDate: null };
     }
 
-    // Tìm package trong allPackages
+    // Ưu tiên lấy từ packageDetails trước
+    if (packageDetails[packageId]) {
+      const pkg = packageDetails[packageId];
+      const packageName = getPackageProperty(pkg, 'name');
+      const expiredDate = getPackageProperty(pkg, 'expiredDate');
+      
+      return {
+        name: packageName || `Gói ${packageId}`,
+        expiredDate: expiredDate !== 'N/A' ? expiredDate : null
+      };
+    }
+
+    // Fallback: tìm trong allPackages
     const foundPackage = allPackages.find(pkg => {
       const pkgId = getPackageProperty(pkg, 'id');
       return pkgId === packageId;
@@ -210,30 +305,54 @@ const Vehicle = () => {
 
     if (foundPackage) {
       const packageName = getPackageProperty(foundPackage, 'name');
-      return packageName || `Gói ${packageId}`;
+      const expiredDate = getPackageProperty(foundPackage, 'expiredDate');
+      
+      return {
+        name: packageName || `Gói ${packageId}`,
+        expiredDate: expiredDate !== 'N/A' ? expiredDate : null
+      };
     }
 
-    return `Gói ${packageId}`;
+    return {
+      name: `Gói ${packageId}`,
+      expiredDate: null
+    };
   };
 
-  // Hàm lấy tên pin để hiển thị
-  const getBatteryDisplayName = (vehicle) => {
-    const batteryId = getVehicleProperty(vehicle, 'battery');
-    
-    // Ưu tiên lấy từ batteryDetails trước
-    if (batteryId && batteryDetails[batteryId]) {
-      const battery = batteryDetails[batteryId];
-      return battery.name || battery.batteryName || `Pin ${batteryId}`;
+  // Hàm format ngày
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+      return new Date(dateString).toLocaleDateString('vi-VN');
+    } catch (e) {
+      console.error('Invalid date string:', dateString);
+      return dateString;
     }
-    
-    // Fallback: lấy từ vehicle property
-    const batteryName = getVehicleProperty(vehicle, 'batteryName');
-    if (batteryName !== 'N/A') {
-      return batteryName;
+  };
+
+  // Hàm kiểm tra gói sắp hết hạn (trong 7 ngày)
+  const isExpiringSoon = (expiredDate) => {
+    if (!expiredDate) return false;
+    try {
+      const expDate = new Date(expiredDate);
+      const now = new Date();
+      const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      return expDate <= sevenDaysFromNow && expDate > now;
+    } catch (e) {
+      return false;
     }
-    
-    // Cuối cùng hiển thị batteryId
-    return batteryId !== 'N/A' ? `Pin ${batteryId}` : 'Chưa có pin';
+  };
+
+  // Hàm kiểm tra gói đã hết hạn
+  const isExpired = (expiredDate) => {
+    if (!expiredDate) return false;
+    try {
+      const expDate = new Date(expiredDate);
+      const now = new Date();
+      return expDate < now;
+    } catch (e) {
+      return false;
+    }
   };
 
   const loadPackagesForVehicles = async (vehiclesData) => {
@@ -346,20 +465,35 @@ const Vehicle = () => {
         if (activeVehicles.length > 0) {
           const vehicleTypes = {};
           activeVehicles.forEach(vehicle => {
-            const type = vehicle.vehicle_type || vehicle.type || vehicle.vehicleType || 'Khác';
-            if (!vehicleTypes[type]) {
-              vehicleTypes[type] = [];
+            // CHUẨN HÓA LOẠI XE THEO ENUM
+            const rawType = vehicle.vehicle_type || vehicle.type || vehicle.vehicleType || 'other';
+            let normalizedType = 'other';
+            
+            // Ánh xạ các giá trị về enum chuẩn
+            if (rawType.includes('electric_motorbike') || rawType.includes('motorbike')) {
+              normalizedType = 'electric_motorbike';
+            } else if (rawType.includes('electric_bike') || rawType.includes('e_bike')) {
+              normalizedType = 'electric_bike';
+            } else if (rawType.includes('electric_assist_bicycle') || rawType.includes('assist_bicycle')) {
+              normalizedType = 'electric_assist_bicycle';
+            } else {
+              normalizedType = rawType; // Giữ nguyên nếu không khớp
             }
-            vehicleTypes[type].push(vehicle);
+            
+            if (!vehicleTypes[normalizedType]) {
+              vehicleTypes[normalizedType] = [];
+            }
+            vehicleTypes[normalizedType].push(vehicle);
           });
           
           console.log('Grouped active vehicles:', vehicleTypes);
           setVehicles(vehicleTypes);
           
-          // Load packages và battery details song song
+          // Load packages, battery details, và package details song song
           await Promise.all([
             loadPackagesForVehicles(activeVehicles),
-            loadBatteryDetails(activeVehicles)
+            loadBatteryDetails(activeVehicles),
+            loadPackageDetails(activeVehicles)
           ]);
         } else {
           setError('Không có xe nào đang hoạt động trong tài khoản của bạn');
@@ -402,11 +536,13 @@ const Vehicle = () => {
 
       console.log('Creating new vehicle:', newVehicle);
 
-      // Gọi API link_vehicle với đầy đủ tham số
+      // Gọi API link_vehicle - backend sẽ tự động tạo pin phù hợp
       const formData = new FormData();
       formData.append('VIN', newVehicle.vin);
       formData.append('VehicleName', newVehicle.vehicleName);
       formData.append('VehicleType', newVehicle.vehicleType);
+      
+      // KHÔNG cần gửi BatteryID - backend sẽ tự động tạo
 
       const response = await vehicleAPI.linkVehicle(formData);
       console.log('Create vehicle response:', response);
@@ -416,7 +552,8 @@ const Vehicle = () => {
       setNewVehicle({
         vin: '',
         vehicleName: '',
-        vehicleType: 'electric_motorbike'
+        vehicleType: 'electric_motorbike',
+        batteryInfo: ''
       });
 
       // Load lại danh sách xe
@@ -475,11 +612,11 @@ const Vehicle = () => {
   const getVehicleIcon = (type) => {
     const icons = {
       'electric_bike': '🚲',
-      'electric_scooter': '🛴',
       'electric_motorbike': '🏍️',
       'electric_assist_bicycle': '🚲',
+      'other': '🚗'
     };
-    return icons[type] || '🏍️';
+    return icons[type] || '🚗';
   };
 
   // Helper to safely get vehicle properties
@@ -516,6 +653,17 @@ const Vehicle = () => {
       default:
         return status || 'Không xác định';
     }
+  };
+
+  // Hàm lấy tên hiển thị cho loại xe
+  const getVehicleTypeDisplayName = (type) => {
+    const typeMap = {
+      'electric_motorbike': 'Electric Motorbike',
+      'electric_bike': 'Electric Bike', 
+      'electric_assist_bicycle': 'Electric Assist Bicycle',
+      'other': 'Loại Khác'
+    };
+    return typeMap[type] || type;
   };
 
   const vehicleTypes = Object.keys(vehicles);
@@ -620,10 +768,13 @@ const Vehicle = () => {
           </div>
         )}
 
-        {/* Vehicle Grid */}
+        {/* Vehicle Grid - SẮP XẾP THEO THỨ TỰ ENUM */}
         {!loading && vehicleTypes.length > 0 && (
           <div className="vehicles-wrapper">
-            {vehicleTypes.map((type, idx) => (
+            {/* Hiển thị theo thứ tự enum: electric_motorbike -> electric_bike -> electric_assist_bicycle -> other */}
+            {['electric_motorbike', 'electric_bike', 'electric_assist_bicycle', 'other']
+              .filter(type => vehicles[type] && vehicles[type].length > 0)
+              .map((type, idx) => (
               <div 
                 key={type} 
                 className="vehicle-section" 
@@ -632,101 +783,131 @@ const Vehicle = () => {
                 <div className="section-header">
                   <span className="section-icon">{getVehicleIcon(type)}</span>
                   <h2 className="section-title">
-                    {type.replace('_', ' ').toUpperCase()}
+                    {getVehicleTypeDisplayName(type)}
                   </h2>
                   <div className="section-badge">{vehicles[type].length} xe</div>
                 </div>
                 
                 <div className="vehicle-grid">
-                  {vehicles[type].map((vehicle, vIdx) => (
-                    <div 
-                      key={getVehicleProperty(vehicle, 'vin')} 
-                      className="vehicle-card-modern"
-                      style={{animationDelay: `${(idx * 0.1) + (vIdx * 0.05)}s`}}
-                      onClick={() => handleSelectVehicle(vehicle)}
-                    >
-                      <div className="card-shine"></div>
-                      <div className="card-glow"></div>
-                      
-                      <div className="card-header">
-                        <div className="vehicle-image-container">
-                          <img 
-                            src={getVehicleImage(getVehicleProperty(vehicle, 'name'))} 
-                            alt={getVehicleProperty(vehicle, 'name')}
-                            className="vehicle-image"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
-                            }}
-                          />
-                          <div 
-                            className="vehicle-icon-fallback"
-                            style={{display: 'none'}}
-                          >
-                            {getVehicleIcon(getVehicleProperty(vehicle, 'type'))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Status và Delete button */}
-                      <div className="card-actions">
-                        <span className={`status-badge ${getVehicleProperty(vehicle, 'status')?.toLowerCase()}`}>
-                          <span className="status-dot"></span>
-                          {getStatusDisplayText(getVehicleProperty(vehicle, 'status'))}
-                        </span>
-                        {isInRole('EvDriver') && (
-                          <button 
-                            className="delete-vehicle-btn"
-                            onClick={(e) => {
-                              e.stopPropagation(); // Quan trọng: Ngăn sự kiện click lan ra ngoài
-                              e.preventDefault();
-                              handleDeleteVehicle(getVehicleProperty(vehicle, 'vin'));
-                            }}
-                            title="Xóa xe"
-                          >
-                            🗑️
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="card-body">
-                        <h3 className="vehicle-name">{getVehicleProperty(vehicle, 'name')}</h3>
+                  {vehicles[type].map((vehicle, vIdx) => {
+                    const packageInfo = getPackageDisplayInfo(vehicle);
+                    const batteryInfo = getBatteryInfoFromVehicle(vehicle);
+                    
+                    return (
+                      <div 
+                        key={getVehicleProperty(vehicle, 'vin')} 
+                        className="vehicle-card-modern"
+                        style={{animationDelay: `${(idx * 0.1) + (vIdx * 0.05)}s`}}
+                        onClick={() => handleSelectVehicle(vehicle)}
+                      >
+                        <div className="card-shine"></div>
+                        <div className="card-glow"></div>
                         
-                        <div className="vehicle-details">
-                          <div className="detail-row">
-                            <span className="detail-label">VIN</span>
-                            <span className="detail-value">{getVehicleProperty(vehicle, 'vin')}</span>
-                          </div>
-                          <div className="detail-row">
-                            <span className="detail-label">Pin</span>
-                            <span className="detail-value battery-id">
-                              🔋 {getBatteryDisplayName(vehicle)}
-                            </span>
-                          </div>
-                          <div className="detail-row">
-                            <span className="detail-label">Gói hiện tại</span>
-                            <span className="detail-value package-id">
-                              {getVehicleProperty(vehicle, 'package') && getVehicleProperty(vehicle, 'package') !== 'N/A' ? (
-                                <span className="has-package">📦 {getPackageDisplayName(vehicle)}</span>
-                              ) : (
-                                <span className="no-package">Chưa có</span>
-                              )}
-                            </span>
+                        <div className="card-header">
+                          <div className="vehicle-image-container">
+                            <img 
+                              src={getVehicleImage(getVehicleProperty(vehicle, 'name'))} 
+                              alt={getVehicleProperty(vehicle, 'name')}
+                              className="vehicle-image"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                            <div 
+                              className="vehicle-icon-fallback"
+                              style={{display: 'none'}}
+                            >
+                              {getVehicleIcon(getVehicleProperty(vehicle, 'type'))}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="card-footer">
-                        <button 
-                          className="select-btn"
-                          onClick={() => handleSelectVehicle(vehicle)}
-                        >
-                          <span className="btn-text">Chọn xe này</span>
-                          <span className="btn-icon">→</span>
-                        </button>
+                        {/* Status và Delete button */}
+                        <div className="card-actions">
+                          <span className={`status-badge ${getVehicleProperty(vehicle, 'status')?.toLowerCase()}`}>
+                            <span className="status-dot"></span>
+                            {getStatusDisplayText(getVehicleProperty(vehicle, 'status'))}
+                          </span>
+                          {isInRole('EvDriver') && (
+                            <button 
+                              className="delete-vehicle-btn"
+                              onClick={(e) => {
+                                e.stopPropagation(); // Quan trọng: Ngăn sự kiện click lan ra ngoài
+                                e.preventDefault();
+                                handleDeleteVehicle(getVehicleProperty(vehicle, 'vin'));
+                              }}
+                              title="Xóa xe"
+                            >
+                              🗑️
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="card-body">
+                          <h3 className="vehicle-name">{getVehicleProperty(vehicle, 'name')}</h3>
+                          
+                          <div className="vehicle-details">
+                            <div className="detail-row">
+                              <span className="detail-label">VIN</span>
+                              <span className="detail-value">{getVehicleProperty(vehicle, 'vin')}</span>
+                            </div>
+                            
+                            {/* THÊM: Hiển thị thông tin pin chi tiết */}
+                            <div className="detail-row">
+                              <span className="detail-label">🔋 Pin</span>
+                              <span className="detail-value battery-type">
+                                {batteryInfo.type}
+                              </span>
+                            </div>
+                            <div className="detail-row">
+                              <span className="detail-label">⚡ Thông số pin</span>
+                              <span className="detail-value battery-spec">
+                                {batteryInfo.specification}
+                              </span>
+                            </div>
+                            <div className="detail-row">
+                              <span className="detail-label">📊 Dung lượng pin</span>
+                              <span className="detail-value battery-quality">
+                                {batteryInfo.quality}
+                              </span>
+                            </div>
+                            
+                            <div className="detail-row">
+                              <span className="detail-label">Gói hiện tại</span>
+                              <span className="detail-value package-id">
+                                {getVehicleProperty(vehicle, 'package') && getVehicleProperty(vehicle, 'package') !== 'N/A' ? (
+                                  <span className="has-package">📦 {packageInfo.name}</span>
+                                ) : (
+                                  <span className="no-package">Chưa có</span>
+                                )}
+                              </span>
+                            </div>
+                            <div className="detail-row">
+                                <span className="detail-label">Ngày hết hạn gói</span>
+                                <span className="detail-value">
+                                  <span className={`expired-date ${isExpiringSoon(packageInfo.expiredDate) ? 'expiring-soon' : ''} ${isExpired(packageInfo.expiredDate) ? 'expiredDate' : ''}`}>
+                                    ⏰ {formatDate(packageInfo.expiredDate)}
+                                    {isExpiringSoon(packageInfo.expiredDate) && ' (Sắp hết hạn)'}
+                                    {isExpired(packageInfo.expiredDate) && ' (Đã hết hạn)'}
+                                  </span>
+                                </span>
+                              </div>
+                          </div>
+                        </div>
+
+                        <div className="card-footer">
+                          <button 
+                            className="select-btn"
+                            onClick={() => handleSelectVehicle(vehicle)}
+                          >
+                            <span className="btn-text">Chọn xe này</span>
+                            <span className="btn-icon">→</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -750,7 +931,7 @@ const Vehicle = () => {
           </div>
         )}
 
-        {/* Modal Tạo Xe */}
+        {/* Modal Tạo Xe - CẬP NHẬT HIỂN THỊ THÔNG TIN PIN */}
         {showCreateModal && (
           <div className="modal-overlay">
             <div className="modal-content">
@@ -771,7 +952,7 @@ const Vehicle = () => {
                 <label>Tên xe *</label>
                 <select
                   value={newVehicle.vehicleName}
-                  onChange={(e) => setNewVehicle({...newVehicle, vehicleName: e.target.value})}
+                  onChange={(e) => handleVehicleNameChange(e.target.value)}
                   className="form-select"
                 >
                   <option value="">Chọn tên xe</option>
@@ -783,20 +964,26 @@ const Vehicle = () => {
                 </select>
               </div>
 
+              {/* Hiển thị loại xe đã được tự động xác định */}
               <div className="form-group">
-                <label>Loại xe *</label>
-                <select 
-                  value={newVehicle.vehicleType} 
-                  onChange={(e) => setNewVehicle({...newVehicle, vehicleType: e.target.value})}
-                  className="form-select"
-                >
-                  {vehicleTypeOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                <label>Loại xe (Tự động)</label>
+                <div className="form-readonly">
+                  {vehicleTypeOptions.find(opt => opt.value === newVehicle.vehicleType)?.label || 'Chưa xác định'}
+                </div>
               </div>
+
+              {/* CẬP NHẬT: Hiển thị thông báo về pin sẽ được tạo tự động */}
+              {newVehicle.vehicleName && (
+                <div className="form-group">
+                  <label>Thông tin pin</label>
+                  <div className="battery-info-display">
+                    🔋 Pin sẽ được tạo tự động phù hợp với xe đã chọn
+                  </div>
+                  <div className="battery-info-note">
+                    Hệ thống sẽ tự động tạo pin với thông số kỹ thuật phù hợp cho xe {newVehicle.vehicleName}
+                  </div>
+                </div>
+              )}
 
               <div className="modal-actions">
                 <button 

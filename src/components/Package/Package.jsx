@@ -803,6 +803,35 @@ const Package = () => {
     setBatterySpecification(null);
   };
 
+  const normalizeVehicleType = (type) => {
+    if (!type) return 'other';
+    
+    const normalizedType = type.toString().trim().toLowerCase();
+    
+    // Ánh xạ về các giá trị enum chuẩn
+    if (normalizedType.includes('electric_motorbike') || normalizedType.includes('motorbike')) {
+      return 'electric_motorbike';
+    } else if (normalizedType.includes('electric_bike') || normalizedType.includes('e_bike')) {
+      return 'electric_bike';
+    } else if (normalizedType.includes('electric_assist_bicycle') || normalizedType.includes('assist_bicycle')) {
+      return 'electric_assist_bicycle';
+    } else {
+      return normalizedType;
+    }
+  };
+
+  const getVehicleTypeDisplayName = (type) => {
+    const typeMap = {
+      'electric_motorbike': 'electric_motorbike',
+      'electric_bike': 'electric_bike', 
+      'electric_assist_bicycle': 'electric_assist_bicycle',
+      'other': 'Loại Khác'
+    };
+    
+    const normalizedType = normalizeVehicleType(type);
+    return typeMap[normalizedType] || normalizedType;
+  };
+
   // 🎯 RENDER COMPONENT
   return (
     <div className="package-page" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
@@ -898,22 +927,23 @@ const Package = () => {
               </div>
               
               <div className="vehicle-info-box">
-                <div className="vehicle-info-content">
-                  <div className="vehicle-main-info">
-                    <div className="vehicle-icon-large">
-                      {getVehicleProperty(selectedVehicle, 'type') === 'electric_bike' ? '🏍️' : 
-                       getVehicleProperty(selectedVehicle, 'type') === 'Car' ? '🚗' : 
-                       getVehicleProperty(selectedVehicle, 'type') === 'electric_scooter' ? '🛴' : 
-                       getVehicleProperty(selectedVehicle, 'type') === 'electric_car' ? '🚗' : '🚲'}
-                    </div>
-                    <div className="vehicle-details">
-                      <h3>{getVehicleProperty(selectedVehicle, 'name')}</h3>
-                      <div className="vehicle-specs">
-                        <span className="vehicle-type">{getVehicleProperty(selectedVehicle, 'type')}</span>
-                        <span className="vehicle-vin">VIN: {getVehicleProperty(selectedVehicle, 'vin')}</span>
-                      </div>
-                    </div>
-                  </div>
+        <div className="vehicle-info-content">
+          <div className="vehicle-main-info">
+            <div className="vehicle-icon-large">
+              {normalizeVehicleType(getVehicleProperty(selectedVehicle, 'type')) === 'electric_motorbike' ? '🏍️' : 
+               normalizeVehicleType(getVehicleProperty(selectedVehicle, 'type')) === 'electric_bike' ? '🚲' : 
+               normalizeVehicleType(getVehicleProperty(selectedVehicle, 'type')) === 'electric_assist_bicycle' ? '🚲' : '🚗'}
+            </div>
+            <div className="vehicle-details">
+              <h3>{getVehicleProperty(selectedVehicle, 'name')}</h3>
+              <div className="vehicle-specs">
+                <span className="vehicle-type">
+                  {getVehicleTypeDisplayName(getVehicleProperty(selectedVehicle, 'type'))}
+                </span>
+                <span className="vehicle-vin">VIN: {getVehicleProperty(selectedVehicle, 'vin')}</span>
+              </div>
+            </div>
+          </div>
                   
                   <div className="vehicle-additional-info">
                     <div className="info-item">

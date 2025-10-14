@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authAPI } from '../services/authAPI';
 import { formAPI } from '../services/formAPI';
+import { vehicleAPI } from '../services/vehicleAPI';
 import { isInRole, getUserRoles } from '../services/jwt';
 import './ProfileStyle.css';
 
@@ -20,6 +21,11 @@ function Profile({ theme = "light" }) {
   const [loadingForms, setLoadingForms] = useState(false);
   const [formDetail, setFormDetail] = useState(null);
   const [loadingFormDetail, setLoadingFormDetail] = useState(false);
+
+  const [showVehiclesModal, setShowVehiclesModal] = useState(false);
+  const [vehicles, setVehicles] = useState([]);
+  const [loadingVehicles, setLoadingVehicles] = useState(false);
+  const [vehiclesError, setVehiclesError] = useState(null);
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({
@@ -88,7 +94,6 @@ function Profile({ theme = "light" }) {
     
     setLoadingForms(true);
     try {
-      // Sử dụng accountId thay vì id
       const accountId = user.accountId || user.id;
       if (!accountId) {
         console.error('No account ID found for user:', user);
@@ -99,17 +104,14 @@ function Profile({ theme = "light" }) {
       const response = await formAPI.getFormsByAccountId(accountId);
       console.log('Forms API response:', response);
       
-      // Kiểm tra cấu trúc response
       if (response && response.isSuccess) {
         setForms(response.data || []);
         console.log('Forms loaded successfully:', response.data?.length || 0, 'forms');
       } else {
         console.error('Error fetching forms:', response?.message || 'Unknown error');
-        // Có thể hiển thị thông báo lỗi cho user
       }
     } catch (error) {
       console.error('Error fetching forms:', error);
-      // Xử lý lỗi, ví dụ: hiển thị thông báo
     } finally {
       setLoadingForms(false);
     }
@@ -137,6 +139,36 @@ function Profile({ theme = "light" }) {
     } finally {
       setLoadingFormDetail(false);
     }
+  };
+
+  const fetchUserVehicles = async () => {
+    if (!isInRole('EvDriver')) {
+      setVehiclesError('Chỉ tài xế mới có thể xem danh sách xe');
+      return;
+    }
+
+    setLoadingVehicles(true);
+    setVehiclesError(null);
+    try {
+      const response = await vehicleAPI.getCurrentUserVehicles();
+      console.log('Vehicles API response:', response);
+      
+      if (response && response.isSuccess) {
+        setVehicles(response.data || []);
+      } else {
+        throw new Error(response?.message || 'Lỗi khi lấy danh sách xe');
+      }
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
+      setVehiclesError(error?.message || 'Lỗi khi lấy danh sách xe');
+    } finally {
+      setLoadingVehicles(false);
+    }
+  };
+
+  const handleShowVehicles = () => {
+    setShowVehiclesModal(true);
+    fetchUserVehicles();
   };
 
   if (loading) {
@@ -176,7 +208,6 @@ function Profile({ theme = "light" }) {
 
   const ev = Array.isArray(evdrivers) && evdrivers.length > 0 ? evdrivers[0] : null;
   const customerId = ev && typeof ev === "object" ? (ev.customerId ?? "-") : "-";
-  const vin = ev && typeof ev === "object" ? (ev.vin ?? "-") : "-";
 
   const count = (arr) => (Array.isArray(arr) ? arr.length : 0);
 
@@ -314,7 +345,6 @@ function Profile({ theme = "light" }) {
       { key: "profile", label: "Hồ sơ", icon: "👤", onClick: () => setActiveSidebar("profile") },
     ];
 
-    // Chỉ thêm "Lịch sử Đặt lịch" cho EvDriver
     if (userRoles.includes('EvDriver')) {
       baseItems.push({
         key: "bookingHistory", 
@@ -324,7 +354,6 @@ function Profile({ theme = "light" }) {
       });
     }
 
-    // Các item khác
     baseItems.push(
       { key: "paymentHistory", label: "Lịch sử thanh toán", icon: "💳", onClick: () => setActiveSidebar("paymentHistory") },
       { key: "changePassword", label: "Thay đổi mật khẩu", icon: "🔒", onClick: () => setActiveSidebar("changePassword") },
@@ -545,6 +574,155 @@ function Profile({ theme = "light" }) {
       )}
     </div>
   );
+
+  const renderVehiclesModal = () => {
+    if (!showVehiclesModal) return null;
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        background: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000
+      }}>
+        <div style={{
+          background: theme === 'dark' ? '#1f2937' : 'white',
+          padding: '24px',
+          borderRadius: '12px',
+          width: '90%',
+          maxWidth: '600px',
+          maxHeight: '80vh',
+          overflow: 'auto',
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>
+              🚗 Danh sách xe của bạn
+            </h3>
+            <button
+              onClick={() => setShowVehiclesModal(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '20px',
+                cursor: 'pointer',
+                color: theme === 'dark' ? '#9ca3af' : '#6b7280',
+                padding: '4px'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {loadingVehicles ? (
+            <div className="profile-loading-state">
+              <p>Đang tải danh sách xe...</p>
+            </div>
+          ) : vehiclesError ? (
+            <div className="profile-error-state">
+              <p>{vehiclesError}</p>
+            </div>
+          ) : vehicles.length === 0 ? (
+            <div className="profile-empty">
+              <p>Bạn chưa có xe nào trong tài khoản.</p>
+              <button 
+                onClick={() => navigate('/vehicles')}
+                style={{
+                  marginTop: '12px',
+                  padding: '8px 16px',
+                  background: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Thêm xe mới
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {vehicles.map((vehicle, index) => (
+                <div
+                  key={vehicle.vehicleId || index}
+                  style={{
+                    padding: '16px',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    background: theme === 'dark' ? '#374151' : '#f8fafc'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <h4 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>
+                        {vehicle.vehicleName || 'Chưa đặt tên'}
+                      </h4>
+                      <div style={{ display: 'grid', gap: '4px', fontSize: '14px' }}>
+                        <div><strong>VIN:</strong> {vehicle.vin || 'Chưa có'}</div>
+                        <div><strong>Loại xe:</strong> {vehicle.vehicleType || 'Chưa xác định'}</div>
+                        {vehicle.packageName && (
+                          <div><strong>Gói dịch vụ:</strong> {vehicle.packageName}</div>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ 
+                      padding: '4px 8px', 
+                      borderRadius: '12px', 
+                      fontSize: '12px',
+                      background: vehicle.status === 'Active' ? '#10b981' : 
+                                 vehicle.status === 'Inactive' ? '#6b7280' : 
+                                 vehicle.status === 'Maintenance' ? '#f59e0b' : '#6b7280',
+                      color: 'white',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {vehicle.status || 'Unknown'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '12px' }}>
+            <button
+              onClick={() => setShowVehiclesModal(false)}
+              style={{
+                padding: '8px 16px',
+                background: theme === 'dark' ? '#374151' : '#f1f5f9',
+                color: theme === 'dark' ? '#e5e7eb' : '#374151',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              Đóng
+            </button>
+            <button
+              onClick={() => navigate('/vehicles')}
+              style={{
+                padding: '8px 16px',
+                background: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              Thêm xe mới
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const containerStyle = {
     position: "relative",
@@ -791,40 +969,66 @@ function Profile({ theme = "light" }) {
 
             <div className="profile-details" style={{ marginTop: 8 }}>
               <div className="profile-section">
-                <div className="profile-section-title">EvDriver</div>
+                <div className="profile-section-title">Thông tin Tài xế</div>
                 <div className="profile-section-content">
-                  <div><span style={{ fontWeight: 500 }}>customerId:</span> {customerId}</div>
-                  <div><span style={{ fontWeight: 500 }}>vin:</span> {vin}</div>
+                  <div><span style={{ fontWeight: 500 }}>Mã khách hàng:</span> {customerId}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                    <span style={{ fontWeight: 500 }}>Quản lý xe:</span>
+                    <button
+                      onClick={handleShowVehicles}
+                      style={{
+                        padding: '6px 12px',
+                        background: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = '#2563eb';
+                        e.target.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = '#3b82f6';
+                        e.target.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      🚗 Hiển thị tất cả xe của bạn
+                    </button>
+                  </div>
                 </div>
               </div>
 
               <div className="profile-section">
-                <div className="profile-section-title">Counts</div>
+                <div className="profile-section-title">Thống kê</div>
                 <div className="profile-section-content">
-                  <div>ExchangeBatteries: <span style={{ fontWeight: 500 }}>{count(exchangeBatteries)}</span></div>
-                  <div>Forms: <span style={{ fontWeight: 500 }}>{count(forms)}</span></div>
-                  <div>Orders: <span style={{ fontWeight: 500 }}>{count(orders)}</span></div>
-                  <div>Reports: <span style={{ fontWeight: 500 }}>{count(reports)}</span></div>
+                  <div>Pin đã trao đổi: <span style={{ fontWeight: 500 }}>{count(exchangeBatteries)}</span></div>
+                  <div>Đơn đặt lịch: <span style={{ fontWeight: 500 }}>{count(forms)}</span></div>
+                  <div>Đơn hàng: <span style={{ fontWeight: 500 }}>{count(orders)}</span></div>
+                  <div>Báo cáo: <span style={{ fontWeight: 500 }}>{count(reports)}</span></div>
                 </div>
               </div>
 
               <div className="profile-section">
-                <div className="profile-section-title">Preview Lists</div>
+                <div className="profile-section-title">Xem trước</div>
                 <div className="profile-section-content" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, 1fr)", gap: 16, maxWidth: "100%", overflowX: "auto" }}>
                   <div>
-                    <div style={{ fontWeight: 500, marginBottom: 4 }}>ExchangeBatteries</div>
+                    <div style={{ fontWeight: 500, marginBottom: 4 }}>Pin trao đổi</div>
                     {renderPreview(exchangeBatteries, "id")}
                   </div>
                   <div>
-                    <div style={{ fontWeight: 500, marginBottom: 4 }}>Forms</div>
+                    <div style={{ fontWeight: 500, marginBottom: 4 }}>Đơn đặt lịch</div>
                     {renderPreview(forms.slice(0, 3), "title")}
                   </div>
                   <div>
-                    <div style={{ fontWeight: 500, marginBottom: 4 }}>Orders</div>
+                    <div style={{ fontWeight: 500, marginBottom: 4 }}>Đơn hàng</div>
                     {renderPreview(orders, "orderId")}
                   </div>
                   <div>
-                    <div style={{ fontWeight: 500, marginBottom: 4 }}>Reports</div>
+                    <div style={{ fontWeight: 500, marginBottom: 4 }}>Báo cáo</div>
                     {renderPreview(reports, "id")}
                   </div>
                 </div>
@@ -874,6 +1078,8 @@ function Profile({ theme = "light" }) {
           </div>
         )}
       </div>
+
+      {renderVehiclesModal()}
     </div>
   );
 }
