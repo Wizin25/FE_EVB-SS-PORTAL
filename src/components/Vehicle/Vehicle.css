@@ -1477,3 +1477,46 @@
 .detail-row.compact .detail-value {
   font-size: 0.8rem;
 }
+
+/* Vehicle.css - Thêm các style mới */
+
+/* Battery info styles */
+.battery-type, .battery-spec, .battery-quality {
+  font-size: 0.9em;
+  color: var(--text-secondary);
+}
+
+.battery-info-note {
+  font-size: 0.8em;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+.form-readonly {
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.battery-info-display {
+  padding: 0.75rem;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .battery-type, .battery-spec, .battery-quality {
+    font-size: 0.85em;
+  }
+  
+  .battery-info-note {
+    font-size: 0.75em;
+  }
+}
