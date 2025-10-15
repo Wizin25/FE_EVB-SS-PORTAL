@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import HeaderDriver from "./header";
 import Footer from "./footer";
 import { authAPI } from "../services/authAPI";
@@ -25,7 +25,13 @@ export default function BookingForm() {
   const [vin, setVin] = useState("");
   const [batteryId, setBatteryId] = useState("");
   const [selectedBatteryName, setSelectedBatteryName] = useState("");
+  const [suitableBatteries, setSuitableBatteries] = useState([]);
+  const loadSeqRef = useRef(0);
   const [myVehicles, setMyVehicles] = useState([]);
+  const [loadingBatteries, setLoadingBatteries] = useState(false);
+  
+  // Cache for storing battery lists by VIN+Station combination
+  const batteryCacheRef = useRef(new Map());
 
   const handleToggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
@@ -50,6 +56,87 @@ export default function BookingForm() {
       document.body.classList.add("dark");
     }
   }, []);
+
+  // Load suitable batteries when VIN or Station changes
+  useEffect(() => {
+    const loadSuit = async () => {
+      if (!vin || !stationId) {
+        setSuitableBatteries([]);
+        setBatteryId("");
+        setSelectedBatteryName("");
+        setLoadingBatteries(false);
+        return;
+      }
+      
+      // Create cache key from VIN + Station
+      const cacheKey = `${vin}-${stationId}`;
+      
+      // Clear current list immediately when VIN or Station changes
+      setSuitableBatteries([]);
+      setBatteryId("");
+      setSelectedBatteryName("");
+      
+      // Check if we have cached data for this combination
+      if (batteryCacheRef.current.has(cacheKey)) {
+        const cachedData = batteryCacheRef.current.get(cacheKey);
+        setSuitableBatteries(cachedData);
+        
+        // Auto-select first available battery from cache
+        const availableBatteries = cachedData.filter(b => {
+          const status = (b.status || b.Status || '').toString().toLowerCase();
+          return status === 'available';
+        });
+        
+        if (availableBatteries.length > 0) {
+          const firstBattery = availableBatteries[0];
+          const firstId = String(firstBattery.batteryId || firstBattery.BatteryId || firstBattery.id || '');
+          const firstName = firstBattery.batteryName || firstBattery.BatteryName || firstBattery.name || '';
+          setBatteryId(firstId);
+          setSelectedBatteryName(firstName);
+        }
+        return;
+      }
+      
+      // Show loading state for new data
+      setLoadingBatteries(true);
+      
+      const seq = ++loadSeqRef.current;
+      try {
+        const list = await authAPI.getBatteriesSuitVehicle({ vin, stationId });
+        const items = Array.isArray(list) ? list : [];
+        if (seq !== loadSeqRef.current) return; // stale response guard
+        
+        // Cache the result
+        batteryCacheRef.current.set(cacheKey, items);
+        setSuitableBatteries(items);
+        
+        // Auto-select first available battery when station/vin changes
+        const availableBatteries = items.filter(b => {
+          const status = (b.status || b.Status || '').toString().toLowerCase();
+          return status === 'available';
+        });
+        
+        if (availableBatteries.length > 0) {
+          const firstBattery = availableBatteries[0];
+          const firstId = String(firstBattery.batteryId || firstBattery.BatteryId || firstBattery.id || '');
+          const firstName = firstBattery.batteryName || firstBattery.BatteryName || firstBattery.name || '';
+          setBatteryId(firstId);
+          setSelectedBatteryName(firstName);
+        }
+      } catch (e) {
+        // keep silent, keep previous but clear selection
+        if (seq === loadSeqRef.current) {
+          setBatteryId("");
+          setSelectedBatteryName("");
+        }
+      } finally {
+        if (seq === loadSeqRef.current) {
+          setLoadingBatteries(false);
+        }
+      }
+    };
+    loadSuit();
+  }, [vin, stationId]);
 
   useEffect(() => {
     const run = async () => {
@@ -211,9 +298,56 @@ export default function BookingForm() {
                 </select>
               </label>
               <label className="form-field">
-                <span>Pin</span>
-                <input className="form-input" type="text" value={selectedBatteryName} onChange={()=>{}} readOnly placeholder="Tên pin được chọn" />
-                <input style={{ display: 'none' }} type="text" value={batteryId} readOnly />
+                <span>Pin phù hợp</span>
+                {loadingBatteries ? (
+                  <div className="form-input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '40px' }}>
+                    <span>Đang tải pin...</span>
+                  </div>
+                ) : (
+                  <>
+                    <select
+                      className="form-input"
+                      value={batteryId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        const found = suitableBatteries.find(b => String(b.batteryId || b.BatteryId || b.id) === String(id));
+                        const status = (found?.status || found?.Status || '').toString().toLowerCase();
+                        if (status !== 'available') {
+                          return; // guard: do not allow selecting non-available
+                        }
+                        setBatteryId(id);
+                        const name = found?.batteryName || found?.BatteryName || found?.name || '';
+                        setSelectedBatteryName(name);
+                      }}
+                    >
+                      <option value="">
+                        {!vin || !stationId 
+                          ? "Chọn VIN và Station trước" 
+                          : suitableBatteries.length === 0 
+                            ? "Không có pin phù hợp" 
+                            : "Chọn pin theo VIN + Station"
+                        }
+                      </option>
+                      {suitableBatteries.map(b => {
+                        const id = String(b.batteryId || b.BatteryId || b.id || '');
+                        const name = b.batteryName || b.BatteryName || b.name || id;
+                        const status = (b.status || b.Status || '').toString();
+                        const isAvailable = status.toLowerCase() === 'available';
+                        return (
+                          <option key={id} value={id} disabled={!isAvailable}>
+                            {name} — {status || '-'}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {vin && stationId && suitableBatteries.length === 0 && !loadingBatteries && (
+                      <div style={{ fontSize: '14px', color: '#f56565', marginTop: '4px' }}>
+                        Không có pin nào phù hợp với xe và trạm đã chọn
+                      </div>
+                    )}
+                  </>
+                )}
+                <input style={{ display: 'none' }} type="text" value={selectedBatteryName} readOnly />
               </label>
             </div>
 
@@ -231,5 +365,3 @@ export default function BookingForm() {
     </div>
   );
 }
-
-

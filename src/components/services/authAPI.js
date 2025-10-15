@@ -309,6 +309,22 @@ export const authAPI = {
     }
   },
 
+  // Batteries suitable for a vehicle at a station
+  getBatteriesSuitVehicle: async ({ vin, stationId }) => {
+    try {
+      const res = await api.get('/api/Battery/get_batteries_suit_vehicle', {
+        params: { Vin: vin, StationId: stationId }
+      });
+      // Accept wrappers or raw arrays
+      if (Array.isArray(res?.data)) return res.data;
+      if (res?.data?.isSuccess && Array.isArray(res.data.data)) return res.data.data;
+      return [];
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Lỗi khi lấy danh sách pin phù hợp';
+      throw new Error(msg);
+    }
+  },
+
   // Thêm vào authAPI.js nếu chưa có
 getBatteryById: async (batteryId) => {
   try {

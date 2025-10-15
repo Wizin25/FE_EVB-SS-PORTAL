@@ -156,7 +156,11 @@ export default function StationForUser() {
   const filtered = useMemo(() => {
     const text = q.trim().toLowerCase();
     return stations.filter((st) => {
-      if (statusFilter !== "All" && (st.status ?? "").toLowerCase() !== statusFilter.toLowerCase()) return false;
+      // Always hide inactive stations
+      const stationStatus = (st.status ?? "").toLowerCase();
+      if (stationStatus === "inactive") return false;
+      
+      if (statusFilter !== "All" && stationStatus !== statusFilter.toLowerCase()) return false;
       if (!text) return true;
       const candidate = `${st.stationName ?? st.Name ?? ""} ${st.location ?? ""}`.toLowerCase();
       if (!candidate.includes(text)) return false;
@@ -180,6 +184,7 @@ export default function StationForUser() {
   }, [q, statusFilter]);
 
   const safeLen = (arr) => (Array.isArray(arr) ? arr.length : 0);
+  
 
   // Function to toggle battery details visibility for a station
   const toggleStationDetails = (stationId) => {
@@ -464,7 +469,7 @@ export default function StationForUser() {
                 return (
                 <article 
                   key={stationUniqueId} 
-                  className="station-card" 
+                  className="station-card-for-user" 
                   style={{ 
                     animationDelay: `${idx * 40}ms`,
                     background: theme === 'dark' 
@@ -652,7 +657,7 @@ export default function StationForUser() {
                           e.currentTarget.style.boxShadow = '0 8px 20px rgba(37, 99, 235, 0.25)';
                         }}
                       >
-                        {isExpanded ? 'Thu gon danh sach pin tai tram' : 'Xem danh sach pin tai tram'}
+                        {isExpanded ? 'Thu gọn danh sách pin' : 'Xem danh sách pin'}
                       </button>
                     </div>
                     {isExpanded && (

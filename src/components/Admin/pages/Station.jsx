@@ -20,7 +20,6 @@ export default function Station() {
   const itemsPerPage = 6;
 
   const [createName, setCreateName] = useState("");
-  const [createBatteryNumber, setCreateBatteryNumber] = useState("");
   const [createLocation, setCreateLocation] = useState("");
 
   const [editingId, setEditingId] = useState(null);
@@ -289,12 +288,11 @@ export default function Station() {
     e.preventDefault();
     if (!createName) { alert("Vui lòng nhập Tên trạm."); return; }
     if (!createLocation) { alert("Vui lòng nhập Location."); return; }
-    const batteryNumber = parseInt(createBatteryNumber || "0", 10);
     setOpLoading(true);
     try {
-      await authAPI.createStation({ stationName: createName, batteryNumber, location: createLocation });
+      await authAPI.createStation({ stationName: createName, location: createLocation });
       alert("Tạo trạm thành công");
-      setCreateName(""); setCreateBatteryNumber(""); setCreateLocation("");
+      setCreateName(""); setCreateLocation("");
       await fetchStations();
     } catch (err) {
       console.error("createStation error:", err);
@@ -388,8 +386,6 @@ export default function Station() {
         <div className="create-row">
           <input className="input" type="text" placeholder="Tên trạm"
                  value={createName} onChange={(e)=>setCreateName(e.target.value)} />
-          <input className="input" type="number" min="0" placeholder="BatteryNumber"
-                 value={createBatteryNumber} onChange={(e)=>setCreateBatteryNumber(e.target.value)} />
           <input className="input" type="text" placeholder="Location"
                  value={createLocation} onChange={(e)=>setCreateLocation(e.target.value)} />
           <button className="btn primary" type="submit" disabled={opLoading}>

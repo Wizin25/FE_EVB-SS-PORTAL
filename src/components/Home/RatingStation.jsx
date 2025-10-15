@@ -65,10 +65,47 @@ export default function RatingStation({ stationId, accountId, onClose, onSuccess
   }, [loadRatings]);
 
   // Filter ratings based on selected rating filter
+  const resolveRatingStatus = React.useCallback((item) => {
+    if (!item) return '';
+    const candidates = [
+      item.status,
+      item.Status,
+      item.ratingStatus,
+      item.statusName,
+    ];
+    const raw = candidates.find((val) => typeof val === 'string' && val.trim());
+    return raw ? raw.trim().toLowerCase() : '';
+  }, []);
+
+  const resolveAccountStatus = React.useCallback((item) => {
+    if (!item) return '';
+    const candidates = [
+      item.account?.status,
+      item.account?.Status,
+      item.account?.statusAccount,
+      item.account?.statusName,
+      item.accountStatus,
+      item.statusAccount,
+    ];
+    const raw = candidates.find((val) => typeof val === 'string' && val.trim());
+    return raw ? raw.trim().toLowerCase() : '';
+  }, []);
+
+  const resolveAccountName = React.useCallback((item) => {
+    const status = resolveAccountStatus(item);
+    if (status === 'inactive') return 'deleted account';
+    return item?.accountName || item?.account?.name || 'N/A';
+  }, [resolveAccountStatus]);
+
   const filteredRatings = useMemo(() => {
-    if (filterRating === 0) return allRatings;
-    return allRatings.filter(r => Math.round(r.rating1 || 0) === filterRating);
-  }, [allRatings, filterRating]);
+    return allRatings.filter((r) => {
+      // Hide ratings whose own status is Inactive
+      if (resolveRatingStatus(r) === 'inactive') return false;
+      if (resolveAccountStatus(r) === 'inactive') return false;
+      if (filterRating === 0) return true;
+      return Math.round(r.rating1 || 0) === filterRating;
+    });
+  }, [allRatings, filterRating, resolveAccountStatus, resolveRatingStatus]);
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
@@ -163,7 +200,7 @@ export default function RatingStation({ stationId, accountId, onClose, onSuccess
                     <span style={{ color: '#94a3b8', fontSize: 12 }}>{new Date(r.startDate).toLocaleString()}</span>
                   </div>
                   <div style={{ color: '#1f2937' }}>{r.description}</div>
-                  <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>By {r.accountName || r.account?.name || 'N/A'}</div>
+                  <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>By {resolveAccountName(r)}</div>
                 </div>
               ))
             )}
