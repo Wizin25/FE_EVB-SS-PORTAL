@@ -93,7 +93,7 @@ export default function BatteryManagementPage() {
       const ns = normalizeOptions(specs);
 
       setBatteryTypeOptions(nt.length ? nt : ["Lithium", "Accumulator", "LFP"]);
-      setSpecificationOptions(ns.length ? ns : ["V48_Ah12", "V48_Ah13", "V48_Ah20", "V48_Ah22", "V60_Ah20", "V60_Ah22", "V72_Ah22", "V72_Ah30", "V72_Ah38", "V72_Ah50", "V36_Ah7_8", "V36_Ah10_4"]);
+      setSpecificationOptions(ns.length ? ns : ["V48_Ah12", "V60_Ah22", "V72_Ah38", "V72_Ah54"]);
 
       // default values for create form if empty
       setCreateForm((prev) => ({
@@ -331,10 +331,6 @@ export default function BatteryManagementPage() {
           return Number.isFinite(Number(item.capacity)) ? Number(item.capacity) : Number.NEGATIVE_INFINITY;
         case "batteryQuality":
           return Number.isFinite(Number(item.batteryQuality)) ? Number(item.batteryQuality) : Number.NEGATIVE_INFINITY;
-        case "startDate":
-          return item.startDate ? new Date(item.startDate).getTime() : Number.NEGATIVE_INFINITY;
-        case "updateDate":
-          return item.updateDate ? new Date(item.updateDate).getTime() : Number.NEGATIVE_INFINITY;
         default:
           return "";
       }
@@ -632,8 +628,6 @@ export default function BatteryManagementPage() {
             <option value="specification">Specification</option>
             <option value="batteryQuality">BatteryQuality</option>
             <option value="status">Trạng thái</option>
-            <option value="startDate">Ngày tạo</option>
-            <option value="updateDate">Ngày cập nhật</option>
           </select>
           <select
             className="input"
@@ -721,7 +715,7 @@ export default function BatteryManagementPage() {
                         <select 
                           value={b.status || ''} 
                           onChange={(e) => handleUpdateBatteryStatus(b.batteryId, e.target.value)}
-                          disabled={statusUpdateLoading}
+                          disabled={statusUpdateLoading || b.status === 'InUse'}
                           className={`status-select ${
                             b.status === 'Available' ? 'status-available' :
                             b.status === 'InUse' ? 'status-inuse' :
@@ -868,7 +862,7 @@ export default function BatteryManagementPage() {
                       <select 
                         value={selectedBattery.status || ''} 
                         onChange={(e) => handleUpdateBatteryStatus(selectedBattery.batteryId, e.target.value)}
-                        disabled={statusUpdateLoading}
+                        disabled={statusUpdateLoading || selectedBattery.status === 'InUse'}
                         className={`status-select ${
                           selectedBattery.status === 'Available' ? 'status-available' :
                           selectedBattery.status === 'InUse' ? 'status-inuse' :

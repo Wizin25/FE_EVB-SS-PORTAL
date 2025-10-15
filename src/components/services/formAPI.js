@@ -73,48 +73,42 @@ export const formAPI = {
   },
 
   deleteForm: async (formId) => {
-  try {
-    // Thử dùng DELETE method trước
-    const response = await api.delete(`/api/Form/delete-form/${formId}`);
-    return response.data;
-  } catch (error) {
-    // Nếu DELETE không work, thử PUT
     try {
+      // CHỈ sử dụng PUT method theo đúng backend
       const response = await api.put(`/api/Form/delete-form/${formId}`);
       return response.data;
-    } catch (secondError) {
-      console.error('Delete form error:', secondError);
-      throw secondError.response?.data || { 
-        message: secondError.message || 'Xóa form thất bại',
+    } catch (error) {
+      console.error('Delete form error:', error);
+      throw error.response?.data || { 
+        message: error.message || 'Xóa form thất bại',
         isSuccess: false 
       };
     }
-  }
-},
+  },
 
-getFormByIdDriver: async (formId) => {
-  try {
-    const response = await api.get(`/api/Form/get-form-by-id-driver/${formId}`);
-    return response.data;
-  } catch (error) {
-    console.error('Get form by id driver error:', error);
-    throw error.response?.data || { 
-      message: error.message || 'Lỗi khi lấy thông tin form',
-      isSuccess: false 
-    };
-  }
-},
+  getFormByIdDriver: async (formId) => {
+    try {
+      const response = await api.get(`/api/Form/get-form-by-id-driver/${formId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get form by id driver error:', error);
+      throw error.response?.data || { 
+        message: error.message || 'Lỗi khi lấy thông tin form',
+        isSuccess: false 
+      };
+    }
+  },
 
-getAllFormsDriver: async () => {
-  try {
-    const response = await api.get('/api/Form/get-all-forms-driver');
-    return response.data;
-  } catch (error) {
-    console.error('Get all forms driver error:', error);
-    throw error.response?.data || { 
-      message: error.message || 'Lỗi khi lấy danh sách form',
-      isSuccess: false 
-    };
-  }
-},
+  getAllFormsDriver: async () => {
+    try {
+      const response = await api.get('/api/Form/get-all-forms-driver');
+      return response.data;
+    } catch (error) {
+      console.error('Get all forms driver error:', error);
+      throw error.response?.data || { 
+        message: error.message || 'Lỗi khi lấy danh sách form',
+        isSuccess: false 
+      };
+    }
+  },
 };

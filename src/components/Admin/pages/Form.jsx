@@ -91,13 +91,15 @@ export default function FormPage() {
     }
   };
 
-  // Lấy tất cả forms
+  // Lấy tất cả forms - THÊM LOG ĐỂ DEBUG
   const fetchAllForms = async () => {
     setLoading(true);
     try {
       const response = await formAPI.getAllForms();
+      console.log('API Response:', response); // THÊM LOG
       if (response.isSuccess) {
         const formsData = response.data || [];
+        console.log('Forms data:', formsData); // THÊM LOG
         setForms(formsData);
 
         // Fetch customer details cho mỗi form
@@ -157,16 +159,25 @@ export default function FormPage() {
     }
   };
 
-  // Xóa form
-  const handleDeleteForm = async (id) => {
-    console.log('Attempting to delete form ID:', id);
+  // Xóa form - SỬA LẠI ĐỂ XÁC ĐỊNH ĐÚNG FORM ID
+  const handleDeleteForm = async (form) => {
+    // Xác định formId từ các trường có thể có
+    const formId = form.id || form.formId || form.FormId;
+    
+    console.log('Attempting to delete form:', form);
+    console.log('Form ID to delete:', formId);
+    
+    if (!formId) {
+      alert('Không tìm thấy ID của form để xóa');
+      return;
+    }
     
     if (!window.confirm('Bạn có chắc muốn xóa form này?')) return;
 
     setLoading(true);
     try {
-      console.log('Calling deleteForm API...');
-      const response = await formAPI.deleteForm(id);
+      console.log('Calling deleteForm API with formId:', formId);
+      const response = await formAPI.deleteForm(formId);
       console.log('Delete response:', response);
       
       if (response.isSuccess) {
@@ -184,7 +195,12 @@ export default function FormPage() {
         response: error.response,
         data: error.response?.data
       });
-      alert('Lỗi khi xóa form: ' + (error.message || 'Vui lòng thử lại'));
+      
+      // Hiển thị thông báo lỗi chi tiết hơn
+      const errorMessage = error.response?.data?.message || 
+                          error.message || 
+                          'Vui lòng thử lại';
+      alert('Lỗi khi xóa form: ' + errorMessage);
     } finally {
       setLoading(false);
     }
@@ -347,6 +363,11 @@ export default function FormPage() {
   const getSortIcon = (field) => {
     if (sortBy !== field) return '↕️';
     return sortDirection === 'asc' ? '↑' : '↓';
+  };
+
+  // Hàm lấy Form ID từ nhiều trường có thể có
+  const getFormId = (form) => {
+    return form.id || form.formId || form.FormId || 'N/A';
   };
 
   return (
@@ -544,7 +565,7 @@ export default function FormPage() {
             </pre>
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
               <button 
-                onClick={() => handleDeleteForm(selectedForm.id)}
+                onClick={() => handleDeleteForm(selectedForm)}
                 style={{ padding: '8px 16px', background: '#ef4444', color: 'white', borderRadius: 6 }}
               >
                 Xóa Form
@@ -612,10 +633,11 @@ export default function FormPage() {
                 const station = stationDetails[form.stationId];
                 const isCustomerLoading = detailLoading[form.accountId];
                 const isStationLoading = stationLoading[form.stationId];
+                const formId = getFormId(form);
                 
                 return (
                   <div 
-                    key={form.id} 
+                    key={formId} 
                     style={{ 
                       padding: 16, 
                       border: '1px solid #e2e8f0', 
@@ -649,6 +671,9 @@ export default function FormPage() {
                             <strong>Ngày tạo:</strong> {formatDate(form.date)}
                           </span>
                         )}
+                        <span>
+                          <strong>Form ID:</strong> {formId}
+                        </span>
                       </div>
 
                       {/* Thông tin Customer chi tiết - GIỐNG CONTROLLER.JSX */}
@@ -722,18 +747,21 @@ export default function FormPage() {
                         {form.status || 'Chưa xác định'}
                       </span>
                       
-                      {/* Nút Xóa */}
+                      {/* Nút Xóa - ĐÃ SỬA */}
                       <button 
-                        onClick={() => handleDeleteForm(form.id)}
+                        onClick={() => handleDeleteForm(form)}
+                        disabled={loading}
                         style={{ 
                           padding: '6px 12px', 
                           background: '#ef4444', 
                           color: 'white', 
                           borderRadius: 6,
-                          fontSize: 12
+                          fontSize: 12,
+                          opacity: loading ? 0.6 : 1,
+                          cursor: loading ? 'not-allowed' : 'pointer'
                         }}
                       >
-                        Xóa
+                        {loading ? 'Đang xóa...' : 'Xóa'}
                       </button>
                     </div>
                   </div>
