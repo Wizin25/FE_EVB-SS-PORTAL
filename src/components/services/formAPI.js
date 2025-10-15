@@ -47,9 +47,35 @@ export const formAPI = {
   getFormsByStationId: async (stationId) => {
     try {
       const response = await api.get(`/api/Form/get-forms-by-station-id/${stationId}`);
-      return response.data;
+      // Lọc ra các đơn thực sự thuộc đúng stationId truyền vào (phòng backend trả thừa)
+      const forms = Array.isArray(response.data.data)
+        ? response.data.data.filter(form => form.stationId === stationId)
+        : [];
+      return forms;
     } catch (error) {
       throw error;
+    }
+  },
+
+  // Alias for clarity if needed elsewhere
+  getAllFormByStationId: async (stationId) => {
+    return await formAPI.getFormsByStationId(stationId);
+  },
+
+  updateFormStatusStaff: async ({ formId, status }) => {
+    try {
+      const data = new FormData();
+      data.append('FormId', formId);
+      if (status) data.append('Status', status);
+      const response = await api.put('/api/Form/update-form-status-staff', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || {
+        message: error.message || 'Cập nhật trạng thái form thất bại',
+        isSuccess: false,
+      };
     }
   },
 

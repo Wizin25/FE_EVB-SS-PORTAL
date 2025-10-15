@@ -601,4 +601,25 @@ getBatteryById: async (batteryId) => {
       throw new Error(msg);
     }
   },
+  
+    getAccountByCustomerIdForStaff: async (customerId) => {
+      if (!customerId) throw new Error('customerId is required');
+      try {
+        const res = await api.get('/api/Account/get_account_by_customer_id_for_staff', {
+          params: { customerId }
+        });
+        // Chuẩn hoá trả về giống các hàm khác
+        if (res?.data?.isSuccess) return res.data.data || null;
+        // Một số BE có thể trả raw object
+        if (res?.data && res.status === 200) return res.data;
+        return null;
+      } catch (err) {
+        const msg =
+          err?.response?.data?.message ||
+          err?.message ||
+          'Lấy thông tin account theo customerId thất bại';
+        throw new Error(msg);
+      }
+    },
+  
 };
