@@ -93,7 +93,7 @@ export default function BatteryManagementPage() {
       const ns = normalizeOptions(specs);
 
       setBatteryTypeOptions(nt.length ? nt : ["Lithium", "Accumulator", "LFP"]);
-      setSpecificationOptions(ns.length ? ns : ["V48_Ah12", "V60_Ah22", "V72_Ah38", "V72_Ah54"]);
+      setSpecificationOptions(ns.length ? ns : ["V48_Ah12", "V48_Ah13", "V48_Ah20", "V48_Ah22", "V60_Ah20", "V60_Ah22", "V72_Ah22", "V72_Ah30", "V72_Ah38", "V72_Ah50", "V36_Ah7_8", "V36_Ah10_4"]);
 
       // default values for create form if empty
       setCreateForm((prev) => ({
@@ -116,21 +116,21 @@ export default function BatteryManagementPage() {
   // Hàm cập nhật battery status
   const handleUpdateBatteryStatus = async (batteryId, newStatus) => {
     if (!batteryId) return;
-    
+
     setStatusUpdateLoading(true);
     try {
       await authAPI.updateBatteryStatus(batteryId, newStatus);
-      
+
       // Cập nhật local state
-      setBatteries(prev => prev.map(b => 
+      setBatteries(prev => prev.map(b =>
         b.batteryId === batteryId ? { ...b, status: newStatus } : b
       ));
-      
+
       // Cập nhật selected battery nếu đang mở modal
       if (selectedBattery?.batteryId === batteryId) {
         setSelectedBattery(prev => ({ ...prev, status: newStatus }));
       }
-      
+
       alert(`Đã cập nhật trạng thái thành ${newStatus}`);
     } catch (error) {
       alert("Cập nhật trạng thái thất bại: " + error.message);
@@ -296,19 +296,19 @@ export default function BatteryManagementPage() {
 
   // ---------- FILTER ----------
   const filtered = batteries.filter(b => {
-    const matchesSearch = search === "" || 
+    const matchesSearch = search === "" ||
       (b.batteryName ?? "").toLowerCase().includes(search.toLowerCase()) ||
       b.batteryId?.toLowerCase().includes(search.toLowerCase()) ||
       (b.batteryType ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (b.specification ?? "").toLowerCase().includes(search.toLowerCase());
-    
-    const matchesStatus = statusFilter === "" || 
+
+    const matchesStatus = statusFilter === "" ||
       (b.status ?? "").toLowerCase() === statusFilter.toLowerCase();
     const matchesType = batteryTypeFilter === "" || (b.batteryType ?? "") === batteryTypeFilter;
     const matchesSpec = specificationFilter === "" || (b.specification ?? "") === specificationFilter;
     const stationText = `${b.station?.stationName ?? ""} ${b.station?.stationId ?? ""}`.toLowerCase();
     const matchesStation = stationFilter === "" || stationText.includes(stationFilter.toLowerCase());
-    
+
     return matchesSearch && matchesStatus && matchesType && matchesSpec && matchesStation;
   });
 
@@ -331,6 +331,10 @@ export default function BatteryManagementPage() {
           return Number.isFinite(Number(item.capacity)) ? Number(item.capacity) : Number.NEGATIVE_INFINITY;
         case "batteryQuality":
           return Number.isFinite(Number(item.batteryQuality)) ? Number(item.batteryQuality) : Number.NEGATIVE_INFINITY;
+        case "startDate":
+          return item.startDate ? new Date(item.startDate).getTime() : Number.NEGATIVE_INFINITY;
+        case "updateDate":
+          return item.updateDate ? new Date(item.updateDate).getTime() : Number.NEGATIVE_INFINITY;
         default:
           return "";
       }
@@ -364,7 +368,7 @@ export default function BatteryManagementPage() {
   const endIndex = startIndex + itemsPerPage;
   const currentBatteries = sorted.slice(startIndex, endIndex);
 
-  const handlePageChange = (page) => {  
+  const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
@@ -628,6 +632,8 @@ export default function BatteryManagementPage() {
             <option value="specification">Specification</option>
             <option value="batteryQuality">BatteryQuality</option>
             <option value="status">Trạng thái</option>
+            <option value="startDate">Ngày tạo</option>
+            <option value="updateDate">Ngày cập nhật</option>
           </select>
           <select
             className="input"
@@ -638,7 +644,7 @@ export default function BatteryManagementPage() {
             <option value="desc">Giảm dần</option>
           </select>
         </div>
-        
+
         <div className="station-select">
           <label>Tìm kiếm:</label>
           <input
@@ -658,13 +664,13 @@ export default function BatteryManagementPage() {
             onChange={e => setStationFilter(e.target.value)}
           />
         </div>
-        
+
         <div className="station-select">
           <button className="btn" onClick={fetchBatteries} disabled={loading}>
             {loading ? "Đang tải..." : "Reload"}
           </button>
-          <button 
-            className="btn" 
+          <button
+            className="btn"
             onClick={() => {
               setSearch("");
               setStatusFilter("");
@@ -698,66 +704,65 @@ export default function BatteryManagementPage() {
       {/* List */}
       {loading ? <div className="station-loading">Đang tải...</div>
         : error ? <div className="station-error">{error}</div>
-        : (
-          <div className="batt-list">
-            {currentBatteries.length === 0 ? <div className="empty-note">Không có pin.</div> :
-              currentBatteries.map(b => (
-                <div className="batt-item" key={b.batteryId}>
-                  <div className="batt-top">
-                    <div className="batt-left">
-                      <div className="batt-id">{b.batteryName ? b.batteryName : b.batteryId}</div>
-                      <div className="batt-meta">{b.batteryType} • {b.capacity}% • {b.specification}</div>
-                      <div className="batt-submeta">Trạm: {b.station?.stationName || b.station?.stationId || "Chưa gán"}</div>
-                    </div>
-                    <div className="batt-right">
-                      {/* Status Select */}
-                      <div className="status-select-container">
-                        <select 
-                          value={b.status || ''} 
-                          onChange={(e) => handleUpdateBatteryStatus(b.batteryId, e.target.value)}
-                          disabled={statusUpdateLoading || b.status === 'InUse'}
-                          className={`status-select ${
-                            b.status === 'Available' ? 'status-available' :
-                            b.status === 'InUse' ? 'status-inuse' :
-                            b.status === 'Charging' ? 'status-charging' :
-                            b.status === 'Maintenance' ? 'status-maintenance' :
-                            b.status === 'Decommissioned' ? 'status-decommissioned' : ''
-                          }`}
-                        >
-                          <option value="Available">Available</option>
-                          <option value="InUse">InUse</option>
-                          <option value="Charging">Charging</option>
-                          <option value="Maintenance">Maintenance</option>
-                          <option value="Decommissioned">Decommissioned</option>
-                        </select>
+          : (
+            <div className="batt-list">
+              {currentBatteries.length === 0 ? <div className="empty-note">Không có pin.</div> :
+                currentBatteries.map(b => (
+                  <div className="batt-item" key={b.batteryId}>
+                    <div className="batt-top">
+                      <div className="batt-left">
+                        <div className="batt-id">{b.batteryName ? b.batteryName : b.batteryId}</div>
+                        <div className="batt-meta">{b.batteryType} • {b.capacity}% • {b.specification}</div>
+                        <div className="batt-submeta">Trạm: {b.station?.stationName || b.station?.stationId || "Chưa gán"}</div>
                       </div>
-                      
-                      <div className="batt-quality">SoH: <strong>{b.batteryQuality ?? "-"}%</strong></div>
-                      <div className="batt-actions">
-                        <button
-                          className="btn small"
-                          onClick={async () => {
-                            await openDetailModal(b.batteryId);
-                            setTimeout(() => {
-                              const modal = document.querySelector('.modal');
-                              if (modal) {
-                                modal.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                              }
-                            }, 50);
-                          }}
-                        >
-                          Chi tiết
-                        </button>
-                        <button className="btn danger small" onClick={() => handleDelete(b.batteryId)}>Xóa</button>
-                        <button className="btn small" onClick={() => openAssignModal(b)}>Gán trạm</button>
+                      <div className="batt-right">
+                        {/* Status Select */}
+                        <div className="status-select-container">
+                          <select
+                            value={b.status || ''}
+                            onChange={(e) => handleUpdateBatteryStatus(b.batteryId, e.target.value)}
+                            disabled={statusUpdateLoading || b.status === 'InUse'}
+                            className={`status-select ${b.status === 'Available' ? 'status-available' :
+                                b.status === 'InUse' ? 'status-inuse' :
+                                  b.status === 'Charging' ? 'status-charging' :
+                                    b.status === 'Maintenance' ? 'status-maintenance' :
+                                      b.status === 'Decommissioned' ? 'status-decommissioned' : ''
+                              }`}
+                          >
+                            <option value="Available">Available</option>
+                            <option value="InUse">InUse</option>
+                            <option value="Charging">Charging</option>
+                            <option value="Maintenance">Maintenance</option>
+                            <option value="Decommissioned">Decommissioned</option>
+                          </select>
+                        </div>
+
+                        <div className="batt-quality">SoH: <strong>{b.batteryQuality ?? "-"}%</strong></div>
+                        <div className="batt-actions">
+                          <button
+                            className="btn small"
+                            onClick={async () => {
+                              await openDetailModal(b.batteryId);
+                              setTimeout(() => {
+                                const modal = document.querySelector('.modal');
+                                if (modal) {
+                                  modal.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }
+                              }, 50);
+                            }}
+                          >
+                            Chi tiết
+                          </button>
+                          <button className="btn danger small" onClick={() => handleDelete(b.batteryId)}>Xóa</button>
+                          <button className="btn small" onClick={() => openAssignModal(b)}>Gán trạm</button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))
-            }
-          </div>
-        )
+                ))
+              }
+            </div>
+          )
       }
 
       {/* Detail Modal */}
@@ -855,21 +860,20 @@ export default function BatteryManagementPage() {
                     <p><b>Capacity:</b> {selectedBattery.capacity}%</p>
                     <p><b>Specification:</b> {selectedBattery.specification}</p>
                     <p><b>SoH:</b> {selectedBattery.batteryQuality}%</p>
-                    
+
                     {/* Status Select trong modal */}
                     <div className="status-section" style={{ marginBottom: '12px' }}>
                       <label><b>Trạng thái:</b></label>
-                      <select 
-                        value={selectedBattery.status || ''} 
+                      <select
+                        value={selectedBattery.status || ''}
                         onChange={(e) => handleUpdateBatteryStatus(selectedBattery.batteryId, e.target.value)}
                         disabled={statusUpdateLoading || selectedBattery.status === 'InUse'}
-                        className={`status-select ${
-                          selectedBattery.status === 'Available' ? 'status-available' :
-                          selectedBattery.status === 'InUse' ? 'status-inuse' :
-                          selectedBattery.status === 'Charging' ? 'status-charging' :
-                          selectedBattery.status === 'Maintenance' ? 'status-maintenance' :
-                          selectedBattery.status === 'Decommissioned' ? 'status-decommissioned' : ''
-                        }`}
+                        className={`status-select ${selectedBattery.status === 'Available' ? 'status-available' :
+                            selectedBattery.status === 'InUse' ? 'status-inuse' :
+                              selectedBattery.status === 'Charging' ? 'status-charging' :
+                                selectedBattery.status === 'Maintenance' ? 'status-maintenance' :
+                                  selectedBattery.status === 'Decommissioned' ? 'status-decommissioned' : ''
+                          }`}
                         style={{ marginLeft: '8px' }}
                       >
                         <option value="Available">Available</option>
@@ -885,18 +889,18 @@ export default function BatteryManagementPage() {
                     <div style={{ marginTop: 10 }}>
                       <div className="section-title">Histories</div>
                       {selectedBattery.batteryHistories?.length ? (
-                        <ul className="detail-list">{selectedBattery.batteryHistories.map((h,i)=><li key={i}>{JSON.stringify(h)}</li>)}</ul>
+                        <ul className="detail-list">{selectedBattery.batteryHistories.map((h, i) => <li key={i}>{JSON.stringify(h)}</li>)}</ul>
                       ) : <div className="empty-note">Không có lịch sử</div>}
 
                       <div className="section-title">Reports</div>
                       {selectedBattery.batteryReports?.length ? (
-                        <ul className="detail-list">{selectedBattery.batteryReports.map((r,i)=><li key={i}>{JSON.stringify(r)}</li>)}</ul>
+                        <ul className="detail-list">{selectedBattery.batteryReports.map((r, i) => <li key={i}>{JSON.stringify(r)}</li>)}</ul>
                       ) : <div className="empty-note">Không có báo cáo</div>}
                     </div>
 
                     {/* Ngày tạo, cập nhật nằm dưới cuối cùng */}
                     <p className="date-info" style={{ color: "#64748b", fontSize: 13, marginTop: 16 }}>
-                      Ngày tạo: {selectedBattery.startDate ? new Date(selectedBattery.startDate).toLocaleString() : "-"} <br/>
+                      Ngày tạo: {selectedBattery.startDate ? new Date(selectedBattery.startDate).toLocaleString() : "-"} <br />
                       Cập nhật: {selectedBattery.updateDate ? new Date(selectedBattery.updateDate).toLocaleString() : "-"}
                     </p>
                   </div>
@@ -931,14 +935,14 @@ export default function BatteryManagementPage() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="pagination">
-          <button 
-            className="btn small" 
+          <button
+            className="btn small"
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
           >
             ← Trước
           </button>
-          
+
           <div className="page-numbers">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
               <button
@@ -950,9 +954,9 @@ export default function BatteryManagementPage() {
               </button>
             ))}
           </div>
-          
-          <button 
-            className="btn small" 
+
+          <button
+            className="btn small"
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
           >
