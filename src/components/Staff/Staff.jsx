@@ -1,8 +1,13 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Table, Button, Modal, Form, Input, Select, message } from 'antd';
+import { message } from 'antd';
 import { authAPI } from '../services/authAPI';
 import { formAPI } from '../services/formAPI';
-import { isInRole } from '../services/jwt';
+import './Staff.css';
+
+const ITEMS_PER_PAGE = 10;
+
+/** Chuẩn hoá ID form */
+const getFormId = (f) => f?.formId ?? f?.id ?? f?._id ?? null;
 
 function StaffPage() {
   const [forms, setForms] = useState([]);
@@ -10,455 +15,324 @@ function StaffPage() {
   const [loading, setLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
-  // State cho customer và station details
+  // Profile drawer
+  const [showProfile, setShowProfile] = useState(false);
+
+  // Dropdown chọn trạng thái theo từng form
+  const [statusChoice, setStatusChoice] = useState({});
+
+  // Cache thông tin account theo CUSTOMER ID
   const [customerDetails, setCustomerDetails] = useState({});
   const [detailLoading, setDetailLoading] = useState({});
+
+  // Cache station (key theo stationId), CHỈ lấy qua staffId
   const [stationDetails, setStationDetails] = useState({});
-  const [stationLoading, setStationLoading] = useState({});
 
-  // State cho form tạo mới
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    date: new Date().toISOString().split('T')[0],
-    stationId: ''
-  });
-
-  // State cho tìm kiếm và sắp xếp
+  // Tìm kiếm/sắp xếp
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortBy, setSortBy] = useState('date');
   const [sortDirection, setSortDirection] = useState('desc');
 
-  // State cho phân trang
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  // Phân trang
+  const [page, setPage] = useState(1);
 
-  // Lấy thông tin user hiện tại
+  /* ======== Init: current user + prefetch station by staffId + forms by station ======== */
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
         const user = await authAPI.getCurrent();
         setCurrentUser(user);
-      } catch (error) {
-        console.error('Error fetching current user:', error);
+
+        // Prefetch station theo staffId để có stationName (Sxxx) -> cache theo stationId
+        const staffIds = Array.isArray(user?.bssStaffs)
+          ? user.bssStaffs.map(s => s?.staffId).filter(Boolean)
+          : [];
+        staffIds.forEach(fetchStationByStaffId);
+
+        // Lấy stationId để load forms
+        let stationId = user?.stationId || user?.StationId || user?.stationID;
+        if (!stationId && Array.isArray(user?.bssStaffs) && user.bssStaffs.length > 0) {
+          stationId = user.bssStaffs[0]?.stationId || user.bssStaffs[0]?.StationId;
+        }
+
+        if (stationId) {
+          await fetchFormsForStation(stationId);
+        } else {
+          message.warning('Không tìm thấy station ID cho user hiện tại');
+        }
+      } catch {
+        message.error('Lỗi khi tải thông tin người dùng');
       }
     };
     fetchCurrentUser();
   }, []);
 
-  // Hàm lấy thông tin customer theo accountId
-  const fetchCustomerDetails = useCallback(async (accountId) => {
-    if (!accountId || customerDetails[accountId]) return;
+  /* ======== API calls ======== */
 
-    setDetailLoading(prev => ({ ...prev, [accountId]: true }));
-    
+  // Lấy station theo staffId rồi cache theo key stationId (KHÔNG gọi admin API)
+  const fetchStationByStaffId = useCallback(async (staffId) => {
+    if (!staffId) return;
     try {
-      const response = await authAPI.getCustomerById(accountId);
-      if (response.isSuccess && response.data) {
-        setCustomerDetails(prev => ({
+      const data = await authAPI.getStationByStaffIdForStaff(staffId);
+      if (data?.stationId) {
+        setStationDetails(prev => ({
           ...prev,
-          [accountId]: response.data
+          [data.stationId]: data, // có stationName trong payload
         }));
       }
-    } catch (error) {
-      console.error(`Error fetching customer details for account ${accountId}:`, error);
+    } catch {
+      /* silent */
+    }
+  }, []);
+
+  const fetchFormsForStation = async (stationId) => {
+    try {
+      setLoading(true);
+      const data = await formAPI.getFormsByStationId(stationId);
+      const arr = Array.isArray(data) ? data : [];
+
+      // Chuẩn hoá mỗi item có formId (nếu BE trả id/_id)
+      const normalized = arr.map(f => ({
+        ...f,
+        formId: f.formId ?? f.id ?? f._id ?? null,
+      }));
+
+      setForms(normalized);
+
+      // Prefetch: account theo CUSTOMER ID (CHỈ)
+      normalized.forEach(f => {
+        if (f.customerId) fetchAccountByCustomerId(f.customerId);
+        // KHÔNG gọi getStationByIdForAdmin nữa
+      });
+
+      setStatusChoice({});
+      setPage(1);
+    } catch {
+      message.error('Lỗi khi tải forms theo trạm');
     } finally {
-      setDetailLoading(prev => ({ ...prev, [accountId]: false }));
+      setLoading(false);
+    }
+  };
+
+  /** Lấy account theo customerId bằng API /api/Account/get_account_by_customer_id_for_staff */
+  const fetchAccountByCustomerId = useCallback(async (customerId) => {
+    if (!customerId || customerDetails[customerId]) return;
+    setDetailLoading(prev => ({ ...prev, [customerId]: true }));
+    try {
+      const response = await authAPI.getAccountByCustomerIdForStaff(customerId);
+      const acc = response?.data ?? response; // phòng trường hợp trả raw
+      if (acc) setCustomerDetails(prev => ({ ...prev, [customerId]: acc }));
+    } catch {
+      /* silent */
+    } finally {
+      setDetailLoading(prev => ({ ...prev, [customerId]: false }));
     }
   }, [customerDetails]);
 
-  // Hàm lấy thông tin station theo stationId
-  const fetchStationDetails = useCallback(async (stationId) => {
-    if (!stationId || stationDetails[stationId]) return;
-
-    setStationLoading(prev => ({ ...prev, [stationId]: true }));
-    
-    try {
-      const response = await authAPI.getStationByIdForAdmin(stationId);
-      if (response) {
-        setStationDetails(prev => ({
-          ...prev,
-          [stationId]: response
-        }));
-      }
-    } catch (error) {
-      console.error(`Error fetching station details for station ${stationId}:`, error);
-    } finally {
-      setStationLoading(prev => ({ ...prev, [stationId]: false }));
-    }
-  }, [stationDetails]);
-
-  // Lấy tất cả forms
-  const fetchAllForms = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await formAPI.getAllForms();
-      if (response.isSuccess) {
-        const formsData = response.data || [];
-        setForms(formsData);
-
-        // Fetch customer details cho mỗi form
-        formsData.forEach(form => {
-          if (form.accountId) {
-            fetchCustomerDetails(form.accountId);
-          }
-        });
-
-        // Fetch station details cho mỗi form
-        formsData.forEach(form => {
-          if (form.stationId) {
-            fetchStationDetails(form.stationId);
-          }
-        });
-      } else {
-        console.error('Error fetching forms:', response.message);
-        message.error('Lỗi khi tải danh sách form: ' + response.message);
-      }
-    } catch (error) {
-      console.error('Error fetching forms:', error);
-      message.error('Lỗi khi tải danh sách form');
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchCustomerDetails, fetchStationDetails]);
-
-  // Tạo form mới
-  const handleCreateForm = async (e) => {
-    e.preventDefault();
-    
-    if (!currentUser) {
-      message.warning('Vui lòng đăng nhập để tạo form');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const createData = {
-        ...formData,
-        accountId: currentUser.accountId || currentUser.id
-      };
-
-      const response = await formAPI.createForm(createData);
-      if (response.isSuccess) {
-        message.success('Tạo form thành công!');
-        resetForm();
-        fetchAllForms();
-      } else {
-        message.error('Lỗi khi tạo form: ' + response.message);
-      }
-    } catch (error) {
-      console.error('Error creating form:', error);
-      message.error('Lỗi khi tạo form: ' + (error.message || 'Unknown error'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Xóa form
-  const handleDeleteForm = async (id) => {
-    if (!window.confirm('Bạn có chắc muốn xóa form này?')) return;
-
-    setLoading(true);
-    try {
-      const response = await formAPI.deleteForm(id);
-      
-      if (response.isSuccess) {
-        message.success('Xóa form thành công!');
-        setSelectedForm(null);
-        fetchAllForms();
-      } else {
-        message.error('Lỗi khi xóa form: ' + response.message);
-      }
-    } catch (error) {
-      console.error('Delete error:', error);
-      message.error('Lỗi khi xóa form: ' + (error.message || 'Vui lòng thử lại'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      title: '',
-      description: '',
-      date: new Date().toISOString().split('T')[0],
-      stationId: ''
-    });
-  };
-
-  const handleFormDataChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  // Hàm xử lý sắp xếp
+  /* ======== Filters / Sort ======== */
   const handleSort = (field) => {
-    if (sortBy === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      setSortDirection('desc');
-    }
+    if (sortBy === field) setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(field); setSortDirection('desc'); }
   };
 
-  // Lọc và sắp xếp forms
   const filteredAndSortedForms = useMemo(() => {
     let results = [...forms];
 
-    // Tìm kiếm theo nhiều trường
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       results = results.filter(form => {
-        const customer = customerDetails[form.accountId];
-        const station = stationDetails[form.stationId];
-        
-        // Tìm kiếm theo các trường
-        const accountIdMatch = form.accountId && form.accountId.toLowerCase().includes(term);
-        // const stationMatch = form.stationId && form.stationId.toLowerCase().includes(term);
-        const stationNameMatch = station && station.stationName && station.stationName.toLowerCase().includes(term);
-        const titleMatch = form.title && form.title.toLowerCase().includes(term);
-        const descriptionMatch = form.description && form.description.toLowerCase().includes(term);
-        
-        // Tìm kiếm theo customer details
-        const customerNameMatch = customer && customer.name && customer.name.toLowerCase().includes(term);
-        const customerUserNameMatch = customer && customer.username && customer.username.toLowerCase().includes(term);
-        const customerPhoneMatch = customer && customer.phone && customer.phone.toLowerCase().includes(term);
-        const customerEmailMatch = customer && customer.email && customer.email.toLowerCase().includes(term);
+        const customer = customerDetails[form.customerId];
+        const station  = stationDetails[form.stationId];
 
-        return accountIdMatch  || stationNameMatch || titleMatch || descriptionMatch || 
-               customerNameMatch || customerUserNameMatch || customerPhoneMatch || customerEmailMatch;
+        const customerNameMatch  = customer?.name?.toLowerCase().includes(term);
+        const customerUserMatch  = customer?.username?.toLowerCase().includes(term);
+        const customerPhoneMatch = customer?.phone?.toLowerCase().includes(term);
+        const customerEmailMatch = customer?.email?.toLowerCase().includes(term);
+
+        const stationNameMatch   = station?.stationName?.toLowerCase().includes(term);
+        const titleMatch         = form.title?.toLowerCase().includes(term);
+        const descriptionMatch   = form.description?.toLowerCase().includes(term);
+
+        const idMatch =
+          (form.customerId && String(form.customerId).toLowerCase().includes(term)) ||
+          (form.accountId && String(form.accountId).toLowerCase().includes(term));
+
+        return idMatch || stationNameMatch || titleMatch || descriptionMatch ||
+               customerNameMatch || customerUserMatch || customerPhoneMatch || customerEmailMatch;
       });
     }
 
-    // Lọc theo status
     if (statusFilter !== 'All') {
-      results = results.filter(form => 
+      results = results.filter(form =>
         form.status && form.status.toLowerCase() === statusFilter.toLowerCase()
       );
     }
 
-    // Sắp xếp
     if (sortBy) {
       results.sort((a, b) => {
-        let aValue = a[sortBy];
-        let bValue = b[sortBy];
-
-        if (sortBy === 'date') {
-          aValue = aValue ? new Date(aValue) : new Date(0);
-          bValue = bValue ? new Date(bValue) : new Date(0);
-        }
-
+        let aValue = a[sortBy]; let bValue = b[sortBy];
+        if (sortBy === 'date') { aValue = aValue ? new Date(aValue) : new Date(0); bValue = bValue ? new Date(bValue) : new Date(0); }
         if (typeof aValue === 'string') aValue = aValue.toLowerCase();
         if (typeof bValue === 'string') bValue = bValue.toLowerCase();
-
         if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
         if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
         return 0;
       });
     }
-
     return results;
   }, [forms, searchTerm, statusFilter, sortBy, sortDirection, customerDetails, stationDetails]);
 
-  // Tính toán phân trang
+  /* ======== Pagination ======== */
   const totalItems = filteredAndSortedForms.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
+  const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+  useEffect(() => { setPage(1); }, [searchTerm, statusFilter, sortBy, sortDirection, totalItems]);
+  const startIndex = (page - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
   const currentForms = filteredAndSortedForms.slice(startIndex, endIndex);
+  const handlePageChange = (p) => { if (p >= 1 && p <= totalPages) setPage(p); };
 
-  // Reset về trang 1 khi filters thay đổi
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, sortBy, sortDirection]);
+  /* ======== Status / Actions ======== */
+  const handleUpdateStatus = async (formId, status) => {
+    if (!formId) { message.error('Không xác định được Form ID'); return; }
+    if (!status) { message.info('Hãy chọn trạng thái trước khi cập nhật'); return; }
+    try {
+      setLoading(true);
+      await formAPI.updateFormStatusStaff({ formId, status });
+      message.success(status?.toLowerCase() === 'approved' ? 'Đã duyệt form' : 'Đã từ chối form');
 
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
+      const stationId =
+        (Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs.length > 0)
+          ? (currentUser.bssStaffs[0]?.stationId || currentUser.bssStaffs[0]?.StationId)
+          : (currentUser?.stationId || currentUser?.StationId || currentUser?.stationID);
+      if (stationId) await fetchFormsForStation(stationId);
+    } catch (e) {
+      message.error(e?.message || 'Cập nhật trạng thái thất bại');
+    } finally { setLoading(false); }
+  };
+
+  const handleDeleteForm = async (formId) => {
+    if (!formId) { message.error('Không xác định được Form ID'); return; }
+    if (!window.confirm('Bạn có chắc muốn xóa form này?')) return;
+    try {
+      setLoading(true);
+      const resp = await formAPI.deleteForm(formId);
+      if (resp?.isSuccess) {
+        message.success('Xóa form thành công!');
+        setSelectedForm(null);
+        const stationId =
+          (Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs.length > 0)
+            ? (currentUser.bssStaffs[0]?.stationId || currentUser.bssStaffs[0]?.StationId)
+            : (currentUser?.stationId || currentUser?.StationId || currentUser?.stationID);
+        if (stationId) await fetchFormsForStation(stationId);
+      } else {
+        message.error('Xóa form thất bại');
+      }
+    } catch (e) {
+      message.error(e?.message || 'Xóa form thất bại');
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchAllForms();
-  }, [fetchAllForms]);
+  const getStatusClass = (status) => {
+    const s = (status || '').toLowerCase();
+    if (s === 'pending' || s === 'chờ xử lý') return 'status-chip status-pending';
+    if (s === 'approved' || s === 'đã duyệt') return 'status-chip status-approved';
+    if (s === 'rejected' || s === 'từ chối') return 'status-chip status-rejected';
+    if (s === 'completed' || s === 'hoàn thành') return 'status-chip status-completed';
+    return 'status-chip status-unknown';
+  };
 
-  const canCreateForm = currentUser && isInRole('EvDriver');
-
-  // Hàm format date
   const formatDate = (dateString) => {
     if (!dateString || dateString === 'N/A') return 'N/A';
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return 'N/A';
-      
       return date.toLocaleString('vi-VN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'Asia/Ho_Chi_Minh'
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh'
       });
-    } catch {
-      return dateString;
-    }
+    } catch { return dateString; }
   };
 
-  // Hàm xác định màu sắc cho status
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-      case 'chờ xử lý':
-        return '#f59e0b';
-      case 'approved':
-      case 'đã duyệt':
-        return '#10b981';
-      case 'rejected':
-      case 'từ chối':
-        return '#ef4444';
-      case 'completed':
-      case 'hoàn thành':
-        return '#3b82f6';
-      default:
-        return '#6b7280';
-    }
+  const handleRefresh = async () => {
+    const stationId =
+      (Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs.length > 0)
+        ? (currentUser.bssStaffs[0]?.stationId || currentUser.bssStaffs[0]?.StationId)
+        : (currentUser?.stationId || currentUser?.StationId || currentUser?.stationID);
+    if (stationId) await fetchFormsForStation(stationId);
+    else message.warning('Không tìm thấy station ID để refresh');
   };
 
-  // Icon sắp xếp
-  const getSortIcon = (field) => {
-    if (sortBy !== field) return '↕️';
-    return sortDirection === 'asc' ? '↑' : '↓';
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem('token');
+      localStorage.removeItem('role');
+    } catch {}
+    window.location.href = '/login';
   };
 
+  /* =================== RENDER =================== */
   return (
-    <div style={{ 
-      padding: 20, 
-      maxWidth: 1200, 
-      margin: '0 auto',
-      height: '100vh',
-      overflowY: 'auto'
-    }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 30 }}>Quản lý Form</h1>
+    <div className="staff-root">
+      {/* Nút mở Hồ sơ */}
+      <button type="button" className="profile-toggle-btn" onClick={() => setShowProfile(true)}>
+        👤 Hồ sơ
+      </button>
 
-      {/* Form tạo mới - Chỉ hiển thị cho EvDriver */}
-      {canCreateForm && (
-        <section style={{ marginBottom: 40, padding: 20, border: '1px solid #e2e8f0', borderRadius: 8 }}>
-          <h2 style={{ marginBottom: 16 }}>Tạo Form Mới</h2>
-          <form onSubmit={handleCreateForm} style={{ display: 'grid', gap: 16, maxWidth: 500 }}>
-            <label style={{ display: 'grid', gap: 6 }}>
-              <span>Tiêu đề *</span>
-              <input 
-                value={formData.title} 
-                onChange={(e) => handleFormDataChange('title', e.target.value)}
-                placeholder="Nhập tiêu đề form" 
-                required
-                style={{ padding: '10px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }} 
-              />
-            </label>
-            
-            <label style={{ display: 'grid', gap: 6 }}>
-              <span>Mô tả</span>
-              <textarea 
-                value={formData.description} 
-                onChange={(e) => handleFormDataChange('description', e.target.value)}
-                placeholder="Nhập mô tả" 
-                rows={3}
-                style={{ padding: '10px 12px', borderRadius: 6, border: '1px solid #cbd5e1', resize: 'vertical' }} 
-              />
-            </label>
-            
-            <label style={{ display: 'grid', gap: 6 }}>
-              <span>Ngày</span>
-              <input 
-                type="date"
-                value={formData.date} 
-                onChange={(e) => handleFormDataChange('date', e.target.value)}
-                style={{ padding: '10px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }} 
-              />
-            </label>
-            
-            <label style={{ display: 'grid', gap: 6 }}>
-              <span>Station ID *</span>
-              <input 
-                value={formData.stationId} 
-                onChange={(e) => handleFormDataChange('stationId', e.target.value)}
-                placeholder="Nhập ID trạm" 
-                required
-                style={{ padding: '10px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }} 
-              />
-            </label>
-            
-            <button 
-              type="submit" 
-              disabled={loading}
-              style={{ 
-                padding: '12px 16px', 
-                background: '#0f172a', 
-                color: 'white', 
-                borderRadius: 6, 
-                fontWeight: 600,
-                opacity: loading ? 0.6 : 1,
-                cursor: loading ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {loading ? 'Đang xử lý...' : 'Tạo Form'}
-            </button>
-          </form>
-        </section>
-      )}
+      {/* Backdrop + Drawer */}
+      <div className={`drawer-backdrop ${showProfile ? 'open' : ''}`} onClick={() => setShowProfile(false)} />
+      <aside className={`profile-drawer ${showProfile ? 'open' : ''}`}>
+        <div className="profile-drawer-header">
+          <h3 className="profile-drawer-title">Hồ sơ nhân viên</h3>
+          <button className="profile-close-btn" onClick={() => setShowProfile(false)}>Đóng</button>
+        </div>
+        <div className="profile-drawer-content">
+          {currentUser ? (
+            <>
+              <div className="profile-section">
+                <div className="profile-row"><div className="profile-label">Tên</div><div className="profile-value">{currentUser.name || currentUser.Name || 'N/A'}</div></div>
+                <div className="profile-row"><div className="profile-label">Username</div><div className="profile-value">{currentUser.username || currentUser.Username || 'N/A'}</div></div>
+                <div className="profile-row"><div className="profile-label">Email</div><div className="profile-value">{currentUser.email || currentUser.Email || 'N/A'}</div></div>
+                <div className="profile-row"><div className="profile-label">SĐT</div><div className="profile-value">{currentUser.phone || currentUser.Phone || 'N/A'}</div></div>
+                <div className="profile-row"><div className="profile-label">Địa chỉ</div><div className="profile-value">{currentUser.address || currentUser.Address || 'N/A'}</div></div>
+                <div className="profile-row"><div className="profile-label">Vai trò</div><div className="profile-value">{Array.isArray(currentUser.roles) ? currentUser.roles.join(', ') : (currentUser.role || currentUser.Role || 'N/A')}</div></div>
+                <div className="profile-row"><div className="profile-label">Account ID</div><div className="profile-value">{currentUser.accountId || currentUser.accountID || currentUser.AccountId || 'N/A'}</div></div>
+                <div className="profile-row"><div className="profile-label">Station ID</div>
+                  <div className="profile-value">
+                    {(Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs[0]?.stationId) ||
+                      currentUser?.stationId || currentUser?.StationId || currentUser?.stationID || 'N/A'}
+                  </div>
+                </div>
+              </div>
+              <button className="logout-btn" onClick={handleLogout}>Đăng xuất</button>
+            </>
+          ) : (
+            <div className="profile-section">Đang tải thông tin người dùng…</div>
+          )}
+        </div>
+      </aside>
 
-      {/* Tìm kiếm và sắp xếp */}
-      <section style={{ marginBottom: 40, padding: 20, border: '1px solid #e2e8f0', borderRadius: 8 }}>
-        <h2 style={{ marginBottom: 16 }}>Tìm kiếm & Sắp xếp Form</h2>
-        
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'end' }}>
-          
-          {/* Search Box */}
-          <div style={{ position: 'relative', minWidth: 300 }}>
+      <h1 className="staff-title">Quản lý Form</h1>
+
+      {/* Filters */}
+      <section className="filters">
+        <h2 className="filters-title">Tìm kiếm & Sắp xếp Form</h2>
+        <div className="filters-row">
+          <div className="input-search">
             <input
               type="text"
-              placeholder="Search by Username, Customer Name, Phone, Station..."
+              placeholder="Search by Customer, Phone, Email, Station..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 40px 10px 12px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '14px',
-                outline: 'none',
-                transition: 'border-color 0.2s'
-              }}
             />
-            <span 
-              style={{
-                position: 'absolute',
-                right: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: '#64748b'
-              }}
-            >
-              🔍
-            </span>
+            <span className="icon">🔍</span>
           </div>
 
-          {/* Status Filter */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Filter by Status</span>
-            <select 
-              value={statusFilter} 
-              onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ 
-                padding: '8px 12px', 
-                borderRadius: '6px', 
-                border: '1px solid #cbd5e1',
-                fontSize: '14px'
-              }}
-            >
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>Filter by Status</div>
+            <select className="select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
               <option value="All">All Status</option>
               <option value="pending">Pending</option>
               <option value="approved">Approved</option>
@@ -467,172 +341,108 @@ function StaffPage() {
             </select>
           </div>
 
-          {/* Sort Controls */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Sort by</span>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>Sort by</div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <select 
-                value={sortBy} 
-                onChange={(e) => handleSort(e.target.value)}
-                style={{ 
-                  padding: '8px 12px', 
-                  borderRadius: '6px', 
-                  border: '1px solid #cbd5e1',
-                  fontSize: '14px'
-                }}
-              >
+              <select className="select" value={sortBy} onChange={(e) => handleSort(e.target.value)}>
                 <option value="date">Date</option>
                 <option value="title">Title</option>
                 <option value="status">Status</option>
               </select>
-              
-              <button 
+              <button
+                className="btn-sortdir"
                 onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
-                style={{ 
-                  padding: '8px 12px', 
-                  background: '#3b82f6', 
-                  color: 'white', 
-                  borderRadius: '6px',
-                  border: 'none',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  minWidth: '100px'
-                }}
               >
                 {sortDirection === 'asc' ? '↑ Asc' : '↓ Desc'}
               </button>
             </div>
           </div>
 
-          {/* Stats */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginLeft: 'auto' }}>
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Results</span>
-            <div style={{ fontSize: 14, color: '#64748b' }}>
-              Showing: {filteredAndSortedForms.length} / {forms.length} forms
-            </div>
+          <div className="results">
+            <span>Results</span>
+            <div>Showing: {filteredAndSortedForms.length} / {forms.length} forms</div>
           </div>
         </div>
       </section>
 
-      {/* Danh sách forms */}
-      <section style={{ 
-        padding: 20, 
-        border: '1px solid #e2e8f0', 
-        borderRadius: 8,
-        maxHeight: '70vh',
-        overflowY: 'auto'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      {/* List */}
+      <section className="list-wrap">
+        <div className="list-header">
           <h2>
-            Danh sách Forms 
-            <span style={{ fontSize: 16, fontWeight: 'normal', color: '#64748b', marginLeft: 8 }}>
-              ({currentForms.length} / {filteredAndSortedForms.length} trên {forms.length} forms)
-            </span>
+            Danh sách Forms
+            <span className="list-title-sub">({currentForms.length} / {filteredAndSortedForms.length} trên {forms.length} forms)</span>
           </h2>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 14, color: '#64748b' }}>
-              Sắp xếp: {sortBy === 'date' ? 'Ngày' : sortBy === 'title' ? 'Tiêu đề' : 'Trạng thái'} {getSortIcon(sortBy)}
-            </span>
-            <button 
-              onClick={fetchAllForms}
-              disabled={loading}
-              style={{ 
-                padding: '8px 16px', 
-                background: '#0f172a', 
-                color: 'white', 
-                borderRadius: 6,
-                opacity: loading ? 0.6 : 1
-              }}
-            >
+          <div>
+            <button className="btn-refresh" onClick={handleRefresh} disabled={loading}>
               {loading ? 'Đang tải...' : 'Làm mới'}
             </button>
           </div>
         </div>
 
-        {/* Thông tin phân trang */}
-        {totalItems > 0 && (
-          <div style={{ marginBottom: 16, padding: '12px 16px', background: '#f8fafc', borderRadius: 6 }}>
-            <span style={{ fontSize: 14, color: '#64748b' }}>
-              Trang {currentPage}/{totalPages} - Hiển thị {startIndex + 1}-{Math.min(endIndex, totalItems)} trên {totalItems} forms
-            </span>
-          </div>
-        )}
-        
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 40 }}>
-            <p>Đang tải dữ liệu...</p>
-          </div>
+          <div className="state-center"><p>Đang tải dữ liệu...</p></div>
         ) : forms.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>
-            <p>Không có form nào</p>
-          </div>
+          <div className="state-center"><p>Không có form nào</p></div>
         ) : currentForms.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>
-            <p>Không tìm thấy form nào phù hợp với tiêu chí tìm kiếm</p>
-          </div>
+          <div className="state-center"><p>Không tìm thấy form nào phù hợp với tiêu chí tìm kiếm</p></div>
         ) : (
           <>
-            <div style={{ 
-              display: 'grid', 
-              gap: 12,
-              maxHeight: '50vh',
-              overflowY: 'auto',
-              paddingRight: 8
-            }}>
+            <div className="list-grid">
               {currentForms.map((form) => {
-                const customer = customerDetails[form.accountId];
+                const fid = getFormId(form);
+
+                const customerId = form.customerId;
+                const customer = customerDetails[customerId];
+                const isCustomerLoading = detailLoading[customerId];
+
                 const station = stationDetails[form.stationId];
-                const isCustomerLoading = detailLoading[form.accountId];
-                const isStationLoading = stationLoading[form.stationId];
-                
+
+                const currentChoice = statusChoice[fid] || '';
+
                 return (
-                  <div 
-                    key={form.id} 
-                    style={{ 
-                      padding: 16, 
-                      border: '1px solid #e2e8f0', 
-                      borderRadius: 8,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      background: 'white',
-                      cursor: 'pointer'
-                    }}
-                    onClick={() => setSelectedForm(form)}
-                  >
+                  <div key={fid ?? Math.random()} className="form-card" onClick={() => setSelectedForm(form)}>
                     <div style={{ flex: 1 }}>
-                      <h3 style={{ margin: '0 0 8px 0', fontSize: 18, fontWeight: 600 }}>{form.title}</h3>
-                      <p style={{ margin: '4px 0', color: '#64748b' }}>{form.description}</p>
-                      
-                      {/* Thông tin Form cơ bản */}
-                      <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 14, flexWrap: 'wrap' }}>
+                      <h3 className="form-title">{form.title}</h3>
+                      <p className="form-desc">{form.description}</p>
+
+                      <div className="form-meta">
                         {form.stationId && (
                           <span>
-                            <strong>Station: </strong> 
-                            {isStationLoading ? (
-                              'Đang tải...'
-                            ) : station ? (
-                              `${station.stationName || 'N/A'}`
-                            ) : (
-                              form.stationId
-                            )}
+                            <strong>Station: </strong>
+                            {station?.stationName || form.stationId}
                           </span>
                         )}
-                        {form.date && (
-                          <span>
-                            <strong>Ngày tạo:</strong> {formatDate(form.date)}
-                          </span>
-                        )}
+                        {form.date && <span><strong>Ngày tạo:</strong> {formatDate(form.date)}</span>}
                       </div>
 
-                      {/* Thông tin Customer chi tiết */}
-                      {form.accountId && (
-                        <div style={{ marginTop: 12, padding: 12, background: '#f8fafc', borderRadius: 6 }}>
-                          <h4 style={{ margin: '0 0 8px 0', fontSize: 14, fontWeight: 600 }}>Thông tin Customer:</h4>
+                      {/* Dropdown đổi trạng thái */}
+                      <div className="status-inline" onClick={(e) => e.stopPropagation()}>
+                        <select
+                          className="status-select"
+                          value={currentChoice}
+                          onChange={(e) => setStatusChoice(prev => ({ ...prev, [fid]: e.target.value }))}
+                        >
+                          <option value="">-- Chọn trạng thái --</option>
+                          <option value="Approved">Approved</option>
+                          <option value="Rejected">Rejected</option>
+                        </select>
+                        <button
+                          className="status-apply-btn"
+                          disabled={!currentChoice || loading}
+                          onClick={() => handleUpdateStatus(fid, currentChoice)}
+                        >
+                          Cập nhật
+                        </button>
+                      </div>
+
+                      {/* Customer */}
+                      {customerId && (
+                        <div className="customer-box">
+                          <h4 className="customer-title">Thông tin Customer:</h4>
                           {isCustomerLoading ? (
-                            <p style={{ margin: 0, fontSize: 14, color: '#64748b' }}>Đang tải thông tin...</p>
+                            <p className="form-desc" style={{ margin: 0 }}>Đang tải thông tin...</p>
                           ) : customer ? (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8, fontSize: 14 }}>
+                            <div className="customer-grid">
                               <div><strong>Name:</strong> {customer.name || 'N/A'}</div>
                               <div><strong>Phone:</strong> {customer.phone || 'N/A'}</div>
                               <div><strong>Email:</strong> {customer.email || 'N/A'}</div>
@@ -641,14 +451,10 @@ function StaffPage() {
                               {customer.username && <div><strong>Username:</strong> {customer.username}</div>}
                               {customer.status && (
                                 <div>
-                                  <strong>Status:</strong> 
-                                  <span style={{ 
-                                    marginLeft: 6,
-                                    padding: '2px 8px', 
-                                    borderRadius: 12, 
-                                    fontSize: 12,
-                                    backgroundColor: customer.status === 'Active' ? '#10b981' : '#ef4444',
-                                    color: 'white'
+                                  <strong>Status:</strong>
+                                  <span style={{
+                                    marginLeft: 6, padding: '2px 8px', borderRadius: 12, fontSize: 12,
+                                    backgroundColor: customer.status === 'Active' ? '#10b981' : '#ef4444', color: 'white'
                                   }}>
                                     {customer.status}
                                   </span>
@@ -656,43 +462,17 @@ function StaffPage() {
                               )}
                             </div>
                           ) : (
-                            <p style={{ margin: 0, fontSize: 14, color: '#64748b' }}>
-                              Không tìm thấy thông tin customer
-                            </p>
+                            <p className="form-desc" style={{ margin: 0 }}>Không tìm thấy thông tin customer</p>
                           )}
                         </div>
                       )}
                     </div>
-                    
+
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexDirection: 'column' }}>
-                      {/* Status */}
-                      <span 
-                        style={{ 
-                          padding: '6px 12px', 
-                          borderRadius: 20, 
-                          fontSize: 12, 
-                          fontWeight: 600,
-                          backgroundColor: getStatusColor(form.status),
-                          color: 'white',
-                          textTransform: 'capitalize'
-                        }}
-                      >
-                        {form.status || 'Chưa xác định'}
-                      </span>
-                      
-                      {/* Nút Xóa */}
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteForm(form.id);
-                        }}
-                        style={{ 
-                          padding: '6px 12px', 
-                          background: '#ef4444', 
-                          color: 'white', 
-                          borderRadius: 6,
-                          fontSize: 12
-                        }}
+                      <span className={getStatusClass(form.status)}>{form.status || 'Chưa xác định'}</span>
+                      <button
+                        className="btn-danger"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteForm(fid); }}
                       >
                         Xóa
                       </button>
@@ -702,56 +482,25 @@ function StaffPage() {
               })}
             </div>
 
-            {/* Phân trang */}
+            {/* Pagination */}
             {totalPages > 1 && (
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 20 }}>
-                <button 
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  style={{ 
-                    padding: '8px 12px', 
-                    background: currentPage === 1 ? '#cbd5e1' : '#3b82f6', 
-                    color: 'white', 
-                    borderRadius: 6,
-                    border: 'none',
-                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
-                  }}
-                >
+                <button onClick={() => handlePageChange(page - 1)} disabled={page === 1}
+                        className="btn-sortdir" style={{ background: page === 1 ? '#cbd5e1' : '#3b82f6', cursor: page === 1 ? 'not-allowed' : 'pointer' }}>
                   ← Trước
                 </button>
-                
                 <div style={{ display: 'flex', gap: 4 }}>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <button
-                      key={page}
-                      onClick={() => handlePageChange(page)}
-                      style={{ 
-                        padding: '8px 12px', 
-                        background: page === currentPage ? '#0f172a' : '#e2e8f0', 
-                        color: page === currentPage ? 'white' : '#64748b', 
-                        borderRadius: 6,
-                        border: 'none',
-                        cursor: 'pointer',
-                        minWidth: 40
-                      }}
-                    >
-                      {page}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                    <button key={p}
+                            onClick={() => handlePageChange(p)}
+                            className="select"
+                            style={{ padding: '8px 12px', background: p === page ? '#0f172a' : '#e2e8f0', color: p === page ? 'white' : '#64748b', border: 'none', cursor: 'pointer', minWidth: 40 }}>
+                      {p}
                     </button>
                   ))}
                 </div>
-                
-                <button 
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  style={{ 
-                    padding: '8px 12px', 
-                    background: currentPage === totalPages ? '#cbd5e1' : '#3b82f6', 
-                    color: 'white', 
-                    borderRadius: 6,
-                    border: 'none',
-                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
-                  }}
-                >
+                <button onClick={() => handlePageChange(page + 1)} disabled={page === totalPages}
+                        className="btn-sortdir" style={{ background: page === totalPages ? '#cbd5e1' : '#3b82f6', cursor: page === totalPages ? 'not-allowed' : 'pointer' }}>
                   Sau →
                 </button>
               </div>
@@ -760,62 +509,46 @@ function StaffPage() {
         )}
       </section>
 
-      {/* Modal chi tiết form */}
+      {/* Modal chi tiết */}
       {selectedForm && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          overflowY: 'auto'
-        }}>
-          <div style={{
-            background: 'white',
-            padding: 20,
-            borderRadius: 8,
-            maxWidth: 600,
-            width: '90%',
-            maxHeight: '90vh',
-            overflow: 'auto',
-            margin: '20px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div className="modal-root">
+          <div className="modal-card">
+            <div className="modal-head">
               <h2>Form Chi Tiết</h2>
-              <button 
-                onClick={() => setSelectedForm(null)}
-                style={{ padding: '6px 12px', background: '#6b7280', color: 'white', borderRadius: 6 }}
-              >
-                Đóng
-              </button>
+              <button className="btn-close" onClick={() => setSelectedForm(null)}>Đóng</button>
             </div>
-            <div style={{ 
-              padding: 16, 
-              background: '#f8fafc', 
-              borderRadius: 6,
-              maxHeight: '60vh',
-              overflowY: 'auto'
-            }}>
-              <pre style={{ 
-                whiteSpace: 'pre-wrap', 
-                fontSize: 14,
-                margin: 0,
-                wordBreak: 'break-word'
-              }}>
-                {JSON.stringify(selectedForm, null, 2)}
-              </pre>
+            <div className="modal-body">
+              <pre className="modal-pre">{JSON.stringify(selectedForm, null, 2)}</pre>
+
+              {/* Dropdown đổi status trong modal */}
+              {(() => {
+                const fid = getFormId(selectedForm);
+                return (
+                  <div className="status-inline" style={{ marginTop: 12 }}>
+                    <select
+                      className="status-select"
+                      value={statusChoice[fid] || ''}
+                      onChange={(e) => setStatusChoice(prev => ({ ...prev, [fid]: e.target.value }))}
+                    >
+                      <option value="">-- Chọn trạng thái --</option>
+                      <option value="Approved">Approved</option>
+                      <option value="Rejected">Rejected</option>
+                    </select>
+                    <button
+                      className="status-apply-btn"
+                      disabled={!statusChoice[fid] || loading}
+                      onClick={() => handleUpdateStatus(fid, statusChoice[fid])}
+                    >
+                      Cập nhật
+                    </button>
+                  </div>
+                );
+              })()}
+
               <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                <button 
-                  onClick={() => {
-                    handleDeleteForm(selectedForm.id);
-                    setSelectedForm(null);
-                  }}
-                  style={{ padding: '8px 16px', background: '#ef4444', color: 'white', borderRadius: 6 }}
+                <button
+                  className="btn-danger"
+                  onClick={() => { const fid = getFormId(selectedForm); handleDeleteForm(fid); setSelectedForm(null); }}
                 >
                   Xóa Form
                 </button>
