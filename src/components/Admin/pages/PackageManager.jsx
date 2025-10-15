@@ -16,6 +16,7 @@ const PackageManager = () => {
     price: '',
     description: '',
     batteryType: '',
+    expiredDays: 30, // THÊM TRƯỜNG NÀY
     status: 'Active'
   });
 
@@ -154,7 +155,8 @@ const PackageManager = () => {
       duration: ['duration', 'period', 'validity', 'Duration'],
       description: ['description', 'desc', 'details', 'Description'],
       status: ['status', 'Status', 'state', 'isActive'],
-      batteryType: ['batteryType', 'batterySpecification', 'BatteryType']
+      batteryType: ['batteryType', 'batterySpecification', 'BatteryType'],
+      expiredDays: ['expiredDate', 'expiredDays', 'expired', 'expiry', 'expiration'] // THÊM DÒNG NÀY
     };
     
     const keys = possibleKeys[property] || [property];
@@ -183,6 +185,22 @@ const PackageManager = () => {
 
   const getDisplayStatus = (pkg) => {
     return isPackageActive(pkg) ? 'Active' : 'Inactive';
+  };
+
+  // THÊM HÀM ĐỂ HIỂN THỊ THỜI HẠN PACKAGE
+  const getPackageDurationText = (pkg) => {
+    const expiredDays = getPackageProperty(pkg, 'expiredDays');
+    
+    if (expiredDays && expiredDays !== 'N/A') {
+      if (expiredDays === 1) return '1 ngày';
+      if (expiredDays === 30) return '30 ngày';
+      if (expiredDays === 90) return '3 tháng';
+      if (expiredDays === 180) return '6 tháng';
+      if (expiredDays === 365) return '1 năm';
+      return `${expiredDays} ngày`;
+    }
+    
+    return '???';
   };
 
   const validateForm = () => {
@@ -214,6 +232,13 @@ const PackageManager = () => {
     if (!formData.batteryType) {
       newErrors.batteryType = 'Vui lòng chọn loại pin';
     }
+
+    // THÊM VALIDATION CHO EXPIRED DAYS
+    if (!formData.expiredDays || formData.expiredDays < 1) {
+      newErrors.expiredDays = 'Số ngày hiệu lực phải lớn hơn 0';
+    } else if (formData.expiredDays > 3650) {
+      newErrors.expiredDays = 'Số ngày hiệu lực không được vượt quá 10 năm';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -240,6 +265,7 @@ const PackageManager = () => {
       price: '',
       description: '',
       batteryType: '',
+      expiredDays: 30, // THÊM DÒNG NÀY
       status: 'Active'
     });
     setErrors({});
@@ -254,6 +280,7 @@ const PackageManager = () => {
       price: getPackageProperty(pkg, 'price'),
       description: getPackageProperty(pkg, 'description') || '',
       batteryType: pkg.batteryType || pkg.batterySpecification || '',
+      expiredDays: getPackageProperty(pkg, 'expiredDays') || 30, // THÊM DÒNG NÀY
       status: getDisplayStatus(pkg)
     });
     setShowForm(true);
@@ -279,7 +306,8 @@ const PackageManager = () => {
         packageName: formData.packageName.trim(),
         price: parseFloat(formData.price),
         description: formData.description.trim() || '',
-        batteryType: formData.batteryType
+        batteryType: formData.batteryType,
+        expiredDays: parseInt(formData.expiredDays) // THÊM DÒNG NÀY
       };
 
       console.log('Sending package data:', submitData);
@@ -455,6 +483,31 @@ const PackageManager = () => {
                     <div className="package-manager-error">{errors.price}</div>
                   )}
                 </div>
+
+                {/* THÊM: Expired Days */}
+                <div className="package-manager-form-group">
+                  <label className="package-manager-label">
+                    Số ngày hiệu lực *
+                  </label>
+                  <input
+                    type="number"
+                    name="expiredDays"
+                    value={formData.expiredDays}
+                    onChange={handleInputChange}
+                    disabled={submitting}
+                    className={`package-manager-input ${errors.expiredDays ? 'error' : ''}`}
+                    placeholder="Nhập số ngày hiệu lực"
+                    min="1"
+                    max="3650"
+                    required
+                  />
+                  {errors.expiredDays && (
+                    <div className="package-manager-error">{errors.expiredDays}</div>
+                  )}
+                  <div className="package-manager-hint">
+                    💡 Gợi ý: 30 ngày, 90 ngày (3 tháng), 180 ngày (6 tháng), 365 ngày (1 năm)
+                  </div>
+                </div>
               </div>
 
               <div className="package-manager-form-group">
@@ -582,6 +635,11 @@ const PackageManager = () => {
                 <div className="package-manager-card-content">
                   <div className="package-manager-card-price">
                     {getPackageProperty(pkg, 'price')?.toLocaleString('vi-VN')} VND
+                  </div>
+
+                  {/* THÊM: Hiển thị thời hạn package */}
+                  <div className="package-manager-card-duration">
+                    <strong>Thời hạn:</strong> {getPackageDurationText(pkg)}
                   </div>
 
                   <div className="package-manager-card-battery">

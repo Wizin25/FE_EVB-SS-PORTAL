@@ -964,27 +964,6 @@ const Vehicle = () => {
                 </select>
               </div>
 
-              {/* Hiển thị loại xe đã được tự động xác định */}
-              <div className="form-group">
-                <label>Loại xe (Tự động)</label>
-                <div className="form-readonly">
-                  {vehicleTypeOptions.find(opt => opt.value === newVehicle.vehicleType)?.label || 'Chưa xác định'}
-                </div>
-              </div>
-
-              {/* CẬP NHẬT: Hiển thị thông báo về pin sẽ được tạo tự động */}
-              {newVehicle.vehicleName && (
-                <div className="form-group">
-                  <label>Thông tin pin</label>
-                  <div className="battery-info-display">
-                    🔋 Pin sẽ được tạo tự động phù hợp với xe đã chọn
-                  </div>
-                  <div className="battery-info-note">
-                    Hệ thống sẽ tự động tạo pin với thông số kỹ thuật phù hợp cho xe {newVehicle.vehicleName}
-                  </div>
-                </div>
-              )}
-
               <div className="modal-actions">
                 <button 
                   className="btn-cancel" 

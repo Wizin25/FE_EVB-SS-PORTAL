@@ -27,7 +27,7 @@ export const packageAPI = {
     }
   },
 
-  // Cập nhật package
+  // Cập nhật package - THÊM EXPIREDDAYS
   updatePackage: async (updateData) => {
     try {
       const formData = new FormData();
@@ -36,13 +36,15 @@ export const packageAPI = {
       formData.append('Price', updateData.price);
       formData.append('Description', updateData.description || '');
       formData.append('BatteryType', updateData.batteryType);
+      formData.append('ExpriedDays', updateData.expiredDays || 30); // THÊM DÒNG NÀY
 
       console.log('API Call - Update Package:', {
         PackageId: updateData.packageId,
         PackageName: updateData.packageName,
         Price: updateData.price,
         Description: updateData.description,
-        BatteryType: updateData.batteryType
+        BatteryType: updateData.batteryType,
+        ExpriedDays: updateData.expiredDays // THÊM DÒNG NÀY
       });
 
       const response = await api.put('/api/Package/update_package', formData, {
@@ -81,7 +83,7 @@ export const packageAPI = {
     }
   },
 
-  // Tạo package mới
+  // Tạo package mới - THÊM EXPIREDDAYS
   createPackage: async (createData) => {
     try {
       const formData = new FormData();
@@ -89,12 +91,14 @@ export const packageAPI = {
       formData.append('Price', createData.price);
       formData.append('Description', createData.description || '');
       formData.append('BatteryType', createData.batteryType);
+      formData.append('ExpriedDays', createData.expiredDays || 30); // THÊM DÒNG NÀY
 
       console.log('API Call - Create Package:', {
         PackageName: createData.packageName,
         Price: createData.price,
         Description: createData.description,
-        BatteryType: createData.batteryType
+        BatteryType: createData.batteryType,
+        ExpriedDays: createData.expiredDays // THÊM DÒNG NÀY
       });
 
       const response = await api.post('/api/Package/add_package', formData, {
