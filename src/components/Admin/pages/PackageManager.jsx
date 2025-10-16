@@ -16,14 +16,14 @@ const PackageManager = () => {
     price: '',
     description: '',
     batteryType: '',
-    expiredDays: 30, // THÊM TRƯỜNG NÀY
+    expiredDays: 30,
     status: 'Active'
   });
 
   const [errors, setErrors] = useState({});
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
 
-  // FIX: Load packages khi component mount
+  // Load packages khi component mount
   useEffect(() => {
     loadPackages();
   }, []);
@@ -46,40 +46,25 @@ const PackageManager = () => {
       const response = await packageAPI.getAllPackages();
       
       console.log('📦 Full API Response:', response);
-      console.log('🔍 Response structure:', {
-        isArray: Array.isArray(response),
-        hasData: !!response?.data,
-        hasDataData: !!response?.data?.data,
-        hasIsSuccess: response?.isSuccess,
-        responseKeys: Object.keys(response || {})
-      });
       
       let allPackages = [];
       
       // Handle different response structures
       if (response && Array.isArray(response)) {
         allPackages = response;
-        console.log('✅ Case 1: Direct array');
       } else if (response && response.data && Array.isArray(response.data)) {
         allPackages = response.data;
-        console.log('✅ Case 2: response.data is array');
       } else if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
         allPackages = response.data.data;
-        console.log('✅ Case 3: response.data.data is array');
       } else if (response && response.data && response.data.isSuccess && Array.isArray(response.data.data)) {
         allPackages = response.data.data;
-        console.log('✅ Case 4: response.data.isSuccess with data array');
       } else if (response && response.isSuccess && Array.isArray(response.data)) {
         allPackages = response.data;
-        console.log('✅ Case 5: response.isSuccess with data array');
       } else if (response && Array.isArray(response.packages)) {
         allPackages = response.packages;
-        console.log('✅ Case 6: response.packages is array');
       } else if (response && Array.isArray(response.items)) {
         allPackages = response.items;
-        console.log('✅ Case 7: response.items is array');
       } else {
-        console.log('❌ No matching case structure');
         // Fallback: try to find any array in response
         const findArrayInObject = (obj) => {
           for (let key in obj) {
@@ -97,22 +82,13 @@ const PackageManager = () => {
         const foundArray = findArrayInObject(response || {});
         if (foundArray) {
           allPackages = foundArray;
-          console.log('✅ Fallback: Found array in nested object');
         }
       }
-      
-      console.log('📊 Extracted packages:', allPackages);
-      console.log('🔢 Number of packages:', allPackages.length);
       
       setPackages(allPackages || []);
       
     } catch (error) {
       console.error('❌ Error loading packages:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response,
-        status: error.status
-      });
       showAlert('error', 'Không thể tải danh sách gói dịch vụ: ' + (error.message || 'Lỗi không xác định'));
     } finally {
       setLoading(false);
@@ -156,7 +132,7 @@ const PackageManager = () => {
       description: ['description', 'desc', 'details', 'Description'],
       status: ['status', 'Status', 'state', 'isActive'],
       batteryType: ['batteryType', 'batterySpecification', 'BatteryType'],
-      expiredDays: ['expiredDate', 'expiredDays', 'expired', 'expiry', 'expiration'] // THÊM DÒNG NÀY
+      expiredDays: ['expiredDate', 'expiredDays', 'expired', 'expiry', 'expiration']
     };
     
     const keys = possibleKeys[property] || [property];
@@ -187,7 +163,6 @@ const PackageManager = () => {
     return isPackageActive(pkg) ? 'Active' : 'Inactive';
   };
 
-  // THÊM HÀM ĐỂ HIỂN THỊ THỜI HẠN PACKAGE
   const getPackageDurationText = (pkg) => {
     const expiredDays = getPackageProperty(pkg, 'expiredDays');
     
@@ -233,7 +208,6 @@ const PackageManager = () => {
       newErrors.batteryType = 'Vui lòng chọn loại pin';
     }
 
-    // THÊM VALIDATION CHO EXPIRED DAYS
     if (!formData.expiredDays || formData.expiredDays < 1) {
       newErrors.expiredDays = 'Số ngày hiệu lực phải lớn hơn 0';
     } else if (formData.expiredDays > 3650) {
@@ -265,7 +239,7 @@ const PackageManager = () => {
       price: '',
       description: '',
       batteryType: '',
-      expiredDays: 30, // THÊM DÒNG NÀY
+      expiredDays: 30,
       status: 'Active'
     });
     setErrors({});
@@ -280,7 +254,7 @@ const PackageManager = () => {
       price: getPackageProperty(pkg, 'price'),
       description: getPackageProperty(pkg, 'description') || '',
       batteryType: pkg.batteryType || pkg.batterySpecification || '',
-      expiredDays: getPackageProperty(pkg, 'expiredDays') || 30, // THÊM DÒNG NÀY
+      expiredDays: getPackageProperty(pkg, 'expiredDays') || 30,
       status: getDisplayStatus(pkg)
     });
     setShowForm(true);
@@ -307,7 +281,7 @@ const PackageManager = () => {
         price: parseFloat(formData.price),
         description: formData.description.trim() || '',
         batteryType: formData.batteryType,
-        expiredDays: parseInt(formData.expiredDays) // THÊM DÒNG NÀY
+        expiredDays: parseInt(formData.expiredDays)
       };
 
       console.log('Sending package data:', submitData);
@@ -363,50 +337,14 @@ const PackageManager = () => {
     }
   };
 
-  const handleDelete = async (pkg) => {
-    const packageId = getPackageProperty(pkg, 'id');
-    const packageName = getPackageDisplayName(pkg);
-    
-    if (!window.confirm(`Bạn có chắc muốn vô hiệu hóa gói "${packageName}"? Gói này sẽ không hiển thị cho người dùng nữa.`)) {
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const response = await packageAPI.deletePackage(packageId);
-      
-      const isSuccess = response?.isSuccess || 
-                       response?.data?.isSuccess || 
-                       response?.status === 200 ||
-                       response?.statusCode === 200;
-
-      if (isSuccess) {
-        showAlert('success', '✅ Đã vô hiệu hóa gói thành công!');
-        loadPackages();
-      } else {
-        const errorMsg = response?.message || response?.responseCode || 'Vô hiệu hóa thất bại';
-        throw new Error(errorMsg);
-      }
-    } catch (error) {
-      console.error('Delete error:', error);
-      let errorMessage = 'Không thể vô hiệu hóa gói: ';
-      
-      if (error.response?.data?.message) {
-        errorMessage += error.response.data.message;
-      } else if (error.message) {
-        errorMessage += error.message;
-      } else {
-        errorMessage += 'Lỗi không xác định';
-      }
-      
-      showAlert('error', errorMessage);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleCancel = () => {
     resetForm();
+  };
+
+  const closeModal = (e) => {
+    if (e.target.className === 'package-manager-modal-overlay') {
+      handleCancel();
+    }
   };
 
   return (
@@ -432,162 +370,164 @@ const PackageManager = () => {
         </div>
       )}
 
-      {/* Form Section */}
+      {/* Modal Form */}
       {showForm && (
-        <div className="package-manager-form-section">
-          <div className="package-manager-card">
-            <h2 className="package-manager-form-title">
-              {editingPackage ? `Chỉnh Sửa Gói: ${getPackageDisplayName(editingPackage)}` : 'Thêm Gói Mới'}
-            </h2>
-            
-            <form onSubmit={handleSubmit}>
-              <div className="package-manager-grid">
-                {/* Package Name */}
-                <div className="package-manager-form-group">
-                  <label className="package-manager-label">
-                    Tên Gói *
-                  </label>
-                  <input
-                    type="text"
-                    name="packageName"
-                    value={formData.packageName}
-                    onChange={handleInputChange}
-                    disabled={submitting}
-                    className={`package-manager-input ${errors.packageName ? 'error' : ''}`}
-                    placeholder="Nhập tên gói dịch vụ"
-                    required
-                  />
-                  {errors.packageName && (
-                    <div className="package-manager-error">{errors.packageName}</div>
-                  )}
-                </div>
+        <div className="package-manager-modal-overlay" onClick={closeModal}>
+          <div className="package-manager-modal">
+            <div className="package-manager-card">
+              <h2 className="package-manager-form-title">
+                {editingPackage ? `Chỉnh Sửa Gói: ${getPackageDisplayName(editingPackage)}` : 'Thêm Gói Mới'}
+              </h2>
+              
+              <form onSubmit={handleSubmit}>
+                <div className="package-manager-grid">
+                  {/* Package Name */}
+                  <div className="package-manager-form-group">
+                    <label className="package-manager-label">
+                      Tên Gói *
+                    </label>
+                    <input
+                      type="text"
+                      name="packageName"
+                      value={formData.packageName}
+                      onChange={handleInputChange}
+                      disabled={submitting}
+                      className={`package-manager-input ${errors.packageName ? 'error' : ''}`}
+                      placeholder="Nhập tên gói dịch vụ"
+                      required
+                    />
+                    {errors.packageName && (
+                      <div className="package-manager-error">{errors.packageName}</div>
+                    )}
+                  </div>
 
-                {/* Price */}
-                <div className="package-manager-form-group">
-                  <label className="package-manager-label">
-                    Giá (VND) *
-                  </label>
-                  <input
-                    type="number"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleInputChange}
-                    disabled={submitting}
-                    className={`package-manager-input ${errors.price ? 'error' : ''}`}
-                    placeholder="Nhập giá"
-                    min="0"
-                    step="1000"
-                    required
-                  />
-                  {errors.price && (
-                    <div className="package-manager-error">{errors.price}</div>
-                  )}
-                </div>
+                  {/* Price */}
+                  <div className="package-manager-form-group">
+                    <label className="package-manager-label">
+                      Giá (VND) *
+                    </label>
+                    <input
+                      type="number"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleInputChange}
+                      disabled={submitting}
+                      className={`package-manager-input ${errors.price ? 'error' : ''}`}
+                      placeholder="Nhập giá"
+                      min="0"
+                      step="1000"
+                      required
+                    />
+                    {errors.price && (
+                      <div className="package-manager-error">{errors.price}</div>
+                    )}
+                  </div>
 
-                {/* THÊM: Expired Days */}
-                <div className="package-manager-form-group">
-                  <label className="package-manager-label">
-                    Số ngày hiệu lực *
-                  </label>
-                  <input
-                    type="number"
-                    name="expiredDays"
-                    value={formData.expiredDays}
-                    onChange={handleInputChange}
-                    disabled={submitting}
-                    className={`package-manager-input ${errors.expiredDays ? 'error' : ''}`}
-                    placeholder="Nhập số ngày hiệu lực"
-                    min="1"
-                    max="3650"
-                    required
-                  />
-                  {errors.expiredDays && (
-                    <div className="package-manager-error">{errors.expiredDays}</div>
-                  )}
-                  <div className="package-manager-hint">
-                    💡 Gợi ý: 30 ngày, 90 ngày (3 tháng), 180 ngày (6 tháng), 365 ngày (1 năm)
+                  {/* Expired Days */}
+                  <div className="package-manager-form-group">
+                    <label className="package-manager-label">
+                      Số ngày hiệu lực *
+                    </label>
+                    <input
+                      type="number"
+                      name="expiredDays"
+                      value={formData.expiredDays}
+                      onChange={handleInputChange}
+                      disabled={submitting}
+                      className={`package-manager-input ${errors.expiredDays ? 'error' : ''}`}
+                      placeholder="Nhập số ngày hiệu lực"
+                      min="1"
+                      max="3650"
+                      required
+                    />
+                    {errors.expiredDays && (
+                      <div className="package-manager-error">{errors.expiredDays}</div>
+                    )}
+                    <div className="package-manager-hint">
+                      💡 Gợi ý: 30 ngày, 90 ngày (3 tháng), 180 ngày (6 tháng), 365 ngày (1 năm)
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="package-manager-form-group">
-                <label className="package-manager-label">
-                  Battery Specification *
-                </label>
-                <select
-                  name="batteryType"
-                  value={formData.batteryType}
-                  onChange={handleInputChange}
-                  disabled={submitting}
-                  className={`package-manager-select ${errors.batteryType ? 'error' : ''}`}
-                  required
-                >
-                  <option value="">Chọn loại pin</option>
-                  <option value="V48_Ah13">48V-13Ah</option>
-                  <option value="V60_Ah22">60V-22Ah</option>
-                  <option value="V72_Ah38">72V-38Ah</option>
-                  <option value="V72_Ah50">72V-50Ah</option>
-                  <option value="V48_Ah22">48V-22Ah</option>
-                  <option value="V72_Ah30">72V-30Ah</option>
-                  <option value="V72_Ah22">72V-22Ah</option>
-                  <option value="V60_Ah20">60V-20Ah</option>
-                  <option value="V48_Ah12">48V-12Ah</option>
-                  <option value="V36_Ah10_4">36V - 10.4Ah / 374.4Wh</option>
-                  <option value="V36_Ah7_8">36V - 7.8Ah / 378Wh</option>
-                </select>
-                {errors.batteryType && (
-                  <div className="package-manager-error">{errors.batteryType}</div>
-                )}
-              </div>
-
-              {/* Description */}
-              <div className="package-manager-form-group">
-                <label className="package-manager-label">
-                  Mô Tả (tuỳ chọn)
-                  <span className="package-manager-optional"> - {formData.description.length}/500 ký tự</span>
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  disabled={submitting}
-                  className={`package-manager-textarea ${errors.description ? 'error' : ''}`}
-                  placeholder="Nhập mô tả gói dịch vụ"
-                  rows="4"
-                  maxLength="500"
-                />
-                {errors.description && (
-                  <div className="package-manager-error">{errors.description}</div>
-                )}
-              </div>
-
-              {/* Form Actions */}
-              <div className="package-manager-actions">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  disabled={submitting}
-                  className="package-manager-btn package-manager-btn-cancel"
-                >
-                  Hủy
-                </button>
-                
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="package-manager-btn package-manager-btn-submit"
-                >
-                  {submitting ? (
-                    <>
-                      <span className="package-manager-spinner"></span>
-                      <span>Đang xử lý...</span>
-                    </>
-                  ) : (
-                    <span>{editingPackage ? 'Cập Nhật' : 'Tạo Mới'}</span>
+                <div className="package-manager-form-group">
+                  <label className="package-manager-label">
+                    Battery Specification *
+                  </label>
+                  <select
+                    name="batteryType"
+                    value={formData.batteryType}
+                    onChange={handleInputChange}
+                    disabled={submitting}
+                    className={`package-manager-select ${errors.batteryType ? 'error' : ''}`}
+                    required
+                  >
+                    <option value="">Chọn loại pin</option>
+                    <option value="V48_Ah13">48V-13Ah</option>
+                    <option value="V60_Ah22">60V-22Ah</option>
+                    <option value="V72_Ah38">72V-38Ah</option>
+                    <option value="V72_Ah50">72V-50Ah</option>
+                    <option value="V48_Ah22">48V-22Ah</option>
+                    <option value="V72_Ah30">72V-30Ah</option>
+                    <option value="V72_Ah22">72V-22Ah</option>
+                    <option value="V60_Ah20">60V-20Ah</option>
+                    <option value="V48_Ah12">48V-12Ah</option>
+                    <option value="V36_Ah10_4">36V - 10.4Ah / 374.4Wh</option>
+                    <option value="V36_Ah7_8">36V - 7.8Ah / 378Wh</option>
+                  </select>
+                  {errors.batteryType && (
+                    <div className="package-manager-error">{errors.batteryType}</div>
                   )}
-                </button>
-              </div>
-            </form>
+                </div>
+
+                {/* Description */}
+                <div className="package-manager-form-group">
+                  <label className="package-manager-label">
+                    Mô Tả (tuỳ chọn)
+                    <span className="package-manager-optional"> - {formData.description.length}/500 ký tự</span>
+                  </label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    disabled={submitting}
+                    className={`package-manager-textarea ${errors.description ? 'error' : ''}`}
+                    placeholder="Nhập mô tả gói dịch vụ"
+                    rows="4"
+                    maxLength="500"
+                  />
+                  {errors.description && (
+                    <div className="package-manager-error">{errors.description}</div>
+                  )}
+                </div>
+
+                {/* Form Actions */}
+                <div className="package-manager-actions">
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    disabled={submitting}
+                    className="package-manager-btn package-manager-btn-cancel"
+                  >
+                    Hủy
+                  </button>
+                  
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="package-manager-btn package-manager-btn-submit"
+                  >
+                    {submitting ? (
+                      <>
+                        <span className="package-manager-spinner"></span>
+                        <span>Đang xử lý...</span>
+                      </>
+                    ) : (
+                      <span>{editingPackage ? 'Cập Nhật' : 'Tạo Mới'}</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
@@ -637,7 +577,6 @@ const PackageManager = () => {
                     {getPackageProperty(pkg, 'price')?.toLocaleString('vi-VN')} VND
                   </div>
 
-                  {/* THÊM: Hiển thị thời hạn package */}
                   <div className="package-manager-card-duration">
                     <strong>Thời hạn:</strong> {getPackageDurationText(pkg)}
                   </div>
@@ -672,14 +611,6 @@ const PackageManager = () => {
                     className="package-manager-card-btn package-manager-card-btn-edit"
                   >
                     ✏️ Chỉnh sửa
-                  </button>
-                  
-                  <button
-                    onClick={() => handleDelete(pkg)}
-                    disabled={submitting || !isPackageActive(pkg)}
-                    className="package-manager-card-btn package-manager-card-btn-delete"
-                  >
-                    🗑️ {isPackageActive(pkg) ? 'Vô hiệu hóa' : 'Đã vô hiệu'}
                   </button>
                 </div>
               </div>

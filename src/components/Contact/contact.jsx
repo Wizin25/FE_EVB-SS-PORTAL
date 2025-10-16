@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
+import Header from '../Home/header';
+import Footer from '../Home/footer';
 import './Contact.css';
 
 const SupportCenter = () => {
@@ -11,10 +13,74 @@ const SupportCenter = () => {
     return 'light';
   });
 
+  const [user, setUser] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [nextBooking, setNextBooking] = useState(null);
+
+  // Theme toggle handler
+  const handleToggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+
+    const root = document.documentElement;
+    if (newTheme === "dark") {
+      root.classList.add("dark");
+      document.body.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      root.classList.remove("dark");
+      document.body.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
+
   useEffect(() => {
+    // Initialize theme
     const savedTheme = localStorage.getItem('theme') || 'light';
     setTheme(savedTheme);
+
+    const root = document.documentElement;
+    if (savedTheme === 'dark') {
+      root.classList.add('dark');
+      document.body.classList.add('dark');
+    }
+
+    // Fetch data (giống như trong HomePage)
+    const fetchData = async () => {
+      try {
+        // Fetch user profile - giả sử có API
+        // const userRes = await api.get("/me");
+        // setUser(userRes.data);
+        setUser({ name: "User", profileUrl: "https://ui-avatars.com/api/?name=U&background=eee&color=888" });
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+
+      try {
+        // Fetch unread notifications count
+        // const notificationRes = await api.get("/notifications/unread-count");
+        // setUnreadCount(notificationRes.data.count);
+        setUnreadCount(3); // Giá trị mẫu
+      } catch (error) {
+        setUnreadCount(0);
+      }
+
+      try {
+        // Fetch next booking
+        // const bookingRes = await api.get("/bookings/next");
+        // setNextBooking(bookingRes.data);
+        setNextBooking(null); // Hoặc dữ liệu mẫu
+      } catch (error) {
+        setNextBooking(null);
+      }
+    };
+
+    fetchData();
   }, []);
+
+  const handleOpenBooking = () => {
+    window.location.href = "/booking";
+  };
 
   const [activeTab, setActiveTab] = useState('general');
   const [searchQuery, setSearchQuery] = useState('');
@@ -153,196 +219,183 @@ const SupportCenter = () => {
   );
 
   return (
-    <div className={`support-center ${theme}`}>
-      <div className="support-wrapper">
-        <button
-          onClick={() => navigate('/home')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 16px',
-            marginBottom: '16px',
-            background: 'linear-gradient(to right, #667eea, #764ba2)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
-            transition: 'all 0.3s',
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.background = 'linear-gradient(to right, #5a67d8, #6b46c1)';
-            e.target.style.transform = 'translateY(-2px) scale(1.05)';
-            e.target.style.boxShadow = '0 6px 20px rgba(90, 103, 216, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.background = 'linear-gradient(to right, #667eea, #764ba2)';
-            e.target.style.transform = 'translateY(0) scale(1)';
-            e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
-          }}
-        >
-          <span>🏠</span>
-          Trở về trang chủ
-        </button>
+    <div
+      className={`min-h-screen transition-colors duration-300 ${theme === 'dark'
+          ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900'
+          : 'bg-gradient-to-br from-blue-50 via-white to-green-50'
+        }`}
+    >
+      {/* Header */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+        <Header
+          onToggleTheme={handleToggleTheme}
+          theme={theme}
+          user={user}
+          unreadCount={unreadCount}
+          nextBooking={nextBooking}
+          onOpenBooking={handleOpenBooking}
+        />
+      </div>
 
-      {/* Hero Section */}
-      <section className="support-hero">
-        <div className="hero-content">
-          <div className="hero-badge">🎯 Trung tâm hỗ trợ</div>
-          <h1>Chúng tôi luôn sẵn sàng hỗ trợ bạn</h1>
-          <p>Giải đáp mọi thắc mắc về dịch vụ SwapX. Tìm câu trả lời nhanh hoặc liên hệ trực tiếp với đội ngũ hỗ trợ 24/7.</p>
-          
-          <div className="search-container">
-            <input
-              type="text"
-              placeholder="🔍 Tìm kiếm câu hỏi thường gặp..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
-          </div>
-        </div>
-        <div className="hero-graphics">
-          <div className="floating-icon">🔋</div>
-          <div className="floating-icon">⚡</div>
-          <div className="floating-icon">📱</div>
-        </div>
-      </section>
-
-      {/* Contact Methods */}
-      <section className="contact-methods-section">
-        <div className="section-headerh">
-          <h2>Liên hệ hỗ trợ</h2>
-          <p>Nhiều cách để kết nối với chúng tôi</p>
-        </div>
-        <div className="contact-methods-grid">
-          {contactMethods.map((method, index) => (
-            <div key={index} className="contact-method-card">
-              <div className="method-icon">{method.icon}</div>
-              <div className="method-content">
-                <h3>{method.title}</h3>
-                <p className="method-number">{method.number}</p>
-                <p className="method-description">{method.description}</p>
-              </div>
-              <div className={`availability ${method.available ? 'available' : 'busy'}`}>
-                {method.available ? '🟢 Sẵn sàng' : '🔴 Bận'}
+      <div className={`support-center ${theme}`}>
+        <div className="support-wrapper">
+          {/* Hero Section */}
+          <section className="support-hero">
+            <div className="hero-content">
+              <div className="hero-badge">🎯 Trung tâm hỗ trợ</div>
+              <h1>Chúng tôi luôn sẵn sàng hỗ trợ bạn</h1>
+              <p>Giải đáp mọi thắc mắc về dịch vụ SwapX. Tìm câu trả lời nhanh hoặc liên hệ trực tiếp với đội ngũ hỗ trợ 24/7.</p>
+              
+              <div className="search-container">
+                <input
+                  type="text"
+                  placeholder="🔍 Tìm kiếm câu hỏi thường gặp..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="search-input"
+                />
               </div>
             </div>
-          ))}
-        </div>
-      </section>
+            <div className="hero-graphics">
+              <div className="floating-icon">🔋</div>
+              <div className="floating-icon">⚡</div>
+              <div className="floating-icon">📱</div>
+            </div>
+          </section>
 
-      {/* FAQ Categories */}
-      <section className="faq-section">
-        <div className="section-headerh">
-          <h2>Câu hỏi thường gặp</h2>
-          <p>Chọn chủ đề để xem câu trả lời</p>
-        </div>
-
-        <div className="category-tabs">
-          {supportCategories.map(category => (
-            <button
-              key={category.id}
-              className={`category-tab ${activeTab === category.id ? 'active' : ''}`}
-              onClick={() => {
-                setActiveTab(category.id);
-                setSearchQuery('');
-                setExpandedFaq(null);
-              }}
-              style={{
-                '--accent-color': category.color
-              }}
-            >
-              <span className="tab-icon">{category.icon}</span>
-              <div className="tab-content">
-                <h4>{category.title}</h4>
-                <p>{category.description}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* FAQ List */}
-        <div className="faq-list">
-          {filteredFaqs.length > 0 ? (
-            filteredFaqs.map((faq, index) => (
-              <div
-                key={index}
-                className={`faq-item ${expandedFaq === index ? 'expanded' : ''}`}
-              >
-                <div
-                  className="faq-question"
-                  onClick={() => toggleFaq(index)}
-                >
-                  <h3>{faq.question}</h3>
-                  <span className="expand-icon">
-                    {expandedFaq === index ? '−' : '+'}
-                  </span>
-                </div>
-                <div className="faq-answer">
-                  <p>{faq.answer}</p>
-                  <div className="faq-tags">
-                    {faq.tags.map((tag, tagIndex) => (
-                      <span key={tagIndex} className="tag">#{tag}</span>
-                    ))}
+          {/* Contact Methods */}
+          <section className="contact-methods-section">
+            <div className="section-headerh">
+              <h2>Liên hệ hỗ trợ</h2>
+              <p>Nhiều cách để kết nối với chúng tôi</p>
+            </div>
+            <div className="contact-methods-grid">
+              {contactMethods.map((method, index) => (
+                <div key={index} className="contact-method-card">
+                  <div className="method-icon">{method.icon}</div>
+                  <div className="method-content">
+                    <h3>{method.title}</h3>
+                    <p className="method-number">{method.number}</p>
+                    <p className="method-description">{method.description}</p>
+                  </div>
+                  <div className={`availability ${method.available ? 'available' : 'busy'}`}>
+                    {method.available ? '🟢 Sẵn sàng' : '🔴 Bận'}
                   </div>
                 </div>
+              ))}
+            </div>
+          </section>
+
+          {/* FAQ Categories */}
+          <section className="faq-section">
+            <div className="section-headerh">
+              <h2>Câu hỏi thường gặp</h2>
+              <p>Chọn chủ đề để xem câu trả lời</p>
+            </div>
+
+            <div className="category-tabs">
+              {supportCategories.map(category => (
+                <button
+                  key={category.id}
+                  className={`category-tab ${activeTab === category.id ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab(category.id);
+                    setSearchQuery('');
+                    setExpandedFaq(null);
+                  }}
+                  style={{
+                    '--accent-color': category.color
+                  }}
+                >
+                  <span className="tab-icon">{category.icon}</span>
+                  <div className="tab-content">
+                    <h4>{category.title}</h4>
+                    <p>{category.description}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* FAQ List */}
+            <div className="faq-list">
+              {filteredFaqs.length > 0 ? (
+                filteredFaqs.map((faq, index) => (
+                  <div
+                    key={index}
+                    className={`faq-item ${expandedFaq === index ? 'expanded' : ''}`}
+                  >
+                    <div
+                      className="faq-question"
+                      onClick={() => toggleFaq(index)}
+                    >
+                      <h3>{faq.question}</h3>
+                      <span className="expand-icon">
+                        {expandedFaq === index ? '−' : '+'}
+                      </span>
+                    </div>
+                    <div className="faq-answer">
+                      <p>{faq.answer}</p>
+                      <div className="faq-tags">
+                        {faq.tags.map((tag, tagIndex) => (
+                          <span key={tagIndex} className="tag">#{tag}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="no-results">
+                  <div className="no-results-icon">🔍</div>
+                  <h3>Không tìm thấy kết quả phù hợp</h3>
+                  <p>Hãy thử từ khóa tìm kiếm khác hoặc liên hệ trực tiếp với chúng tôi</p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Emergency Support */}
+          <section className="emergency-section">
+            <div className="emergency-card">
+              <div className="emergency-content">
+                <div className="emergency-icon">🚨</div>
+                <div className="emergency-text">
+                  <h3>Hỗ trợ khẩn cấp</h3>
+                  <p>Gặp sự cố nghiêm trọng tại trạm? Cần hỗ trợ ngay lập tức?</p>
+                </div>
+                <div className="emergency-actions">
+                  <button className="emergency-btn primary">
+                    ⚠️ Report
+                  </button>
+                </div>
               </div>
-            ))
-          ) : (
-            <div className="no-results">
-              <div className="no-results-icon">🔍</div>
-              <h3>Không tìm thấy kết quả phù hợp</h3>
-              <p>Hãy thử từ khóa tìm kiếm khác hoặc liên hệ trực tiếp với chúng tôi</p>
             </div>
-          )}
-        </div>
-      </section>
+          </section>
 
-      {/* Emergency Support */}
-      <section className="emergency-section">
-        <div className="emergency-card">
-          <div className="emergency-content">
-            <div className="emergency-icon">🚨</div>
-            <div className="emergency-text">
-              <h3>Hỗ trợ khẩn cấp</h3>
-              <p>Gặp sự cố nghiêm trọng tại trạm? Cần hỗ trợ ngay lập tức?</p>
+          {/* Feedback Section */}
+          <section className="feedback-section">
+            <div className="feedback-card">
+              <div className="feedback-content">
+                <h2>Chưa tìm thấy câu trả lời?</h2>
+                <p>Đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng giúp đỡ bạn</p>
+                <div className="feedback-actions">
+                  <button className="feedback-btn primary">
+                    📞 Gọi hỗ trợ
+                  </button>
+                  <button className="feedback-btn secondary">
+                    ✉️ Gửi yêu cầu
+                  </button>
+                </div>
+              </div>
+              <div className="feedback-graphic">
+                <div className="support-avatar">👨‍💼</div>
+              </div>
             </div>
-            <div className="emergency-actions">
-              <button className="emergency-btn primary">
-                📞 Gọi 1900 1234
-              </button>
-              <button className="emergency-btn secondary">
-                💬 Chat ngay
-              </button>
-            </div>
-          </div>
+          </section>
         </div>
-      </section>
-
-      {/* Feedback Section */}
-      <section className="feedback-section">
-        <div className="feedback-card">
-          <div className="feedback-content">
-            <h2>Chưa tìm thấy câu trả lời?</h2>
-            <p>Đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng giúp đỡ bạn</p>
-            <div className="feedback-actions">
-              <button className="feedback-btn primary">
-                📞 Gọi hỗ trợ
-              </button>
-              <button className="feedback-btn secondary">
-                ✉️ Gửi yêu cầu
-              </button>
-            </div>
-          </div>
-          <div className="feedback-graphic">
-            <div className="support-avatar">👨‍💼</div>
-          </div>
-        </div>
-      </section>
       </div>
+
+      {/* Footer */}
+      <Footer theme={theme} />
     </div>
   );
 };
