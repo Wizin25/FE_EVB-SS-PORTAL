@@ -1300,3 +1300,64 @@
   margin-top: 4px;
   font-style: italic;
 }
+
+/* Thêm vào cuối file PackageManager.css */
+
+/* Modal Styles */
+.package-manager-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: packageManagerFadeIn 0.3s ease-out;
+}
+
+.package-manager-modal {
+  background: white;
+  border-radius: 1rem;
+  padding: 0;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  animation: packageManagerSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  max-width: 700px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.dark .package-manager-modal {
+  background: #1f2937;
+  border-color: rgba(55, 65, 81, 0.6);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.package-manager-modal .package-manager-card {
+  margin: 0;
+  box-shadow: none;
+  border: none;
+  max-height: calc(90vh - 40px);
+  overflow-y: auto;
+}
+
+/* Responsive cho modal */
+@media (max-width: 768px) {
+  .package-manager-modal-overlay {
+    padding: 10px;
+  }
+  
+  .package-manager-modal {
+    max-height: 95vh;
+  }
+  
+  .package-manager-modal .package-manager-card {
+    padding: 1.5rem;
+    max-height: calc(95vh - 20px);
+  }
+}
