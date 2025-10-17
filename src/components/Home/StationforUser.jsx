@@ -199,6 +199,11 @@ export default function StationForUser() {
     });
   };
 
+  // Function to handle navigation
+  const navigate = (path) => {
+    window.location.href = path;
+  };
+
   return (
     <div
       className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}
@@ -532,8 +537,13 @@ export default function StationForUser() {
                   </div>
 
                   <div style={{ padding: '20px' }}>
-                    <div className="station-head">
-                      <div className="head-left">
+                    <div className="station-head" style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'flex-start',
+                      marginBottom: '12px'
+                    }}>
+                      <div className="head-left" style={{ flex: 1 }}>
                         <h3 className="station-id" style={{
                           fontSize: '1.4rem',
                           fontWeight: 'bold',
@@ -565,6 +575,35 @@ export default function StationForUser() {
                             ⭐ {typeof st.rating === "number" ? st.rating.toFixed(1) : "-"}
                           </span>
                         </div>
+                      </div>
+                      <div className="emergency-actions" style={{ marginLeft: '16px' }}>
+                        <button 
+                          className="emergency-btn primary" 
+                          onClick={() => navigate('/report')}
+                          style={{
+                            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                            color: 'white',
+                            padding: '8px 16px',
+                            borderRadius: '20px',
+                            border: 'none',
+                            fontWeight: 'bold',
+                            fontSize: '0.8rem',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                            transition: 'all 0.3s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.transform = 'scale(1.05)';
+                            e.target.style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.4)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.transform = 'scale(1)';
+                            e.target.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
+                          }}
+                        >
+                        ⚠️
+                        </button>
                       </div>
                     </div>
 
