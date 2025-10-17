@@ -48,26 +48,29 @@ export const authAPI = {
     }
   },
 
-  // THÊM CÁC HÀM MỚI CHO PROFILE
-  updateProfile: async (profileData) => {
-    try {
-      const form = new FormData();
-      form.append('Name', profileData.name);
-      form.append('Phone', profileData.phone);
-      form.append('Address', profileData.address ?? '');
-      form.append('Email', profileData.email);
-
-      const response = await api.put('/api/Account/update_current_profile', form, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      
-      // Trả về toàn bộ response data để xử lý
-      return response.data;
-    } catch (error) {
-      // Ném lỗi để component bắt được
-      throw error.response?.data || error;
+  // Trong authAPI object, cập nhật hàm updateProfile:
+updateProfile: async (profileData) => {
+  try {
+    const form = new FormData();
+    form.append('Name', profileData.name);
+    form.append('Phone', profileData.phone);
+    form.append('Address', profileData.address ?? '');
+    form.append('Email', profileData.email);
+    
+    // Thêm trường avatar nếu có
+    if (profileData.avatar) {
+      form.append('Avatar', profileData.avatar);
     }
-  },
+
+    const response = await api.put('/api/Account/update_current_profile', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+},
 
   changePassword: async (passwordData) => {
     try {
@@ -621,5 +624,94 @@ getBatteryById: async (batteryId) => {
         throw new Error(msg);
       }
     },
-  
+
+  // Report APIs - ĐÃ SỬA ĐỔI để dùng Cloudinary publicId
+  addReport: (formData) => {
+  return api.post('/api/Report/add_report', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+},
+
+  getAllReports: async () => {
+    try {
+      const response = await api.get('/api/Report/get_all_reports');
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Get reports failed');
+    }
+  },
+
+  getReportById: async (reportId) => {
+    try {
+      const response = await api.get(`/api/Report/get_report_by_id?reportId=${reportId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Get report failed');
+    }
+  },
+
+  updateReport: async (reportData) => {
+    try {
+      const form = new FormData();
+      form.append('ReportID', reportData.reportId);
+      form.append('Name', reportData.name);
+      form.append('Description', reportData.description);
+      if (reportData.image) {
+        form.append('ImagePublicId', reportData.image);
+      }
+      form.append('AccountId', reportData.accountId);
+      form.append('StationId', reportData.stationId);
+
+      const response = await api.put('/api/Report/update_report', form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Update report failed');
+    }
+  },
+
+  deleteReport: async (reportId) => {
+    try {
+      const form = new FormData();
+      form.append('reportId', reportId);
+
+      const response = await api.put('/api/Report/delete_report', form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Delete report failed');
+    }
+  },
+
+  // Trong authAPI object, cập nhật hàm uploadToCloudinary:
+uploadToCloudinary: async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    console.log('Uploading file to Cloudinary:', file.name, file.type, file.size);
+    
+    const response = await api.post('/api/Cloudinary/upload', formData, {
+      headers: { 
+        'Content-Type': 'multipart/form-data',
+      }
+    });
+    
+    console.log('Cloudinary upload response:', response);
+    
+    // Trả về toàn bộ response data để xử lý
+    return response.data;
+  } catch (error) {
+    console.error('Cloudinary upload error:', error);
+    const errorMsg = error?.response?.data?.message || 
+                    error?.message || 
+                    JSON.stringify(error) || 
+                    'Upload image failed';
+    throw new Error(errorMsg);
+  }
+},
 };

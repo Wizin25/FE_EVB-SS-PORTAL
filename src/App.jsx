@@ -20,6 +20,7 @@ import Package from './components/Package/Package.jsx'
 import Vehicle from './components/Vehicle/Vehicle.jsx'
 import PackageManager from './components/Admin/pages/PackageManager.jsx'
 import Contact from './components/Contact/contact.jsx'
+import Report from './components/Report/Report.jsx';
 function App() {
   return (
     <Router>
@@ -48,6 +49,7 @@ function App() {
           <Route path="/plans" element={<Package />} />
           <Route path="/vehicles" element={<Vehicle />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/report" element={<Report />} />
         </Routes>
       </div>
     </Router>
