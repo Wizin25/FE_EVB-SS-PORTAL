@@ -620,3 +620,27 @@
 .profile-container.dark .profile-wrapper::-webkit-scrollbar-thumb {
   background: rgba(56, 189, 248, 0.45);
 }
+
+.profile-avatar[style*="cursor: wait"] {
+  filter: grayscale(0.5);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 0.4; }
+  100% { opacity: 0.7; }
+}
+
+/* Hover effect for avatar */
+.profile-avatar:hover {
+  cursor: pointer;
+  transform: scale(1.08) rotate(2deg);
+  box-shadow: 0 12px 32px rgba(56, 189, 248, 0.32), 0 2px 8px rgba(255, 255, 255, 0.45) inset;
+  border-color: rgba(56, 189, 248, 0.55);
+}
+
+.profile-container.dark .profile-avatar:hover {
+  border-color: rgba(56, 189, 248, 0.65);
+  box-shadow: 0 12px 32px rgba(56, 189, 248, 0.38), 0 2px 8px rgba(56, 189, 248, 0.15) inset;
+}

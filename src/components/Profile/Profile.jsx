@@ -1,5 +1,5 @@
-// src/components/Profile.jsx - Final Optimized Version
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+// src/components/Profile.jsx - Final Optimized Version with Avatar Upload
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { authAPI } from '../services/authAPI';
 import { formAPI } from '../services/formAPI';
@@ -42,6 +42,11 @@ function Profile({ theme = "light" }) {
   const [passwordError, setPasswordError] = useState(null);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(null);
+
+  // Avatar upload states
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const fileInputRef = useRef(null);
 
   const navigate = useNavigate();
 
@@ -87,6 +92,7 @@ function Profile({ theme = "light" }) {
           phone: safe?.phone || "",
           address: safe?.address || "",
           email: safe?.email || "",
+          avatar: safe?.avatar || "",
         });
         setLoading(false);
       })
@@ -182,6 +188,81 @@ function Profile({ theme = "light" }) {
     fetchUserVehicles();
   }, [fetchUserVehicles]);
 
+  // Avatar upload handlers
+  const handleAvatarClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback((e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Kiểm tra loại file và kích thước
+      if (!file.type.startsWith('image/')) {
+        setError('Vui lòng chọn file ảnh');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        setError('Kích thước ảnh không được vượt quá 5MB');
+        return;
+      }
+      
+      setAvatarFile(file);
+      handleAvatarUpload(file);
+    }
+  }, []);
+
+  const handleAvatarUpload = useCallback(async (file) => {
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    setError(null);
+
+    try {
+      console.log('Bắt đầu upload avatar...', file.name);
+      
+      const response = await authAPI.uploadToCloudinary(file);
+      console.log('Upload response:', response);
+
+      // Lấy URL từ response (tuỳ thuộc vào cấu trúc response của backend)
+      const avatarUrl = response.url || response.data?.url || response.data?.secure_url || response.data;
+      
+      if (!avatarUrl) {
+        throw new Error('Không nhận được URL ảnh từ server');
+      }
+
+      console.log('Avatar URL:', avatarUrl);
+
+      // Cập nhật profile với avatar mới
+      const updateData = {
+        ...editData,
+        avatar: avatarUrl
+      };
+
+      const updateResponse = await authAPI.updateProfile(updateData);
+      
+      if (updateResponse?.isSuccess) {
+        // Cập nhật state user với avatar mới
+        setUser(prev => ({ ...prev, avatar: avatarUrl }));
+        setEditData(prev => ({ ...prev, avatar: avatarUrl }));
+        
+        console.log('Cập nhật avatar thành công');
+      } else {
+        throw new Error(updateResponse?.message || 'Cập nhật avatar thất bại');
+      }
+
+    } catch (err) {
+      console.error('Lỗi upload avatar:', err);
+      setError(err?.message || 'Lỗi khi tải lên ảnh đại diện');
+    } finally {
+      setIsUploadingAvatar(false);
+      setAvatarFile(null);
+      // Reset input file
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }, [editData]);
+
   // Form handlers
   const handleEditChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -216,6 +297,7 @@ function Profile({ theme = "light" }) {
       phone: user?.phone || "",
       address: user?.address || "",
       email: user?.email || "",
+      avatar: user?.avatar || "",
     });
     setEditError(null);
     setEditMode(false);
@@ -270,6 +352,14 @@ function Profile({ theme = "light" }) {
   const customerId = useMemo(() => ev && typeof ev === "object" ? (ev.customerId ?? "-") : "-", [ev]);
 
   const count = useCallback((arr) => (Array.isArray(arr) ? arr.length : 0), []);
+
+  // Avatar URL - ưu tiên avatar từ user, sau đó dùng UI Avatars
+  const avatarUrl = useMemo(() => {
+    if (user?.avatar) {
+      return user.avatar;
+    }
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "U")}&background=2563eb&color=fff&size=128`;
+  }, [user?.avatar, name]);
 
   const renderPreview = useCallback((arr, labelKey = null) => {
     if (!Array.isArray(arr) || arr.length === 0) {
@@ -702,6 +792,15 @@ function Profile({ theme = "light" }) {
       : 'bg-gradient-to-br from-blue-50 via-white to-green-50 text-gray-900'}`}
       style={scrollStyles}>
       
+      {/* Hidden file input for avatar upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: 'none' }}
+        accept="image/*"
+        onChange={handleFileChange}
+      />
+
       {/* Sticky Header */}
       <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
         <Header 
@@ -737,11 +836,36 @@ function Profile({ theme = "light" }) {
             <div className="profile-scroll-area">
               {/* Profile Header */}
               <div className="profile-header">
-                <img
-                  className="profile-avatar"
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name || "U")}&background=2563eb&color=fff&size=128`}
-                  alt="avatar"
-                />
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <img
+                    className="profile-avatar"
+                    src={isUploadingAvatar ? 
+                      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%2338bdf8' opacity='0.7'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='white' font-size='14'%3E⏳%3C/text%3E%3C/svg%3E" 
+                      : avatarUrl}
+                    alt="avatar"
+                    onClick={handleAvatarClick}
+                    style={{ 
+                      cursor: isUploadingAvatar ? 'wait' : 'pointer',
+                      opacity: isUploadingAvatar ? 0.7 : 1
+                    }}
+                  />
+                  {isUploadingAvatar && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      background: 'rgba(0,0,0,0.7)',
+                      color: 'white',
+                      padding: '4px 8px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: '600'
+                    }}>
+                      Đang tải lên...
+                    </div>
+                  )}
+                </div>
                 <div className="profile-info" style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
                     <div style={{ flex: 1 }}>

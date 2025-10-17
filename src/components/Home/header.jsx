@@ -90,13 +90,6 @@ export default function Header({
                   <button
                     type="button"
                     onMouseDown={e => e.preventDefault()}
-                    onClick={() => { navigate('/settings'); setOpen(false); }}
-                  >
-                    Cài đặt
-                  </button>
-                  <button
-                    type="button"
-                    onMouseDown={e => e.preventDefault()}
                     onClick={() => {
                       localStorage.removeItem("authToken");
                       navigate('/signin');

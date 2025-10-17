@@ -197,7 +197,7 @@ const SupportCenter = () => {
       icon: '✉️',
       title: 'Email',
       number: 'support@swapx.vn',
-      description: 'Phản hồi trong 2h',
+      description: 'Luôn sẵn sàng phản hồi',
       available: true
     },
     {
@@ -277,9 +277,6 @@ const SupportCenter = () => {
                     <h3>{method.title}</h3>
                     <p className="method-number">{method.number}</p>
                     <p className="method-description">{method.description}</p>
-                  </div>
-                  <div className={`availability ${method.available ? 'available' : 'busy'}`}>
-                    {method.available ? '🟢 Sẵn sàng' : '🔴 Bận'}
                   </div>
                 </div>
               ))}
@@ -363,31 +360,10 @@ const SupportCenter = () => {
                   <p>Gặp sự cố nghiêm trọng tại trạm? Cần hỗ trợ ngay lập tức?</p>
                 </div>
                 <div className="emergency-actions">
-                  <button className="emergency-btn primary">
+                  <button className="emergency-btn primary" onClick={() => navigate('/report')}>
                     ⚠️ Report
                   </button>
                 </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Feedback Section */}
-          <section className="feedback-section">
-            <div className="feedback-card">
-              <div className="feedback-content">
-                <h2>Chưa tìm thấy câu trả lời?</h2>
-                <p>Đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng giúp đỡ bạn</p>
-                <div className="feedback-actions">
-                  <button className="feedback-btn primary">
-                    📞 Gọi hỗ trợ
-                  </button>
-                  <button className="feedback-btn secondary">
-                    ✉️ Gửi yêu cầu
-                  </button>
-                </div>
-              </div>
-              <div className="feedback-graphic">
-                <div className="support-avatar">👨‍💼</div>
               </div>
             </div>
           </section>
