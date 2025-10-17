@@ -232,7 +232,7 @@ export default function Footer() {
             </li>
             <li>
               <a
-                href="/support"
+                href="/contact"
                 style={{
                   ...footerLinkStyle,
                   fontSize: "1.1rem",
