@@ -602,7 +602,7 @@ export default function StationForUser() {
                             e.target.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
                           }}
                         >
-                          ⚠️ Report
+                        ⚠️
                         </button>
                       </div>
                     </div>
