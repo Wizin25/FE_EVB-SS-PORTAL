@@ -120,11 +120,22 @@ export default function AdminLayout() {
       <div
         ref={nodeRef}
         className="flex min-h-screen font-sans transition-colors bg-white dark:bg-gray-900"
-        style={{ height: '100vh', overflow: 'auto' }} // enable scroll for the whole layout
+        style={{ 
+          height: '100vh', 
+          overflow: 'auto',
+          backgroundImage: 'url(https://res.cloudinary.com/dscvguyvb/image/upload/v1760692941/8214be62-181e-4b47-ac49-6896dcc2a590_1_qnev9i.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed'
+        }}
       >
         {/* Sidebar */}
         <aside
-          className={`admin-sidebar ${sidebarOpen ? 'open' : 'closed'} bg-white dark:bg-gray-900 border-r border-orange-200 dark:border-gray-700 shadow-2xl flex flex-col fixed md:relative z-40 overflow-y-auto`}
+          className={`admin-sidebar ${sidebarOpen ? 'open' : 'closed'} bg-white/20 dark:bg-gray-900/30 border-r border-orange-200 dark:border-gray-700 flex flex-col fixed md:relative z-40 overflow-y-auto`}
+          style={{
+            boxShadow: "inset 0 0 22px 0 rgba(255, 255, 255, 0.08)"
+          }}
         >
           <div className={`mb-8 mt-4 px-6 transition-all duration-300 ${sidebarOpen ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}>
             <img
@@ -192,7 +203,10 @@ export default function AdminLayout() {
         <div className="flex flex-col flex-1 min-h-screen" style={{ overflow: 'auto' }}>
 
           {/* Header */}
-          <header className="flex items-center justify-between h-16 px-4 bg-white border-b border-orange-100 admin-header dark:bg-gray-900 dark:border-gray-800">
+          <header
+            className="flex items-center justify-between h-16 px-4 bg-white/20 backdrop-blur border-b border-orange-100 admin-header dark:bg-gray-900/70 dark:backdrop-blur dark:border-gray-800"
+            style={{ boxShadow: "inset 0 0 10px white" }}
+          >
             <div className="flex items-center gap-2">
               {/* Hamburger/Menu button */}
               <button
@@ -219,22 +233,19 @@ export default function AdminLayout() {
 
             <div className="flex items-center gap-4">
               <ThemeToggle />
-              <button
-                className="flex items-center justify-center w-10 h-10 font-bold text-orange-600 transition bg-orange-100 rounded-full shadow dark:bg-gray-800 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-gray-700"
-                aria-label="Account"
-                type="button"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2" fill="none"/>
-                  <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M4 20c0-2.5 3.5-4 8-4s8 1.5 8 4"/>
-                </svg>
-              </button>
             </div>
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 overflow-y-auto transition-colors bg-white dark:bg-gray-900">
-            <div className="p-8">
+          <main className="flex-1 overflow-y-auto transition-colors bg-transparent">
+            <div
+              className="p-8"
+              style={{
+                background: "rgba(255, 255, 255, 0)",
+                boxShadow: "inset 0 0 20px 0 rgba(255,255,255,0.8)",
+                borderRadius: "16px"
+              }}
+            >
               <div className="pb-2 mb-6 border-b border-orange-200 dark:border-gray-800" />
               <div className="admin-content-card rounded-xl bg-white dark:bg-gray-800 shadow-lg p-6 min-h-[60vh] transition-colors overflow-y-auto">
                 <Outlet />

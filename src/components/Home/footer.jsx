@@ -5,10 +5,10 @@ export default function Footer() {
     <footer
       className="footer"
       style={{
-        background: "linear-gradient(90deg, #f97316 0%, #ea580c 20%, #fb923c 40%, #fdba74 60%, #fbbf24 80%, #fcd34d 100%)",
+        background: "linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #000000 100%)",
         color: "#fff",
         padding: "60px 0 0 0",
-        boxShadow: "0 -8px 40px 0 rgba(16,185,129,0.15)",
+        boxShadow: "0 -8px 40px 0 rgba(255,165,0,0.15)",
         fontFamily: "inherit",
         width: "100vw",
         left: "0",
@@ -35,30 +35,92 @@ export default function Footer() {
       >
         {/* Logo & Slogan */}
         <div style={{ flex: "1 1 300px", minWidth: 260 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
+          {/* Logo riêng một hàng */} 
+          <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 12 }}>
+            <div>
+              <img
+                src="https://res.cloudinary.com/dzht29nkq/image/upload/v1758274139/SwapX_1_-Photoroom_wvmglm.png"
+                alt="SwapX logo"
+                style={{
+                  width: 150,
+                  height: 50,
+                  objectFit: "cover",
+                  borderRadius: "10px",
+                  background: "transparent",
+                  padding: 0
+                }}
+              />
+            </div>
+          </div>
+          {/* Slogan và mô tả
+          <div style={{ marginBottom: 20 }}>
             <div
               style={{
                 fontWeight: 700,
-                fontSize: "1.2rem",
-                letterSpacing: "0.02em",
-                color: "#fff",
-                textShadow: "0 2px 12px rgba(0,0,0,0.2)",
-                lineHeight: 1.4,
-                flex: 1,
+                fontSize: "1.25rem",
+                letterSpacing: "0.01em",
+                color: "#ff8c00",
+                textShadow: "0 3px 14px rgba(255,140,0,0.4), 0 1px 0 #ff8c00",
+                lineHeight: 1.38,
+                marginBottom: 2
               }}
             >
-              ⚡ Đổi pin nhanh<br/>Di chuyển xa
+              Đổi pin nhanh<br />
+              <span style={{
+                color: "#ffa500",
+                fontWeight: 800,
+                fontSize: "1.12rem",
+                textShadow: "0 2px 6px rgba(255,165,0,0.6)"
+              }}>Di chuyển xa</span>
+            </div>
+            <div style={{
+              fontSize: "0.93rem",
+              color: "#888888",
+              fontWeight: 500,
+              marginTop: 2,
+              textShadow: "0 1px 6px rgba(136,136,136,0.3)"
+            }}>
+              Thuê pin, bảo vệ môi trường
+            </div>
+          </div> */}
+          <div
+            className="LiquidGlass"
+            style={{
+              background: "rgba(255, 255, 255, 0.22)",
+              borderRadius: "14px",
+              padding: "18px 22px",
+              marginTop: 0,
+              boxShadow: "0 8px 32px 0 rgba(255,165,0,0.16)",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              border: "1px solid rgba(255,165,0,0.16)",
+              backdropFilter: "blur(6px) saturate(140%)",
+              WebkitBackdropFilter: "blur(6px) saturate(140%)",
+              transition: "box-shadow 0.15s",
+            }}
+          >
+            <svg width="32" height="32" viewBox="0 0 42 42" fill="none" style={{flexShrink: 0, filter: "drop-shadow(0 2px 10px rgba(255,165,0,0.6))"}}>
+              <circle cx="21" cy="21" r="21" fill="#ff8c00"/>
+              <path d="M14 22c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
+              <path d="M18 27a3 3 0 0 0 6 0" stroke="#fff" strokeWidth="2"/>
+              <path d="M21 20v-4" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            <div>
+              <span style={{fontWeight: 600, fontSize: "1.02rem", color: "#ff8c00", letterSpacing: "0.005em"}}>
+                Giải pháp cho thuê pin thông minh cho xe điện,
+              </span>
+              <br/>
+              <span style={{
+                color: "#888888",
+                fontWeight: 500,
+                fontSize: "0.98rem",
+                textShadow: "0 2px 8px rgba(136,136,136,0.14)"
+              }}>
+                Bảo vệ môi trường và tiết kiệm chi phí.
+              </span>
             </div>
           </div>
-          <p style={{
-            fontSize: "0.95rem",
-            lineHeight: 1.6,
-            color: "rgba(255,255,255,0.9)",
-            marginTop: 0,
-          }}>
-            Giải pháp cho thuê pin thông minh cho xe điện, 
-            bảo vệ môi trường và tiết kiệm chi phí.
-          </p>
         </div>
 
         {/* Navigation */}
@@ -70,38 +132,124 @@ export default function Footer() {
             display: "flex",
             alignItems: "center",
             gap: 8,
+            color: "#ff8c00",
+            textShadow: "0 2px 8px rgba(255,140,0,0.4)"
           }}>
-            <span style={{ fontSize: "1.3rem" }}>🔗</span>
             Dịch vụ
           </h4>
           <ul style={{ listStyle: "none", padding: 0, margin: 0, lineHeight: 2.2 }}>
             <li>
-              <a href="/stations" style={footerLinkStyle} onMouseEnter={(e) => e.currentTarget.style.transform = "translateX(4px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateX(0)"}>
-                <span style={{ marginRight: 8 }}>📍</span>
+              <a
+                href="/stations"
+                style={{
+                  ...footerLinkStyle,
+                  fontSize: "1.1rem",
+                  color: "#888888",
+                  fontWeight: 600
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = "translateX(4px) translateY(-2px)";
+                  e.currentTarget.style.color = "#ff8c00";
+                  e.currentTarget.style.textShadow = "0 4px 12px rgba(255,140,0,0.4)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = "translateX(0) translateY(0)";
+                  e.currentTarget.style.color = "#888888";
+                  e.currentTarget.style.textShadow = "none";
+                }}
+              >
                 Tìm trạm đổi pin
               </a>
             </li>
             <li>
-              <a href="/plans" style={footerLinkStyle} onMouseEnter={(e) => e.currentTarget.style.transform = "translateX(4px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateX(0)"}>
-                <span style={{ marginRight: 8 }}>💳</span>
+              <a
+                href="/plans"
+                style={{
+                  ...footerLinkStyle,
+                  fontSize: "1.1rem",
+                  color: "#888888",
+                  fontWeight: 600
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = "translateX(4px) translateY(-2px)";
+                  e.currentTarget.style.color = "#ff8c00";
+                  e.currentTarget.style.textShadow = "0 4px 12px rgba(255,140,0,0.4)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = "translateX(0) translateY(0)";
+                  e.currentTarget.style.color = "#888888";
+                  e.currentTarget.style.textShadow = "none";
+                }}
+              >
                 Gói thuê bao
               </a>
             </li>
             <li>
-              <a href="/vehicles" style={footerLinkStyle} onMouseEnter={(e) => e.currentTarget.style.transform = "translateX(4px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateX(0)"}>
-                <span style={{ marginRight: 8 }}>🏍️</span>
+              <a
+                href="/vehicles"
+                style={{
+                  ...footerLinkStyle,
+                  fontSize: "1.1rem",
+                  color: "#888888",
+                  fontWeight: 600
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = "translateX(4px) translateY(-2px)";
+                  e.currentTarget.style.color = "#ff8c00";
+                  e.currentTarget.style.textShadow = "0 4px 12px rgba(255,140,0,0.4)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = "translateX(0) translateY(0)";
+                  e.currentTarget.style.color = "#888888";
+                  e.currentTarget.style.textShadow = "none";
+                }}
+              >
                 Xe tương thích
               </a>
             </li>
             <li>
-              <a href="/payments" style={footerLinkStyle} onMouseEnter={(e) => e.currentTarget.style.transform = "translateX(4px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateX(0)"}>
-                <span style={{ marginRight: 8 }}>💰</span>
+              <a
+                href="/payments"
+                style={{
+                  ...footerLinkStyle,
+                  fontSize: "1.1rem",
+                  color: "#888888",
+                  fontWeight: 600
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = "translateX(4px) translateY(-2px)";
+                  e.currentTarget.style.color = "#ff8c00";
+                  e.currentTarget.style.textShadow = "0 4px 12px rgba(255,140,0,0.4)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = "translateX(0) translateY(0)";
+                  e.currentTarget.style.color = "#888888";
+                  e.currentTarget.style.textShadow = "none";
+                }}
+              >
                 Thanh toán
               </a>
             </li>
             <li>
-              <a href="/support" style={footerLinkStyle} onMouseEnter={(e) => e.currentTarget.style.transform = "translateX(4px)"} onMouseLeave={(e) => e.currentTarget.style.transform = "translateX(0)"}>
-                <span style={{ marginRight: 8 }}>🎧</span>
+              <a
+                href="/support"
+                style={{
+                  ...footerLinkStyle,
+                  fontSize: "1.1rem",
+                  color: "#888888",
+                  fontWeight: 600
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = "translateX(4px) translateY(-2px)";
+                  e.currentTarget.style.color = "#ff8c00";
+                  e.currentTarget.style.textShadow = "0 4px 12px rgba(255,140,0,0.4)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = "translateX(0) translateY(0)";
+                  e.currentTarget.style.color = "#888888";
+                  e.currentTarget.style.textShadow = "none";
+                }}
+              >
                 Hỗ trợ 24/7
               </a>
             </li>
@@ -117,36 +265,69 @@ export default function Footer() {
             display: "flex",
             alignItems: "center",
             gap: 8,
+            color: "#ff8c00",
+            textShadow: "0 2px 8px rgba(255,140,0,0.4)"
           }}>
-            <span style={{ fontSize: "1.3rem" }}>📞</span>
             Liên hệ
           </h4>
           <ul style={{ listStyle: "none", padding: 0, margin: 0, lineHeight: 2.2 }}>
             <li style={{ marginBottom: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: "1.1rem" }}>📱</span>
-                <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>Hotline</span>
+                <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "#ff8c00" }}>Hotline</span>
               </div>
-              <a href="tel:19001234" style={{...footerLinkStyle, fontSize: "1.05rem", fontWeight: 700, marginLeft: 28}}>
-                ...
+              <a 
+                href="tel:19001234" 
+                style={{
+                  ...footerLinkStyle, 
+                  fontSize: "1.05rem", 
+                  fontWeight: 700,
+                  color: "#888888"
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.color = "#ff8c00";
+                  e.currentTarget.style.textShadow = "0 4px 12px rgba(255,140,0,0.4)";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.color = "#888888";
+                  e.currentTarget.style.textShadow = "none";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
+              >
+                1900 1234
               </a>
             </li>
             <li style={{ marginBottom: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: "1.1rem" }}>✉️</span>
-                <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>Email</span>
+                <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "#ff8c00" }}>Email</span>
               </div>
-              <a href="mailto:support@swapx.vn" style={{...footerLinkStyle, marginLeft: 28}}>
-                ...
+              <a 
+                href="mailto:support@swapx.vn" 
+                style={{
+                  ...footerLinkStyle,
+                  color: "#888888"
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.color = "#ff8c00";
+                  e.currentTarget.style.textShadow = "0 4px 12px rgba(255,140,0,0.4)";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.color = "#888888";
+                  e.currentTarget.style.textShadow = "none";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
+              >
+                support@swapx.vn
               </a>
             </li>
             <li>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: "1.1rem", marginTop: 2 }}>📍</span>
-                <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>Địa chỉ</span>
+                <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "#ff8c00" }}>Địa chỉ</span>
               </div>
-              <div style={{ color: "rgba(255,255,255,0.95)", fontWeight: 400, fontSize: "0.95rem", lineHeight: 1.5, marginLeft: 28 }}>
-                ...
+              <div style={{ color: "#888888", fontWeight: 400, fontSize: "0.95rem", lineHeight: 1.5 }}>
+                123 Đường ABC, Quận XYZ<br />
+                Thành phố Hồ Chí Minh, Việt Nam
               </div>
             </li>
           </ul>
@@ -161,8 +342,9 @@ export default function Footer() {
             display: "flex",
             alignItems: "center",
             gap: 8,
+            color: "#ff8c00",
+            textShadow: "0 2px 8px rgba(255,140,0,0.4)"
           }}>
-            <span style={{ fontSize: "1.3rem" }}>🌐</span>
             Kết nối
           </h4>
           <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
@@ -174,11 +356,13 @@ export default function Footer() {
               aria-label="Facebook"
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-4px) scale(1.1)";
-                e.currentTarget.style.background = "rgba(255,255,255,0.35)";
+                e.currentTarget.style.background = "rgba(255,140,0,0.8)";
+                e.currentTarget.style.boxShadow = "0 8px 25px 0 rgba(255,140,0,0.4)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0) scale(1)";
-                e.currentTarget.style.background = "rgba(255,255,255,0.2)";
+                e.currentTarget.style.background = "rgba(136,136,136,0.3)";
+                e.currentTarget.style.boxShadow = "0 4px 12px 0 rgba(0,0,0,0.15)";
               }}
             >
               <svg width="20" height="20" fill="#fff" viewBox="0 0 24 24">
@@ -193,11 +377,13 @@ export default function Footer() {
               aria-label="Zalo"
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-4px) scale(1.1)";
-                e.currentTarget.style.background = "rgba(255,255,255,0.35)";
+                e.currentTarget.style.background = "rgba(255,140,0,0.8)";
+                e.currentTarget.style.boxShadow = "0 8px 25px 0 rgba(255,140,0,0.4)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0) scale(1)";
-                e.currentTarget.style.background = "rgba(255,255,255,0.2)";
+                e.currentTarget.style.background = "rgba(136,136,136,0.3)";
+                e.currentTarget.style.boxShadow = "0 4px 12px 0 rgba(0,0,0,0.15)";
               }}
             >
               <svg width="20" height="20" fill="#fff" viewBox="0 0 24 24">
@@ -212,11 +398,13 @@ export default function Footer() {
               aria-label="Instagram"
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-4px) scale(1.1)";
-                e.currentTarget.style.background = "rgba(255,255,255,0.35)";
+                e.currentTarget.style.background = "rgba(255,140,0,0.8)";
+                e.currentTarget.style.boxShadow = "0 8px 25px 0 rgba(255,140,0,0.4)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0) scale(1)";
-                e.currentTarget.style.background = "rgba(255,255,255,0.2)";
+                e.currentTarget.style.background = "rgba(136,136,136,0.3)";
+                e.currentTarget.style.boxShadow = "0 4px 12px 0 rgba(0,0,0,0.15)";
               }}
             >
               <svg width="20" height="20" fill="#fff" viewBox="0 0 24 24">
@@ -231,11 +419,13 @@ export default function Footer() {
               aria-label="YouTube"
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-4px) scale(1.1)";
-                e.currentTarget.style.background = "rgba(255,255,255,0.35)";
+                e.currentTarget.style.background = "rgba(255,140,0,0.8)";
+                e.currentTarget.style.boxShadow = "0 8px 25px 0 rgba(255,140,0,0.4)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = "translateY(0) scale(1)";
-                e.currentTarget.style.background = "rgba(255,255,255,0.2)";
+                e.currentTarget.style.background = "rgba(136,136,136,0.3)";
+                e.currentTarget.style.boxShadow = "0 4px 12px 0 rgba(0,0,0,0.15)";
               }}
             >
               <svg width="20" height="20" fill="#fff" viewBox="0 0 24 24">
@@ -249,50 +439,89 @@ export default function Footer() {
       {/* Bottom Bar */}
       <div
         style={{
-          borderTop: "2px solid rgba(255,255,255,0.2)",
+          borderTop: "2px solid rgba(255,140,0,0.3)",
           marginTop: 48,
           padding: "24px 0",
           textAlign: "center",
           fontSize: "0.95rem",
-          color: "rgba(255,255,255,0.95)",
+          color: "#888888",
           letterSpacing: "0.01em",
-          background: "rgba(0,0,0,0.1)",
+          background: "rgba(0,0,0,0.3)",
         }}
       >
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px" }}>
           <div style={{ marginBottom: 12, display: "flex", justifyContent: "center", gap: 24, flexWrap: "wrap", fontSize: "0.9rem" }}>
             <a 
               href="/terms" 
-              style={{ color: "rgba(255,255,255,0.9)", textDecoration: "none", fontWeight: 500, transition: "color 0.2s" }}
-              onMouseEnter={(e) => e.currentTarget.style.color = "#fff"}
-              onMouseLeave={(e) => e.currentTarget.style.color = "rgba(255,255,255,0.9)"}
+              style={{ 
+                color: "#888888", 
+                textDecoration: "none", 
+                fontWeight: 500, 
+                transition: "all 0.3s ease" 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#ff8c00";
+                e.currentTarget.style.textShadow = "0 4px 12px rgba(255,140,0,0.4)";
+                e.currentTarget.style.transform = "translateY(-2px)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#888888";
+                e.currentTarget.style.textShadow = "none";
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
             >
               Điều khoản sử dụng
             </a>
-            <span style={{ color: "rgba(255,255,255,0.5)" }}>|</span>
+            <span style={{ color: "rgba(136,136,136,0.5)" }}>|</span>
             <a 
               href="/privacy" 
-              style={{ color: "rgba(255,255,255,0.9)", textDecoration: "none", fontWeight: 500, transition: "color 0.2s" }}
-              onMouseEnter={(e) => e.currentTarget.style.color = "#fff"}
-              onMouseLeave={(e) => e.currentTarget.style.color = "rgba(255,255,255,0.9)"}
+              style={{ 
+                color: "#888888", 
+                textDecoration: "none", 
+                fontWeight: 500, 
+                transition: "all 0.3s ease" 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#ff8c00";
+                e.currentTarget.style.textShadow = "0 4px 12px rgba(255,140,0,0.4)";
+                e.currentTarget.style.transform = "translateY(-2px)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#888888";
+                e.currentTarget.style.textShadow = "none";
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
             >
               Chính sách bảo mật
             </a>
-            <span style={{ color: "rgba(255,255,255,0.5)" }}>|</span>
+            <span style={{ color: "rgba(136,136,136,0.5)" }}>|</span>
             <a 
               href="/cookie" 
-              style={{ color: "rgba(255,255,255,0.9)", textDecoration: "none", fontWeight: 500, transition: "color 0.2s" }}
-              onMouseEnter={(e) => e.currentTarget.style.color = "#fff"}
-              onMouseLeave={(e) => e.currentTarget.style.color = "rgba(255,255,255,0.9)"}
+              style={{ 
+                color: "#888888", 
+                textDecoration: "none", 
+                fontWeight: 500, 
+                transition: "all 0.3s ease" 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#ff8c00";
+                e.currentTarget.style.textShadow = "0 4px 12px rgba(255,140,0,0.4)";
+                e.currentTarget.style.transform = "translateY(-2px)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#888888";
+                e.currentTarget.style.textShadow = "none";
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
             >
               Cookie Policy
             </a>
           </div>
-          <p style={{ margin: 0, fontWeight: 600 }}>
-            © {new Date().getFullYear()} <b>SwapX</b> - Hệ thống cho thuê pin xe điện hàng đầu Việt Nam
+          <p style={{ margin: 0, fontWeight: 600, color: "#888888" }}>
+            © {new Date().getFullYear()} <span style={{ color: "#ff8c00" }}>SwapX</span> - Hệ thống cho thuê pin xe điện hàng đầu Việt Nam
           </p>
-          <p style={{ margin: "8px 0 0 0", fontSize: "0.85rem", opacity: 0.85 }}>
-            ...
+          <p style={{ margin: "8px 0 0 0", fontSize: "0.85rem", opacity: 0.85, color: "#666666" }}>
+            Công ty TNHH SwapX Việt Nam - Mã số thuế: 0123456789
           </p>
         </div>
       </div>
@@ -302,11 +531,11 @@ export default function Footer() {
 
 // Inline styles for links and social buttons
 const footerLinkStyle = {
-  color: "rgba(255,255,255,0.95)",
+  color: "#888888",
   textDecoration: "none",
   fontWeight: 500,
   fontSize: "0.95rem",
-  transition: "all 0.2s",
+  transition: "all 0.3s ease",
   display: "flex",
   alignItems: "center",
   marginBottom: 4,
@@ -319,10 +548,10 @@ const socialBtnStyle = {
   width: 44,
   height: 44,
   borderRadius: "50%",
-  background: "rgba(255,255,255,0.2)",
+  background: "rgba(136,136,136,0.3)",
   boxShadow: "0 4px 12px 0 rgba(0,0,0,0.15)",
   transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-  border: "2px solid rgba(255,255,255,0.3)",
+  border: "2px solid rgba(136,136,136,0.3)",
   outline: "none",
   cursor: "pointer",
   textDecoration: "none",

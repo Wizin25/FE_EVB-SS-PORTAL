@@ -15,7 +15,7 @@ function StaffPage() {
   const [loading, setLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Profile drawer
+  // Drawer hồ sơ
   const [showProfile, setShowProfile] = useState(false);
 
   // Dropdown chọn trạng thái theo từng form
@@ -69,8 +69,6 @@ function StaffPage() {
   }, []);
 
   /* ======== API calls ======== */
-
-  // Lấy station theo staffId rồi cache theo key stationId (KHÔNG gọi admin API)
   const fetchStationByStaffId = useCallback(async (staffId) => {
     if (!staffId) return;
     try {
@@ -78,12 +76,10 @@ function StaffPage() {
       if (data?.stationId) {
         setStationDetails(prev => ({
           ...prev,
-          [data.stationId]: data, // có stationName trong payload
+          [data.stationId]: data,
         }));
       }
-    } catch {
-      /* silent */
-    }
+    } catch { /* silent */ }
   }, []);
 
   const fetchFormsForStation = async (stationId) => {
@@ -91,21 +87,9 @@ function StaffPage() {
       setLoading(true);
       const data = await formAPI.getFormsByStationId(stationId);
       const arr = Array.isArray(data) ? data : [];
-
-      // Chuẩn hoá mỗi item có formId (nếu BE trả id/_id)
-      const normalized = arr.map(f => ({
-        ...f,
-        formId: f.formId ?? f.id ?? f._id ?? null,
-      }));
-
+      const normalized = arr.map(f => ({ ...f, formId: f.formId ?? f.id ?? f._id ?? null }));
       setForms(normalized);
-
-      // Prefetch: account theo CUSTOMER ID (CHỈ)
-      normalized.forEach(f => {
-        if (f.customerId) fetchAccountByCustomerId(f.customerId);
-        // KHÔNG gọi getStationByIdForAdmin nữa
-      });
-
+      normalized.forEach(f => { if (f.customerId) fetchAccountByCustomerId(f.customerId); });
       setStatusChoice({});
       setPage(1);
     } catch {
@@ -121,7 +105,7 @@ function StaffPage() {
     setDetailLoading(prev => ({ ...prev, [customerId]: true }));
     try {
       const response = await authAPI.getAccountByCustomerIdForStaff(customerId);
-      const acc = response?.data ?? response; // phòng trường hợp trả raw
+      const acc = response?.data ?? response;
       if (acc) setCustomerDetails(prev => ({ ...prev, [customerId]: acc }));
     } catch {
       /* silent */
@@ -270,294 +254,331 @@ function StaffPage() {
       localStorage.removeItem('token');
       localStorage.removeItem('role');
     } catch {}
-    window.location.href = '/login';
+    window.location.href = '/signin';
+  };
+
+  /* Helper: ký tự viết tắt cho avatar khi không có ảnh */
+  const getInitials = (name) => {
+    if (!name) return 'ST';
+    const parts = String(name).trim().split(/\s+/);
+    const first = parts[0]?.[0] ?? '';
+    const last = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : '';
+    return (first + last).toUpperCase() || 'ST';
   };
 
   /* =================== RENDER =================== */
   return (
-    <div className="staff-root">
-      {/* Nút mở Hồ sơ */}
-      <button type="button" className="profile-toggle-btn" onClick={() => setShowProfile(true)}>
-        👤 Hồ sơ
-      </button>
+    <>
+      {/* NỀN ẢNH TOÀN TRANG */}
+      <div className="staff-bg" />
 
-      {/* Backdrop + Drawer */}
-      <div className={`drawer-backdrop ${showProfile ? 'open' : ''}`} onClick={() => setShowProfile(false)} />
-      <aside className={`profile-drawer ${showProfile ? 'open' : ''}`}>
-        <div className="profile-drawer-header">
-          <h3 className="profile-drawer-title">Hồ sơ nhân viên</h3>
-          <button className="profile-close-btn" onClick={() => setShowProfile(false)}>Đóng</button>
+      <div className="staff-root">
+        {/* CỤM AVATAR + 3 NÚT NỔI BÊN TRÁI */}
+        <div className="floating-rail">
+          <button
+            type="button"
+            className="action-fab"
+            title="Hồ sơ"
+            onClick={() => setShowProfile(true)}
+          >
+            {currentUser?.avatarUrl ? (
+              <img src={currentUser.avatarUrl} alt="profile" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+            ) : (
+              // icon user, có thể thay bằng svg hoặc chữ viết tắt
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="32"
+                height="32"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                style={{ display: 'block', margin: '0 auto' }}
+              >
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 20v-1c0-2.761 3.134-5 7-5s7 2.239 7 5v1" />
+              </svg>
+            )}
+          </button>
+
+          <button className="action-fab" title="Thông tin 1">i</button>
+          <button className="action-fab" title="Thông tin 2">i</button>
+          <button className="action-fab" title="Thông tin 3">i</button>
         </div>
-        <div className="profile-drawer-content">
-          {currentUser ? (
-            <>
-              <div className="profile-section">
-                <div className="profile-row"><div className="profile-label">Tên</div><div className="profile-value">{currentUser.name || currentUser.Name || 'N/A'}</div></div>
-                <div className="profile-row"><div className="profile-label">Username</div><div className="profile-value">{currentUser.username || currentUser.Username || 'N/A'}</div></div>
-                <div className="profile-row"><div className="profile-label">Email</div><div className="profile-value">{currentUser.email || currentUser.Email || 'N/A'}</div></div>
-                <div className="profile-row"><div className="profile-label">SĐT</div><div className="profile-value">{currentUser.phone || currentUser.Phone || 'N/A'}</div></div>
-                <div className="profile-row"><div className="profile-label">Địa chỉ</div><div className="profile-value">{currentUser.address || currentUser.Address || 'N/A'}</div></div>
-                <div className="profile-row"><div className="profile-label">Vai trò</div><div className="profile-value">{Array.isArray(currentUser.roles) ? currentUser.roles.join(', ') : (currentUser.role || currentUser.Role || 'N/A')}</div></div>
-                <div className="profile-row"><div className="profile-label">Account ID</div><div className="profile-value">{currentUser.accountId || currentUser.accountID || currentUser.AccountId || 'N/A'}</div></div>
-                <div className="profile-row"><div className="profile-label">Station ID</div>
-                  <div className="profile-value">
-                    {(Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs[0]?.stationId) ||
-                      currentUser?.stationId || currentUser?.StationId || currentUser?.stationID || 'N/A'}
+
+        {/* Backdrop + Drawer */}
+        <div className={`drawer-backdrop ${showProfile ? 'open' : ''}`} onClick={() => setShowProfile(false)} />
+        <aside className={`profile-drawer ${showProfile ? 'open' : ''}`}>
+          <div className="profile-drawer-header">
+            <h3 className="profile-drawer-title">Hồ sơ nhân viên</h3>
+            <button className="profile-close-btn" onClick={() => setShowProfile(false)}>Đóng</button>
+          </div>
+          <div className="profile-drawer-content">
+            {currentUser ? (
+              <>
+                <div className="profile-section">
+                  <div className="profile-row"><div className="profile-label">Tên</div><div className="profile-value">{currentUser.name || currentUser.Name || 'N/A'}</div></div>
+                  <div className="profile-row"><div className="profile-label">Username</div><div className="profile-value">{currentUser.username || currentUser.Username || 'N/A'}</div></div>
+                  <div className="profile-row"><div className="profile-label">Email</div><div className="profile-value">{currentUser.email || currentUser.Email || 'N/A'}</div></div>
+                  <div className="profile-row"><div className="profile-label">SĐT</div><div className="profile-value">{currentUser.phone || currentUser.Phone || 'N/A'}</div></div>
+                  <div className="profile-row"><div className="profile-label">Địa chỉ</div><div className="profile-value">{currentUser.address || currentUser.Address || 'N/A'}</div></div>
+                  <div className="profile-row"><div className="profile-label">Vai trò</div><div className="profile-value">{Array.isArray(currentUser.roles) ? currentUser.roles.join(', ') : (currentUser.role || currentUser.Role || 'N/A')}</div></div>
+                  <div className="profile-row"><div className="profile-label">Account ID</div><div className="profile-value">{currentUser.accountId || currentUser.accountID || currentUser.AccountId || 'N/A'}</div></div>
+                  <div className="profile-row"><div className="profile-label">Station ID</div>
+                    <div className="profile-value">
+                      {(Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs[0]?.stationId) ||
+                        currentUser?.stationId || currentUser?.StationId || currentUser?.stationID || 'N/A'}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <button className="logout-btn" onClick={handleLogout}>Đăng xuất</button>
-            </>
-          ) : (
-            <div className="profile-section">Đang tải thông tin người dùng…</div>
-          )}
-        </div>
-      </aside>
-
-      <h1 className="staff-title">Quản lý Form</h1>
-
-      {/* Filters */}
-      <section className="filters">
-        <h2 className="filters-title">Tìm kiếm & Sắp xếp Form</h2>
-        <div className="filters-row">
-          <div className="input-search">
-            <input
-              type="text"
-              placeholder="Search by Customer, Phone, Email, Station..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <span className="icon">🔍</span>
+                <button className="logout-btn" onClick={handleLogout}>Đăng xuất</button>
+              </>
+            ) : (
+              <div className="profile-section">Đang tải thông tin người dùng…</div>
+            )}
           </div>
+        </aside>
 
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>Filter by Status</div>
-            <select className="select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="All">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
+        <h1 className="staff-title">Quản lý Form</h1>
 
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>Sort by</div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <select className="select" value={sortBy} onChange={(e) => handleSort(e.target.value)}>
-                <option value="date">Date</option>
-                <option value="title">Title</option>
-                <option value="status">Status</option>
+        {/* Filters (GLASS) */}
+        <section className="filters glass">
+          <h2 className="filters-title">Tìm kiếm & Sắp xếp Form</h2>
+          <div className="filters-row">
+            <div className="input-search">
+              <input
+                type="text"
+                placeholder="Search by Customer, Phone, Email, Station..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <span className="icon">🔍</span>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>Filter by Status</div>
+              <select className="select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                <option value="All">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="completed">Completed</option>
               </select>
-              <button
-                className="btn-sortdir"
-                onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
-              >
-                {sortDirection === 'asc' ? '↑ Asc' : '↓ Desc'}
+            </div>
+
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>Sort by</div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <select className="select" value={sortBy} onChange={(e) => handleSort(e.target.value)}>
+                  <option value="date">Date</option>
+                  <option value="title">Title</option>
+                  <option value="status">Status</option>
+                </select>
+                <button
+                  className="btn-sortdir"
+                  onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
+                >
+                  {sortDirection === 'asc' ? '↑ Asc' : '↓ Desc'}
+                </button>
+              </div>
+            </div>
+
+            <div className="results">
+              <span>Results</span>
+              <div>Showing: {filteredAndSortedForms.length} / {forms.length} forms</div>
+            </div>
+          </div>
+        </section>
+
+        {/* List (GLASS) */}
+        <section className="list-wrap glass">
+          <div className="list-header">
+            <h2>
+              Danh sách Forms
+              <span className="list-title-sub">({currentForms.length} / {filteredAndSortedForms.length} trên {forms.length} forms)</span>
+            </h2>
+            <div>
+              <button className="btn-refresh" onClick={handleRefresh} disabled={loading}>
+                {loading ? 'Đang tải...' : 'Làm mới'}
               </button>
             </div>
           </div>
 
-          <div className="results">
-            <span>Results</span>
-            <div>Showing: {filteredAndSortedForms.length} / {forms.length} forms</div>
-          </div>
-        </div>
-      </section>
+          {loading ? (
+            <div className="state-center"><p>Đang tải dữ liệu...</p></div>
+          ) : forms.length === 0 ? (
+            <div className="state-center"><p>Không có form nào</p></div>
+          ) : currentForms.length === 0 ? (
+            <div className="state-center"><p>Không tìm thấy form nào phù hợp với tiêu chí tìm kiếm</p></div>
+          ) : (
+            <>
+              <div className="list-grid">
+                {currentForms.map((form) => {
+                  const fid = getFormId(form);
+                  const customerId = form.customerId;
+                  const customer = customerDetails[customerId];
+                  const isCustomerLoading = detailLoading[customerId];
+                  const station = stationDetails[form.stationId];
+                  const currentChoice = statusChoice[fid] || '';
 
-      {/* List */}
-      <section className="list-wrap">
-        <div className="list-header">
-          <h2>
-            Danh sách Forms
-            <span className="list-title-sub">({currentForms.length} / {filteredAndSortedForms.length} trên {forms.length} forms)</span>
-          </h2>
-          <div>
-            <button className="btn-refresh" onClick={handleRefresh} disabled={loading}>
-              {loading ? 'Đang tải...' : 'Làm mới'}
-            </button>
-          </div>
-        </div>
+                  return (
+                    <div key={fid ?? Math.random()} className="form-card" onClick={() => setSelectedForm(form)}>
+                      <div style={{ flex: 1 }}>
+                        <h3 className="form-title">{form.title}</h3>
+                        <p className="form-desc">{form.description}</p>
 
-        {loading ? (
-          <div className="state-center"><p>Đang tải dữ liệu...</p></div>
-        ) : forms.length === 0 ? (
-          <div className="state-center"><p>Không có form nào</p></div>
-        ) : currentForms.length === 0 ? (
-          <div className="state-center"><p>Không tìm thấy form nào phù hợp với tiêu chí tìm kiếm</p></div>
-        ) : (
-          <>
-            <div className="list-grid">
-              {currentForms.map((form) => {
-                const fid = getFormId(form);
+                        <div className="form-meta">
+                          {form.stationId && (
+                            <span>
+                              <strong>Station: </strong>
+                              {station?.stationName || form.stationId}
+                            </span>
+                          )}
+                          {form.date && <span><strong>Ngày tạo:</strong> {formatDate(form.date)}</span>}
+                        </div>
 
-                const customerId = form.customerId;
-                const customer = customerDetails[customerId];
-                const isCustomerLoading = detailLoading[customerId];
+                        {/* Dropdown đổi trạng thái */}
+                        <div className="status-inline" onClick={(e) => e.stopPropagation()}>
+                          <select
+                            className="status-select"
+                            value={currentChoice}
+                            onChange={(e) => setStatusChoice(prev => ({ ...prev, [fid]: e.target.value }))}
+                          >
+                            <option value="">-- Chọn trạng thái --</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Rejected">Rejected</option>
+                          </select>
+                          <button
+                            className="status-apply-btn"
+                            disabled={!currentChoice || loading}
+                            onClick={() => handleUpdateStatus(fid, currentChoice)}
+                          >
+                            Cập nhật
+                          </button>
+                        </div>
 
-                const station = stationDetails[form.stationId];
-
-                const currentChoice = statusChoice[fid] || '';
-
-                return (
-                  <div key={fid ?? Math.random()} className="form-card" onClick={() => setSelectedForm(form)}>
-                    <div style={{ flex: 1 }}>
-                      <h3 className="form-title">{form.title}</h3>
-                      <p className="form-desc">{form.description}</p>
-
-                      <div className="form-meta">
-                        {form.stationId && (
-                          <span>
-                            <strong>Station: </strong>
-                            {station?.stationName || form.stationId}
-                          </span>
+                        {/* Customer */}
+                        {customerId && (
+                          <div className="customer-box">
+                            <h4 className="customer-title">Thông tin Customer:</h4>
+                            {isCustomerLoading ? (
+                              <p className="form-desc" style={{ margin: 0 }}>Đang tải thông tin...</p>
+                            ) : customer ? (
+                              <div className="customer-grid">
+                                <div><strong>Name:</strong> {customer.name || 'N/A'}</div>
+                                <div><strong>Phone:</strong> {customer.phone || 'N/A'}</div>
+                                <div><strong>Email:</strong> {customer.email || 'N/A'}</div>
+                                <div><strong>Address:</strong> {customer.address || 'N/A'}</div>
+                                {customer.customerID && <div><strong>Customer ID:</strong> {customer.customerID}</div>}
+                                {customer.username && <div><strong>Username:</strong> {customer.username}</div>}
+                                {customer.status && (
+                                  <div>
+                                    <strong>Status:</strong>
+                                    <span style={{
+                                      marginLeft: 6, padding: '2px 8px', borderRadius: 12, fontSize: 12,
+                                      backgroundColor: customer.status === 'Active' ? '#10b981' : '#ef4444', color: 'white'
+                                    }}>
+                                      {customer.status}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="form-desc" style={{ margin: 0 }}>Không tìm thấy thông tin customer</p>
+                            )}
+                          </div>
                         )}
-                        {form.date && <span><strong>Ngày tạo:</strong> {formatDate(form.date)}</span>}
                       </div>
 
-                      {/* Dropdown đổi trạng thái */}
-                      <div className="status-inline" onClick={(e) => e.stopPropagation()}>
-                        <select
-                          className="status-select"
-                          value={currentChoice}
-                          onChange={(e) => setStatusChoice(prev => ({ ...prev, [fid]: e.target.value }))}
-                        >
-                          <option value="">-- Chọn trạng thái --</option>
-                          <option value="Approved">Approved</option>
-                          <option value="Rejected">Rejected</option>
-                        </select>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexDirection: 'column' }}>
+                        <span className={getStatusClass(form.status)}>{form.status || 'Chưa xác định'}</span>
                         <button
-                          className="status-apply-btn"
-                          disabled={!currentChoice || loading}
-                          onClick={() => handleUpdateStatus(fid, currentChoice)}
+                          className="btn-danger"
+                          onClick={(e) => { e.stopPropagation(); handleDeleteForm(fid); }}
                         >
-                          Cập nhật
+                          Xóa
                         </button>
                       </div>
-
-                      {/* Customer */}
-                      {customerId && (
-                        <div className="customer-box">
-                          <h4 className="customer-title">Thông tin Customer:</h4>
-                          {isCustomerLoading ? (
-                            <p className="form-desc" style={{ margin: 0 }}>Đang tải thông tin...</p>
-                          ) : customer ? (
-                            <div className="customer-grid">
-                              <div><strong>Name:</strong> {customer.name || 'N/A'}</div>
-                              <div><strong>Phone:</strong> {customer.phone || 'N/A'}</div>
-                              <div><strong>Email:</strong> {customer.email || 'N/A'}</div>
-                              <div><strong>Address:</strong> {customer.address || 'N/A'}</div>
-                              {customer.customerID && <div><strong>Customer ID:</strong> {customer.customerID}</div>}
-                              {customer.username && <div><strong>Username:</strong> {customer.username}</div>}
-                              {customer.status && (
-                                <div>
-                                  <strong>Status:</strong>
-                                  <span style={{
-                                    marginLeft: 6, padding: '2px 8px', borderRadius: 12, fontSize: 12,
-                                    backgroundColor: customer.status === 'Active' ? '#10b981' : '#ef4444', color: 'white'
-                                  }}>
-                                    {customer.status}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <p className="form-desc" style={{ margin: 0 }}>Không tìm thấy thông tin customer</p>
-                          )}
-                        </div>
-                      )}
                     </div>
+                  );
+                })}
+              </div>
 
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexDirection: 'column' }}>
-                      <span className={getStatusClass(form.status)}>{form.status || 'Chưa xác định'}</span>
-                      <button
-                        className="btn-danger"
-                        onClick={(e) => { e.stopPropagation(); handleDeleteForm(fid); }}
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 20 }}>
+                  <button onClick={() => handlePageChange(page - 1)} disabled={page === 1}
+                          className="btn-sortdir" style={{ background: page === 1 ? '#cbd5e1' : '#0f172a', cursor: page === 1 ? 'not-allowed' : 'pointer' }}>
+                    ← Trước
+                  </button>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                      <button key={p}
+                              onClick={() => handlePageChange(p)}
+                              className="select"
+                              style={{ padding: '8px 12px', background: p === page ? '#0f172a' : 'rgba(255,255,255,0.7)', color: p === page ? 'white' : '#334155', border: '1px solid rgba(15,23,42,0.1)', cursor: 'pointer', minWidth: 40, borderRadius: 10 }}>
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={() => handlePageChange(page + 1)} disabled={page === totalPages}
+                          className="btn-sortdir" style={{ background: page === totalPages ? '#cbd5e1' : '#0f172a', cursor: page === totalPages ? 'not-allowed' : 'pointer' }}>
+                    Sau →
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </section>
+
+        {/* Modal chi tiết (GLASS) */}
+        {selectedForm && (
+          <div className="modal-root">
+            <div className="modal-card glass">
+              <div className="modal-head">
+                <h2>Form Chi Tiết</h2>
+                <button className="btn-close" onClick={() => setSelectedForm(null)}>Đóng</button>
+              </div>
+              <div className="modal-body glass">
+                <pre className="modal-pre">{JSON.stringify(selectedForm, null, 2)}</pre>
+
+                {/* Dropdown đổi status trong modal */}
+                {(() => {
+                  const fid = getFormId(selectedForm);
+                  return (
+                    <div className="status-inline" style={{ marginTop: 12 }}>
+                      <select
+                        className="status-select"
+                        value={statusChoice[fid] || ''}
+                        onChange={(e) => setStatusChoice(prev => ({ ...prev, [fid]: e.target.value }))}
                       >
-                        Xóa
+                        <option value="">-- Chọn trạng thái --</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                      </select>
+                      <button
+                        className="status-apply-btn"
+                        disabled={!statusChoice[fid] || loading}
+                        onClick={() => handleUpdateStatus(fid, statusChoice[fid])}
+                      >
+                        Cập nhật
                       </button>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })()}
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 20 }}>
-                <button onClick={() => handlePageChange(page - 1)} disabled={page === 1}
-                        className="btn-sortdir" style={{ background: page === 1 ? '#cbd5e1' : '#3b82f6', cursor: page === 1 ? 'not-allowed' : 'pointer' }}>
-                  ← Trước
-                </button>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                    <button key={p}
-                            onClick={() => handlePageChange(p)}
-                            className="select"
-                            style={{ padding: '8px 12px', background: p === page ? '#0f172a' : '#e2e8f0', color: p === page ? 'white' : '#64748b', border: 'none', cursor: 'pointer', minWidth: 40 }}>
-                      {p}
-                    </button>
-                  ))}
+                <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                  <button
+                    className="btn-danger"
+                    onClick={() => { const fid = getFormId(selectedForm); handleDeleteForm(fid); setSelectedForm(null); }}
+                  >
+                    Xóa Form
+                  </button>
                 </div>
-                <button onClick={() => handlePageChange(page + 1)} disabled={page === totalPages}
-                        className="btn-sortdir" style={{ background: page === totalPages ? '#cbd5e1' : '#3b82f6', cursor: page === totalPages ? 'not-allowed' : 'pointer' }}>
-                  Sau →
-                </button>
-              </div>
-            )}
-          </>
-        )}
-      </section>
-
-      {/* Modal chi tiết */}
-      {selectedForm && (
-        <div className="modal-root">
-          <div className="modal-card">
-            <div className="modal-head">
-              <h2>Form Chi Tiết</h2>
-              <button className="btn-close" onClick={() => setSelectedForm(null)}>Đóng</button>
-            </div>
-            <div className="modal-body">
-              <pre className="modal-pre">{JSON.stringify(selectedForm, null, 2)}</pre>
-
-              {/* Dropdown đổi status trong modal */}
-              {(() => {
-                const fid = getFormId(selectedForm);
-                return (
-                  <div className="status-inline" style={{ marginTop: 12 }}>
-                    <select
-                      className="status-select"
-                      value={statusChoice[fid] || ''}
-                      onChange={(e) => setStatusChoice(prev => ({ ...prev, [fid]: e.target.value }))}
-                    >
-                      <option value="">-- Chọn trạng thái --</option>
-                      <option value="Approved">Approved</option>
-                      <option value="Rejected">Rejected</option>
-                    </select>
-                    <button
-                      className="status-apply-btn"
-                      disabled={!statusChoice[fid] || loading}
-                      onClick={() => handleUpdateStatus(fid, statusChoice[fid])}
-                    >
-                      Cập nhật
-                    </button>
-                  </div>
-                );
-              })()}
-
-              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                <button
-                  className="btn-danger"
-                  onClick={() => { const fid = getFormId(selectedForm); handleDeleteForm(fid); setSelectedForm(null); }}
-                >
-                  Xóa Form
-                </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }
 
