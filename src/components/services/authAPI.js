@@ -566,7 +566,7 @@ getBatteryById: async (batteryId) => {
         params: { staffId }
       });
       if (res?.data?.isSuccess) {
-        return res.data.data || null;
+        return res.data || null;
       }
       return null;
     } catch (err) {

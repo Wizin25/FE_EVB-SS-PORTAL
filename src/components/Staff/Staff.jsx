@@ -26,8 +26,11 @@ function StaffPage() {
   const [detailLoading, setDetailLoading] = useState({});
 
   // Cache station (key theo stationId), CHỈ lấy qua staffId
-  const [stationDetails, setStationDetails] = useState({});
-
+  const [stationDetails, setStationDetails] = useState({
+    byStaffId: {},
+    byStationId: {},
+  });
+  
   // Tìm kiếm/sắp xếp
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -69,17 +72,65 @@ function StaffPage() {
   }, []);
 
   /* ======== API calls ======== */
+  // Gửi staffId và lưu về stationName
+  // data.data.stationName trong đây lấy được - ưu tiên lấy ở đó
   const fetchStationByStaffId = useCallback(async (staffId) => {
     if (!staffId) return;
     try {
-      const data = await authAPI.getStationByStaffIdForStaff(staffId);
-      if (data?.stationId) {
+      // Gửi staffId lên API, API trả về đối tượng station (hoặc { stationName }), đôi khi lồng trong .station hoặc .data.stationName
+      const data = await authAPI.getStationByStaffId(staffId);
+      let stationName = 
+        data?.data?.stationName // Ưu tiên stationName trong data.data
+        || data?.stationName
+        || data?.station?.stationName
+        || data?.station?.name
+        || data?.name; // fallback      
+
+      // Lấy stationId từ response
+      let stationId = 
+        data?.data?.stationId
+        || data?.stationId
+        || data?.station?.stationId
+        || data?.station?.id
+        || data?.id;
+
+      // Nếu vẫn không có, thử kiểm tra object values
+      if (!stationName && data && typeof data === 'object') {
+        const found = Object.values(data).find(val =>
+          typeof val === 'object' && (val.stationName || val.name)
+        );
+        stationName = found?.stationName || found?.name;
+        if (!stationId && found) {
+          stationId = found.stationId || found.id;
+        }
+      }
+
+      console.log("Fetched stationName for staffId:", staffId, stationName, "stationId:", stationId, "rawData:", data?.data?.stationName);
+
+      if (stationName) {
         setStationDetails(prev => ({
-          ...prev,
-          [data.stationId]: data,
+          byStaffId: {
+            ...(prev?.byStaffId || {}),
+            [staffId]: stationName,
+          },
+          byStationId: stationId
+            ? {
+                ...(prev?.byStationId || {}),
+                [stationId]: stationName,
+              }
+            : (prev?.byStationId || {}),
         }));
       }
-    } catch { /* silent */ }
+    } catch (err) {
+      console.error("Error fetching station for staffId:", staffId, err);
+      setStationDetails(prev => ({
+        ...prev,
+        byStaffId: {
+          ...(prev?.byStaffId || {}),
+          [staffId]: 'Fetch error'
+        }
+      }));
+    }
   }, []);
 
   const fetchFormsForStation = async (stationId) => {
@@ -251,10 +302,13 @@ function StaffPage() {
 
   const handleLogout = () => {
     try {
-      localStorage.removeItem('token');
-      localStorage.removeItem('role');
-    } catch {}
-    window.location.href = '/signin';
+      // Gỡ mọi token/token staff khỏi localStorage/sessionStorage và cookies nếu có
+      sessionStorage.setItem('authToken', '');
+      sessionStorage.removeItem('authToken');
+      
+      document.cookie = 'authToken=; Max-Age=0; path=/;'; 
+    } catch (e) {}
+    window.location.replace('/signin');
   };
 
   /* Helper: ký tự viết tắt cho avatar khi không có ảnh */
@@ -322,6 +376,10 @@ function StaffPage() {
                   <div className="profile-row"><div className="profile-label">Địa chỉ</div><div className="profile-value">{currentUser.address || currentUser.Address || 'N/A'}</div></div>
                   <div className="profile-row"><div className="profile-label">Vai trò</div><div className="profile-value">{Array.isArray(currentUser.roles) ? currentUser.roles.join(', ') : (currentUser.role || currentUser.Role || 'N/A')}</div></div>
                   <div className="profile-row"><div className="profile-label">Account ID</div><div className="profile-value">{currentUser.accountId || currentUser.accountID || currentUser.AccountId || 'N/A'}</div></div>
+                  <div className="profile-row">
+                    <div className="profile-label">Staff ID</div>
+                    <div className="profile-value">{ currentUser?.staffId || 'N/A' }</div>
+                  </div>
                   <div className="profile-row"><div className="profile-label">Station ID</div>
                     <div className="profile-value">
                       {(Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs[0]?.stationId) ||
@@ -416,7 +474,7 @@ function StaffPage() {
                   const customerId = form.customerId;
                   const customer = customerDetails[customerId];
                   const isCustomerLoading = detailLoading[customerId];
-                  const station = stationDetails[form.stationId];
+                  const stationName =   stationDetails.byStationId?.[form.stationId] || '—';
                   const currentChoice = statusChoice[fid] || '';
 
                   return (
@@ -426,12 +484,10 @@ function StaffPage() {
                         <p className="form-desc">{form.description}</p>
 
                         <div className="form-meta">
-                          {form.stationId && (
-                            <span>
-                              <strong>Station: </strong>
-                              {station?.stationName || form.stationId}
-                            </span>
-                          )}
+                          <span>
+                            <strong>Station: </strong>
+                            {stationName}
+                          </span>
                           {form.date && <span><strong>Ngày tạo:</strong> {formatDate(form.date)}</span>}
                         </div>
 
