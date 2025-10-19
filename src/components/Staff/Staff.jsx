@@ -2,16 +2,18 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { message } from 'antd';
 import { authAPI } from '../services/authAPI';
 import { formAPI } from '../services/formAPI';
+// ❌ Bỏ dependency bên ngoài (không cần): import LiquidGlass from 'liquid-glass-react'
 import './Staff.css';
+import { white } from 'tailwindcss/colors';
 
 const ITEMS_PER_PAGE = 10;
 
 const DEFAULT_VIEW_KEY = 'forms';
 
 const VIEW_NAV = [
-  { key: 'forms', label: 'Quan ly Form', icon: '📋' },
-  { key: 'station-schedule', label: 'Station Schedule', icon: '📅' },
-  { key: 'battery-report', label: 'Battery Report', icon: '📝' },
+  { key: 'forms', label: 'Quản lý Form', icon: '📋' },
+  { key: 'station-schedule', label: 'Lịch đổi pin tại trạm', icon: '📅' },
+  { key: 'battery-report', label: 'Báo cáo pin', icon: '📝' },
 ];
 
 const VIEW_CONFIG = VIEW_NAV.reduce((acc, item) => {
@@ -249,6 +251,9 @@ function StaffPage() {
   // State for battery report form pre-population
   const [batteryReportDefaults, setBatteryReportDefaults] = useState({});
 
+  // Flag to control when to show success toast
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+
   const activeViewKey = VIEW_CONFIG[viewMode] ? viewMode : DEFAULT_VIEW_KEY;
   const activeView = VIEW_CONFIG[activeViewKey];
   const isFormsView = activeViewKey === 'forms';
@@ -363,19 +368,14 @@ function StaffPage() {
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        toast.loading('Đang tải thông tin người dùng...', 0.5);
         const user = await authAPI.getCurrent();
         setCurrentUser(user);
-        toast.success('Tải thông tin người dùng thành công!');
 
         // Prefetch station theo staffId để có stationName (Sxxx) -> cache theo stationId
         const staffIds = Array.isArray(user?.bssStaffs)
           ? user.bssStaffs.map(s => s?.staffId).filter(Boolean)
           : [];
         
-        if (staffIds.length > 0) {
-          toast.loading('Đang tải thông tin trạm...', 0.5);
-        }
         staffIds.forEach(fetchStationByStaffId);
 
         // Lấy stationId để load forms
@@ -385,7 +385,7 @@ function StaffPage() {
         }
 
         if (stationId) {
-          toast.loading('Đang tải danh sách form...', 1);
+          
           await fetchFormsForStation(stationId);
         } else {
           toast.warning('Không tìm thấy station ID cho user hiện tại');
@@ -447,7 +447,6 @@ function StaffPage() {
               }
             : (prev?.byStationId || {}),
         }));
-        toast.success(`Tải thông tin trạm ${stationName} thành công!`);
       } else {
         toast.warning(`Không tìm thấy thông tin trạm cho Staff ID: ${staffId}`);
       }
@@ -464,7 +463,7 @@ function StaffPage() {
     }
   }, []);
 
-  const fetchFormsForStation = async (stationId) => {
+  const fetchFormsForStation = async (stationId, shouldShowToast = false) => {
     try {
       setLoading(true);
       const data = await formAPI.getFormsByStationId(stationId);
@@ -487,18 +486,20 @@ function StaffPage() {
 
       // Wait for all customer and battery details to load
       if (customerPromises.length > 0) {
-        toast.loading('Đang tải thông tin khách hàng...', 1);
         await Promise.allSettled(customerPromises);
       }
       
       if (batteryPromises.length > 0) {
-        toast.loading('Đang tải thông tin pin...', 1);
         await Promise.allSettled(batteryPromises);
       }
 
       setStatusChoice({});
       setPage(1);
-      toast.success(`Tải thành công ${normalized.length} form từ trạm ${stationId}`);
+      
+      // Only show success toast when explicitly requested (like manual refresh)
+      if (shouldShowToast) {
+        toast.success(`Tải thành công ${normalized.length} form từ trạm ${stationId}`);
+      }
     } catch (error) {
       console.error('Error fetching forms:', error);
       toast.error('Lỗi khi tải forms theo trạm: ' + (error?.message || 'Lỗi không xác định'));
@@ -518,7 +519,7 @@ function StaffPage() {
       const battery = await authAPI.getBatteryById(batteryId);
       if (battery) {
         setBatteryDetails(prev => ({ ...prev, [batteryId]: battery }));
-        toast.success(`Tải thông tin pin ${batteryId} thành công!`);
+        
       } else {
         setBatteryDetails(prev => ({ ...prev, [batteryId]: null }));
         toast.warning(`Không tìm thấy thông tin pin ${batteryId}`);
@@ -551,7 +552,7 @@ function StaffPage() {
           status: acc.status || acc.Status || ''
         };
         setCustomerDetails(prev => ({ ...prev, [accountId]: customerInfo }));
-        toast.success(`Tải thông tin khách hàng ${customerInfo.name || accountId} thành công!`);
+        
       } else {
         toast.warning(`Không tìm thấy thông tin khách hàng cho Account ID: ${accountId}`);
       }
@@ -672,7 +673,7 @@ function StaffPage() {
             ? (currentUser.bssStaffs[0]?.stationId || currentUser.bssStaffs[0]?.StationId)
             : (currentUser?.stationId || currentUser?.StationId || currentUser?.stationID);
         if (stationId) {
-          await fetchFormsForStation(stationId);
+          await fetchFormsForStation(stationId, false); // Don't show toast on status update refresh
         }
       } else {
         // Handle API error response
@@ -736,7 +737,7 @@ function StaffPage() {
             ? (currentUser.bssStaffs[0]?.stationId || currentUser.bssStaffs[0]?.StationId)
             : (currentUser?.stationId || currentUser?.StationId || currentUser?.stationID);
         if (stationId) {
-          await fetchFormsForStation(stationId);
+          await fetchFormsForStation(stationId, false); // Don't show toast on delete refresh
         }
       } else {
         // Handle API error response
@@ -804,7 +805,7 @@ function StaffPage() {
     
     if (stationId) {
       toast.loading('Đang làm mới dữ liệu...', 1);
-      await fetchFormsForStation(stationId);
+      await fetchFormsForStation(stationId, true); // Pass true to show success toast
     } else {
       toast.warning('Không tìm thấy station ID để refresh');
     }
@@ -843,6 +844,23 @@ function StaffPage() {
   return (
     <>
       {contextHolder}
+      {/* SVG filter LiquidGlass (ẩn) – dùng cho card */}
+      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+        <defs>
+          {/* 
+            - feTurbulence tạo noise (map dịch chuyển)
+            - GaussianBlur làm mịn noise
+            - DisplacementMap bẻ cong nền sau card
+            Có thể tăng/giảm scale (25–70) và baseFrequency để tinh chỉnh.
+          */}
+          <filter id="liquidGlass" x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
+            <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="2" seed="8" result="noise" />
+            <feGaussianBlur in="noise" stdDeviation="2" result="map" />
+            <feDisplacementMap in="SourceGraphic" in2="map" scale="50" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </defs>
+      </svg>
+
       {/* NỀN ẢNH TOÀN TRANG */}
       <div className="staff-bg" />
 
@@ -894,7 +912,7 @@ function StaffPage() {
             <h3 className="profile-drawer-title">Hồ sơ nhân viên</h3>
             <button className="profile-close-btn" onClick={() => setShowProfile(false)}>Đóng</button>
           </div>
-          <div className="profile-drawer-content">
+          <div className="profile-drawer-content liquid">
             {currentUser ? (
               <>
                 <div className="profile-section">
@@ -925,7 +943,7 @@ function StaffPage() {
         {isFormsView && (
           <>
         {/* Filters (GLASS) */}
-        <section className="filters glass">
+        <section className="filters glass liquid">
           <h2 className="filters-title">Tìm kiếm & Sắp xếp Form</h2>
           <div className="filters-row">
             <div className="input-search">
@@ -939,7 +957,7 @@ function StaffPage() {
             </div>
 
             <div>
-              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>Filter by Status</div>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6, color: white }}>Filter by Status</div>
               <select className="select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                 <option value="All">All Status</option>
                 <option value="pending">Pending</option>
@@ -950,7 +968,7 @@ function StaffPage() {
             </div>
 
             <div>
-              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>Sort by</div>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6, color: white }}>Sort by</div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <select className="select" value={sortBy} onChange={(e) => handleSort(e.target.value)}>
                   <option value="date">Date</option>
@@ -974,7 +992,7 @@ function StaffPage() {
         </section>
 
         {/* List (GLASS) */}
-        <section className="list-wrap glass">
+        <section className="list-wrap liquid">
           <div className="list-header">
             <h2>
               Danh sách Forms
@@ -1005,10 +1023,10 @@ function StaffPage() {
                   const currentChoice = statusChoice[fid] || '';
 
                   return (
-                    <div key={fid ?? Math.random()} className="form-card" onClick={() => setSelectedForm(form)}>
+                    <div key={fid ?? Math.random()} className="form-card liquid" onClick={() => setSelectedForm(form)}>
                       <div style={{ flex: 1 }}>
-                        <h3 className="form-title">{form.title}</h3>
-                        <p className="form-desc">{form.description}</p>
+                        <h3 className="form-title">Title: {form.title}</h3>
+                        <p className="form-desc">Description: {form.description}</p>
 
                         <div className="form-meta">
                           <span>
@@ -1138,7 +1156,7 @@ function StaffPage() {
                     ))}
                   </div>
                   <button onClick={() => handlePageChange(page + 1)} disabled={page === totalPages}
-                          className="btn-sortdir" style={{ background: page === totalPages ? '#cbd5e1' : '#0f172a', cursor: page === totalPages ? 'not-allowed' : 'pointer' }}>
+                          className="btn-sortdir" style={{ background: page === totalPages ? '#cbd5e1' : '#0f172a', cursor: 'pointer' }}>
                     Sau →
                   </button>
                 </div>
@@ -1150,13 +1168,14 @@ function StaffPage() {
         {/* Modal chi tiết (GLASS) */}
         {selectedForm && (
           <div className="modal-root">
-            <div className="modal-card glass">
-              <div className="modal-head">
+            {/* có thể thêm .liquid cho modal-card nếu muốn cũng có LiquidGlass */}
+            <div className="modal-card liquid">
+              <div className="modal-head liquid">
                 <h2>Form Chi Tiết</h2>
                 <button className="btn-close" onClick={() => setSelectedForm(null)}>Đóng</button>
               
               </div>
-              <div className="modal-body glass">
+              <div className="modal-body liquid">
                 {/* <pre className="modal-pre">{JSON.stringify(selectedForm, null, 2)}</pre> */}
                 {/* Hiển thị chi tiết cục pin nếu có batteryId */}
                 {selectedForm?.batteryId && (
@@ -1259,12 +1278,10 @@ function StaffPage() {
                 {stationAssignments.map((assignment) => (
                   <div
                     key={assignment.id}
+                    className="liquid"
                     style={{
                       padding: 16,
                       borderRadius: 18,
-                      background: 'rgba(255,255,255,0.75)',
-                      border: '1px solid rgba(15,23,42,0.08)',
-                      boxShadow: '0 10px 30px rgba(15,23,42,0.08)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: 8,
@@ -1297,7 +1314,7 @@ function StaffPage() {
         )}
 
         {isBatteryReportView && (
-          <section className="glass" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
+          <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
             <h2 className="filters-title">Battery Report</h2>
             <p style={{ marginTop: 4, color: 'rgba(15,23,42,0.7)' }}>
               Báo cáo dựa trên các form đã tải về. Chọn một form ở chế độ quản lý để cập nhật dữ liệu.

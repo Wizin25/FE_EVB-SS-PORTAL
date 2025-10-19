@@ -1,9 +1,16 @@
 /* ========== BACKDROP (NỀN ẢNH) ========== */
 :root {
-  --glass-bg: rgba(255, 255, 255, 0.30);     /* 30% trắng */
-  --glass-border: rgba(255, 255, 255, 0.45);
-  --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  --glass-bg: rgba(255, 255, 255, 0);     /* 30% trắng */
+  --glass-border: rgba(255, 255, 255, 0);
+  --glass-shadow: 0 10px 30px rgba(255, 255, 255, 0.539);
   --bg-url: url("https://res.cloudinary.com/dscvguyvb/image/upload/v1760692941/8214be62-181e-4b47-ac49-6896dcc2a590_1_qnev9i.png");
+
+  /* LiquidGlass tunables (áp cho card) */
+  --liquid-blur: 1px;
+  --liquid-saturate: 1.35;
+  --liquid-overlay: rgba(255, 255, 255, 0); /* overlay */
+  --liquid-border: rgba(255, 255, 255, 0.164);
+  --liquid-radius: 14px;
 }
 
 /* ========== LAYOUT ========== */
@@ -11,7 +18,7 @@
   /* tăng left padding để không bị đè bởi cụm avatar + 3 nút nổi */
   padding: 20px;
   padding-left: 110px;                     /* chừa khoảng trống cho cụm nút bên trái */
-  max-width: 1200px;
+  max-width: 1500px;
   margin: 0 auto;
   height: 100vh;
   overflow-y: auto;
@@ -34,10 +41,39 @@
 /* Lớp kính mờ chung cho tất cả container */
 .glass {
   background: var(--glass-bg);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(2.5px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
+  box-shadow: inset var(--glass-shadow);
+}
+
+/* ========== LIQUID GLASS (áp cho các card) ========== */
+.liquid {
+  position: relative;
+  border-radius: var(--liquid-radius);
+  background: var(--liquid-overlay);
+  border: 1px solid var(--liquid-border);
+  /* Fallback blur + saturate */
+  backdrop-filter: blur(var(--liquid-blur)) saturate(var(--liquid-saturate));
+  -webkit-backdrop-filter: blur(var(--liquid-blur)) saturate(var(--liquid-saturate));
+  /* Distortion (Chromium/Edge): */
+  backdrop-filter: url(#liquidGlass) blur(var(--liquid-blur)) saturate(var(--liquid-saturate));
+  -webkit-backdrop-filter: url(#liquidGlass) blur(var(--liquid-blur)) saturate(var(--liquid-saturate));
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(0,0,0,.14);
+}
+
+/* highlight cạnh kính */
+.liquid::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(255,255,255,.35), transparent 40%),
+    radial-gradient(120% 60% at 0% -10%, rgba(255,255,255,.28), transparent 60%),
+    radial-gradient(90% 70% at 100% -20%, rgba(255,255,255,.18), transparent 60%);
+  mix-blend-mode: overlay;
 }
 
 /* ========== PROFILE AVATAR + 3 NÚT NỔI BÊN TRÁI ========== */
@@ -82,7 +118,7 @@
   border: 1px solid rgba(255,255,255,0.55);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  background: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.191);
   color: #0f172a;
   display: grid;
   place-items: center;
@@ -90,7 +126,7 @@
   font-size: 22px;
   cursor: pointer;
   pointer-events: auto;
-  box-shadow: 0 10px 26px rgba(0,0,0,0.18);
+  box-shadow: inset  10px 26px rgba(255, 255, 255, 0.18);
   transition: transform .15s ease, background .15s ease, filter .15s ease;
 }
 
@@ -150,11 +186,12 @@
 .filters {
   margin-bottom: 40px; padding: 20px;
   border-radius: 12px;
+  
 }
 .filters.glass { /* thêm bo góc & khung */
   border: 1px solid var(--glass-border);
 }
-.filters-title { margin-bottom: 16px; font-weight: 600; }
+.filters-title { margin-bottom: 16px; font-weight: 600; color: #e5e7eb; }
 .filters-row {
   display: flex; gap: 16px; flex-wrap: wrap; align-items: end;
 }
@@ -174,7 +211,7 @@
 .btn-sortdir {
   padding: 10px 12px; background: #0f172a; color: white; border-radius: 10px; border: none; font-size: 14px; cursor: pointer; min-width: 100px;
 }
-.results { display: flex; flex-direction: column; gap: 6px; margin-left: auto; color: #334155; font-size: 14px; }
+.results { display: flex; flex-direction: column; gap: 6px; margin-left: auto; color: #ffffff; font-size: 14px; }
 
 /* ========== LIST (GLASS) ========== */
 .list-wrap {
@@ -189,18 +226,19 @@
 .btn-refresh { padding: 10px 16px; background: #0f172a; color: white; border-radius: 10px; border: none; cursor: pointer; }
 .list-grid { display: grid; gap: 12px; max-height: 500vh; overflow-y: auto; padding-right: 8px; }
 
-/* Card (GLASS NHẸ TRONG LIST) */
+/* Card (GLASS NHẸ TRONG LIST) + LiquidGlass */
 .form-card {
   padding: 16px; border-radius: 12px;
   display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer;
-  border: 1px solid rgba(255,255,255,0.45);
-  background: rgba(255,255,255,0.28);
+  /* nền/blur cơ bản sẽ được nâng cấp khi thêm class .liquid từ JSX */
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.2);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   box-shadow: 0 8px 20px rgba(0,0,0,0.12);
 }
 .form-title { margin: 0 0 8px 0; font-size: 18px; font-weight: 700; }
-.form-desc { margin: 4px 0; color: #334155; }
+.form-desc { margin: 4px 0; color: #000000; }
 .form-meta { display: flex; gap: 16px; margin-top: 8px; font-size: 14px; flex-wrap: wrap; }
 
 /* Status chip + actions */
@@ -235,7 +273,7 @@
 
 /* ========== MODAL (GLASS) ========== */
 .modal-root {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.494);
   display: flex; align-items: center; justify-content: center; z-index: 10000; overflow-y: auto;
 }
 .modal-card {
@@ -258,24 +296,24 @@
   width: min(360px, 92vw);
   transform: translateX(-100%); transition: transform .25s ease;
   z-index: 12000; display: flex; flex-direction: column;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.3);
+   /* backdrop-filter: blur(0px); */
+  /* -webkit-backdrop-filter: blur(20px); */
+  background: rgba(255, 255, 255, 0);
   border-right: 1px solid rgba(255,255,255,0.6);
   box-shadow: 0 0 40px rgba(0,0,0,0.28);
 }
 .profile-drawer.open { transform: translateX(0); }
 .profile-drawer-header {
-  padding: 16px 18px; display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(10px);
 }
-.profile-drawer-title { font-size: 18px; font-weight: 800; margin: 0; }
-.profile-close-btn { background: rgba(15, 23, 42, 0.1); border: 0; padding: 8px 10px; border-radius: 10px; cursor: pointer; }
+.profile-drawer-title { font-size: 18px; font-weight: 800; margin: 0; color: #e5e7eb; }
+.profile-close-btn { background: rgba(253, 253, 253, 0.51); border: 0; padding: 8px 10px; border-radius: 10px; cursor: pointer; }
 .profile-close-btn:hover { filter: brightness(1.05); }
 .profile-drawer-content { padding: 16px; overflow: auto; flex: 1; display: grid; gap: 10px; grid-template-columns: 1fr; }
-.profile-section { background: rgba(255,255,255,0.6); border: 1px solid rgba(15,23,42,0.08); border-radius: 12px; padding: 12px; }
+.profile-section { background: rgba(255, 255, 255, 0.875); border: 1px solid rgba(15,23,42,0.08); border-radius: 12px; padding: 12px;}
 .profile-row { display: grid; grid-template-columns: 120px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px dashed rgba(15,23,42,0.12); }
 .profile-row:last-child { border-bottom: 0; }
-.profile-label { font-size: 12px; color: #64748b; font-weight: 700; }
+.profile-label { font-size: 12px; color: #1b2027; font-weight: 700; }
 .profile-value { font-weight: 800; color: #0f172a; word-break: break-word; }
 .logout-btn { margin-top: 10px; width: 100%; padding: 10px 12px; background: #ef4444; color: #fff; font-weight: 800; border: 0; border-radius: 12px; cursor: pointer; }
 .logout-btn:hover { filter: brightness(1.05); }
