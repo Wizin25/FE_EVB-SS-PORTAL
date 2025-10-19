@@ -18,12 +18,19 @@ function StaffPage() {
   // Drawer hồ sơ
   const [showProfile, setShowProfile] = useState(false);
 
+  // Chế độ hiển thị: 'forms' hoặc 'battery-report'
+  const [viewMode, setViewMode] = useState('forms');
+
   // Dropdown chọn trạng thái theo từng form
   const [statusChoice, setStatusChoice] = useState({});
 
-  // Cache thông tin account theo CUSTOMER ID
+  // Cache thông tin account theo ACCOUNT ID
   const [customerDetails, setCustomerDetails] = useState({});
   const [detailLoading, setDetailLoading] = useState({});
+
+  // Cache battery details theo batteryId
+  const [batteryDetails, setBatteryDetails] = useState({});
+  const [batteryLoading, setBatteryLoading] = useState({});
 
   // Cache station (key theo stationId), CHỈ lấy qua staffId
   const [stationDetails, setStationDetails] = useState({
@@ -140,7 +147,10 @@ function StaffPage() {
       const arr = Array.isArray(data) ? data : [];
       const normalized = arr.map(f => ({ ...f, formId: f.formId ?? f.id ?? f._id ?? null }));
       setForms(normalized);
-      normalized.forEach(f => { if (f.customerId) fetchAccountByCustomerId(f.customerId); });
+      normalized.forEach(f => { 
+        if (f.accountId) fetchAccountByCustomerId(f.accountId);
+        if (f.batteryId) fetchBatteryDetails(f.batteryId);
+      });
       setStatusChoice({});
       setPage(1);
     } catch {
@@ -150,18 +160,52 @@ function StaffPage() {
     }
   };
 
-  /** Lấy account theo customerId bằng API /api/Account/get_account_by_customer_id_for_staff */
-  const fetchAccountByCustomerId = useCallback(async (customerId) => {
-    if (!customerId || customerDetails[customerId]) return;
-    setDetailLoading(prev => ({ ...prev, [customerId]: true }));
+  /** Lấy thông tin pin theo batteryId */
+  // Đã sửa: chưa lấy được thông tin pin
+  const fetchBatteryDetails = useCallback(async (batteryId) => {
+    if (!batteryId || batteryDetails[batteryId]) return;
+    setBatteryLoading(prev => ({ ...prev, [batteryId]: true }));
     try {
-      const response = await authAPI.getAccountByCustomerIdForStaff(customerId);
-      const acc = response?.data ?? response;
-      if (acc) setCustomerDetails(prev => ({ ...prev, [customerId]: acc }));
+      // Sử dụng đúng API từ authAPI (hoặc formAPI nếu đã truyền qua prop/context)
+      // Đảm bảo đã import authAPI từ services/authAPI.js
+      const battery = await authAPI.getBatteryById(batteryId);
+      if (battery) {
+        setBatteryDetails(prev => ({ ...prev, [batteryId]: battery }));
+      } else {
+        setBatteryDetails(prev => ({ ...prev, [batteryId]: null }));
+      }
+    } catch (error) {
+      console.error('Error fetching battery details:', error);
+      setBatteryDetails(prev => ({ ...prev, [batteryId]: null }));
+    } finally {
+      setBatteryLoading(prev => ({ ...prev, [batteryId]: false }));
+    }
+  }, [batteryDetails]);
+
+  /** Lấy account theo customerId bằng API /api/Account/get_customer_by_account_id */
+  const fetchAccountByCustomerId = useCallback(async (accountId) => {
+    if (!accountId || customerDetails[accountId]) return;
+    setDetailLoading(prev => ({ ...prev, [accountId]: true }));
+    try {
+      const acc = await authAPI.getCustomerByAccountId(accountId);
+      if (acc) {
+        // Chỉ lấy các trường cần thiết: name, phone, address, email
+        const customerInfo = {
+          name: acc.name || acc.Name || '',
+          phone: acc.phone || acc.Phone || '',  
+          address: acc.address || acc.Address || '',
+          email: acc.email || acc.Email || '',
+          // Giữ lại một số trường khác có thể cần thiết cho hiển thị
+          username: acc.username || acc.Username || '',
+          customerID: acc.customerID || acc.CustomerID || '',
+          status: acc.status || acc.Status || ''
+        };
+        setCustomerDetails(prev => ({ ...prev, [accountId]: customerInfo }));
+      }
     } catch {
       /* silent */
     } finally {
-      setDetailLoading(prev => ({ ...prev, [customerId]: false }));
+      setDetailLoading(prev => ({ ...prev, [accountId]: false }));
     }
   }, [customerDetails]);
 
@@ -177,7 +221,7 @@ function StaffPage() {
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       results = results.filter(form => {
-        const customer = customerDetails[form.customerId];
+        const customer = customerDetails[form.accountId];
         const station  = stationDetails[form.stationId];
 
         const customerNameMatch  = customer?.name?.toLowerCase().includes(term);
@@ -353,7 +397,7 @@ function StaffPage() {
             )}
           </button>
 
-          <button className="action-fab" title="Thông tin 1">i</button>
+          <button className="action-fab" title="Thông tin 1" onClick={() => setViewMode('battery-report')}>i</button>
           <button className="action-fab" title="Thông tin 2">i</button>
           <button className="action-fab" title="Thông tin 3">i</button>
         </div>
@@ -471,9 +515,9 @@ function StaffPage() {
               <div className="list-grid">
                 {currentForms.map((form) => {
                   const fid = getFormId(form);
-                  const customerId = form.customerId;
-                  const customer = customerDetails[customerId];
-                  const isCustomerLoading = detailLoading[customerId];
+                  const accountId = form.accountId;
+                  const customer = customerDetails[accountId];
+                  const isCustomerLoading = detailLoading[accountId];
                   const stationName =   stationDetails.byStationId?.[form.stationId] || '—';
                   const currentChoice = statusChoice[fid] || '';
 
@@ -489,6 +533,7 @@ function StaffPage() {
                             {stationName}
                           </span>
                           {form.date && <span><strong>Ngày tạo:</strong> {formatDate(form.date)}</span>}
+                          {form.batteryId && <span><strong>Battery ID:</strong> {form.batteryId}</span>}
                         </div>
 
                         {/* Dropdown đổi trạng thái */}
@@ -512,33 +557,60 @@ function StaffPage() {
                         </div>
 
                         {/* Customer */}
-                        {customerId && (
+                        {accountId && (
                           <div className="customer-box">
-                            <h4 className="customer-title">Thông tin Customer:</h4>
+                            <h4 className="customer-title">📋 Thông tin Khách hàng:</h4>
                             {isCustomerLoading ? (
-                              <p className="form-desc" style={{ margin: 0 }}>Đang tải thông tin...</p>
+                              <div className="customer-loading">
+                                <span>⏳ Đang tải thông tin khách hàng...</span>
+                              </div>
                             ) : customer ? (
-                              <div className="customer-grid">
-                                <div><strong>Name:</strong> {customer.name || 'N/A'}</div>
-                                <div><strong>Phone:</strong> {customer.phone || 'N/A'}</div>
-                                <div><strong>Email:</strong> {customer.email || 'N/A'}</div>
-                                <div><strong>Address:</strong> {customer.address || 'N/A'}</div>
-                                {customer.customerID && <div><strong>Customer ID:</strong> {customer.customerID}</div>}
-                                {customer.username && <div><strong>Username:</strong> {customer.username}</div>}
+                              <div className="customer-info">
+                                <div className="customer-row">
+                                  <span className="customer-label">👤 Tên: </span>
+                                  <span className="customer-value">{customer.name || customer.Name || 'Chưa có thông tin'}</span>
+                                </div>
+                                <div className="customer-row">
+                                  <span className="customer-label">📞 Số điện thoại: </span>
+                                  <span className="customer-value">{customer.phone || customer.Phone || 'Chưa có thông tin'}</span>
+                                </div>
+                                <div className="customer-row">
+                                  <span className="customer-label">📧 Email: </span>
+                                  <span className="customer-value">{customer.email || customer.Email || 'Chưa có thông tin'}</span>
+                                </div>
+                                <div className="customer-row">
+                                  <span className="customer-label">🏠 Địa chỉ: </span>
+                                  <span className="customer-value">{customer.address || customer.Address || 'Chưa có thông tin'}</span>
+                                </div>
+                                <div className="customer-row">
+                                  <span className="customer-label">🆔 Account ID: </span>
+                                  <span className="customer-value">{accountId}</span>
+                                </div>
+                                {customer.customerID && (
+                                  <div className="customer-row">
+                                    <span className="customer-label">👥 Customer ID: </span>
+                                    <span className="customer-value">{customer.customerID}</span>
+                                  </div>
+                                )}
+                                {customer.username && (
+                                  <div className="customer-row">
+                                    <span className="customer-label">🔑 Username: </span>
+                                    <span className="customer-value">{customer.username}</span>
+                                  </div>
+                                )}
                                 {customer.status && (
-                                  <div>
-                                    <strong>Status:</strong>
-                                    <span style={{
-                                      marginLeft: 6, padding: '2px 8px', borderRadius: 12, fontSize: 12,
-                                      backgroundColor: customer.status === 'Active' ? '#10b981' : '#ef4444', color: 'white'
-                                    }}>
+                                  <div className="customer-row">
+                                    <span className="customer-label">📊 Trạng thái: </span>
+                                    <span className={`customer-status ${customer.status === 'Active' ? 'active' : 'inactive'}`}>
                                       {customer.status}
                                     </span>
                                   </div>
                                 )}
                               </div>
                             ) : (
-                              <p className="form-desc" style={{ margin: 0 }}>Không tìm thấy thông tin customer</p>
+                              <div className="customer-error">
+                                <span>❌ Không tìm thấy thông tin khách hàng</span>
+                              </div>
                             )}
                           </div>
                         )}
@@ -592,9 +664,59 @@ function StaffPage() {
               <div className="modal-head">
                 <h2>Form Chi Tiết</h2>
                 <button className="btn-close" onClick={() => setSelectedForm(null)}>Đóng</button>
+              
               </div>
               <div className="modal-body glass">
-                <pre className="modal-pre">{JSON.stringify(selectedForm, null, 2)}</pre>
+                {/* <pre className="modal-pre">{JSON.stringify(selectedForm, null, 2)}</pre> */}
+                {/* Hiển thị chi tiết cục pin nếu có batteryId */}
+                {selectedForm?.batteryId && (
+                  <div style={{ marginTop: 16, background: "#f9fafb", padding: 12, borderRadius: 8 }}>
+                    <h4>Thông tin Pin</h4>
+                    {batteryLoading[selectedForm.batteryId] ? (
+                      <div>Đang tải thông tin pin...</div>
+                    ) : batteryDetails[selectedForm.batteryId] ? (
+                      <table className="battery-detail-table" style={{ width: '100%' }}>
+                        <tbody>
+                          {[
+                            { key: 'batteryName', label: 'Tên Pin' },
+                            { key: 'status', label: 'Trạng thái' },
+                            { key: 'capacity', label: 'Dung lượng', isPercent: true },
+                            { key: 'batteryType', label: 'Loại Pin' },
+                            { key: 'specification', label: 'Thông số kỹ thuật' },
+                            { key: 'batteryQuality', label: 'Chất lượng Pin', isPercent: true }
+                          ].map(({ key, label, isPercent }) => {
+                            const value = batteryDetails[selectedForm.batteryId][key];
+                            // Format percent for 'capacity' and 'batteryQuality'
+                            let displayValue = value;
+                            if (
+                              value !== undefined &&
+                              value !== null &&
+                              isPercent
+                            ) {
+                              // Interpret numeric value or string number as percent
+                              const numVal = typeof value === 'number' ? value : parseFloat(value);
+                              if (!isNaN(numVal)) {
+                                displayValue = `${numVal}%`;
+                              } else if (typeof value === 'string' && !value.trim().endsWith('%')) {
+                                displayValue = `${value}%`;
+                              } else {
+                                displayValue = value;
+                              }
+                            }
+                            return value !== undefined && value !== null ? (
+                              <tr key={key}>
+                                <td style={{ fontWeight: 500, paddingRight: 8 }}>{label}:</td>
+                                <td>{displayValue}</td>
+                              </tr>
+                            ) : null;
+                          })}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div>Không tìm thấy thông tin pin.</div>
+                    )}
+                  </div>
+                )}
 
                 {/* Dropdown đổi status trong modal */}
                 {(() => {

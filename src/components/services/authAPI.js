@@ -328,18 +328,18 @@ updateProfile: async (profileData) => {
     }
   },
 
-  // Thêm vào authAPI.js nếu chưa có
-getBatteryById: async (batteryId) => {
-  try {
-    const res = await api.get(`/api/Battery/get-battery-by-id?batteryId=${batteryId}`);
-    if (res.data?.isSuccess) {
-      return res.data.data;
+  // API lấy thông tin pin chi tiết theo batteryId, trả về res.data.data nếu thành công; null nếu không thành công
+  getBatteryById: async (batteryId) => {
+    try {
+      const res = await api.get(`/api/Battery/get-battery-by-id?batteryId=${batteryId}`);
+      if (res.data?.isSuccess && res.data?.data) {
+        return res.data.data;
+      }
+      return null;
+    } catch (err) {
+      throw new Error(err?.message || "Không tìm thấy pin");
     }
-    return null;
-  } catch (err) {
-    throw new Error(err?.message || "Không tìm thấy pin");
-  }
-},
+  },
 
   createBattery: async (formData) => {
     try {
@@ -566,7 +566,7 @@ getBatteryById: async (batteryId) => {
         params: { staffId }
       });
       if (res?.data?.isSuccess) {
-        return res.data || null;
+        return res.data.data || null; // chỉ trả về trường data (object thông tin station)
       }
       return null;
     } catch (err) {
@@ -605,11 +605,11 @@ getBatteryById: async (batteryId) => {
     }
   },
   
-    getAccountByCustomerIdForStaff: async (customerId) => {
-      if (!customerId) throw new Error('customerId is required');
+    getCustomerByAccountId: async (accountId) => {
+      if (!accountId) throw new Error('accountId is required');
       try {
-        const res = await api.get('/api/Account/get_account_by_customer_id_for_staff', {
-          params: { customerId }
+        const res = await api.get('/api/Account/get_customer_by_account_id', {
+          params: { accountId }
         });
         // Chuẩn hoá trả về giống các hàm khác
         if (res?.data?.isSuccess) return res.data.data || null;
@@ -620,7 +620,7 @@ getBatteryById: async (batteryId) => {
         const msg =
           err?.response?.data?.message ||
           err?.message ||
-          'Lấy thông tin account theo customerId thất bại';
+          'Lấy thông tin customer theo accountId thất bại';
         throw new Error(msg);
       }
     },
