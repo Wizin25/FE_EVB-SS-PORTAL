@@ -687,6 +687,28 @@ updateProfile: async (profileData) => {
     }
   },
 
+  // BatteryReport APIs
+  addBatteryReport: async ({ name, description, image, imageUrl, accountId, stationId, batteryId, reportType }) => {
+    try {
+      const form = new FormData();
+      form.append('Name', name ?? '');
+      form.append('Description', description ?? '');
+      form.append('Image', (image ?? imageUrl) ?? '');
+      form.append('AccountId', accountId ?? '');
+      form.append('StationId', stationId ?? '');
+      form.append('BatteryId', batteryId ?? '');
+      form.append('ReportType', reportType ?? 'General');
+
+      const res = await api.post('/api/BatteryReport/add_battery_report', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return res.data;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Tạo Battery Report thất bại';
+      throw new Error(msg);
+    }
+  },
+
   // Trong authAPI object, cập nhật hàm uploadToCloudinary:
 uploadToCloudinary: async (file) => {
   try {

@@ -179,14 +179,15 @@
 /* ========== LIST (GLASS) ========== */
 .list-wrap {
   padding: 20px; border-radius: 12px;
-  max-height: 70vh; overflow-y: auto;
+  max-height: 100vh; overflow-y: auto;
+  height: 2000px;
 }
 .list-header {
   display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
 }
 .list-title-sub { font-size: 16px; font-weight: normal; color: #334155; margin-left: 8px; }
 .btn-refresh { padding: 10px 16px; background: #0f172a; color: white; border-radius: 10px; border: none; cursor: pointer; }
-.list-grid { display: grid; gap: 12px; max-height: 50vh; overflow-y: auto; padding-right: 8px; }
+.list-grid { display: grid; gap: 12px; max-height: 500vh; overflow-y: auto; padding-right: 8px; }
 
 /* Card (GLASS NHẸ TRONG LIST) */
 .form-card {

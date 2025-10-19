@@ -6,10 +6,209 @@ import './Staff.css';
 
 const ITEMS_PER_PAGE = 10;
 
+const DEFAULT_VIEW_KEY = 'forms';
+
+const VIEW_NAV = [
+  { key: 'forms', label: 'Quan ly Form', icon: '📋' },
+  { key: 'station-schedule', label: 'Station Schedule', icon: '📅' },
+  { key: 'battery-report', label: 'Battery Report', icon: '📝' },
+];
+
+const VIEW_CONFIG = VIEW_NAV.reduce((acc, item) => {
+  acc[item.key] = item;
+  return acc;
+}, {});
+
 /** Chuẩn hoá ID form */
 const getFormId = (f) => f?.formId ?? f?.id ?? f?._id ?? null;
 
+function BatteryReportForm({
+  defaults,
+  onCreated,
+  messageApi,
+}) {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [reportType, setReportType] = useState('General');
+  const [imageFile, setImageFile] = useState(null);
+  const [imageUrl, setImageUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const toast = messageApi || message;
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setImageFile(null);
+      setImageUrl('');
+      return;
+    }
+
+    setImageFile(file);
+    
+    // Automatically upload to Cloudinary
+    try {
+      setUploading(true);
+      const res = await authAPI.uploadToCloudinary(file);
+      const url =
+        res?.data?.secureUrl || res?.data?.secure_url ||
+        res?.data?.url || res?.secureUrl || res?.secure_url || res?.url;
+      if (!url) throw new Error('Không tìm thấy URL ảnh từ Cloudinary');
+      setImageUrl(url);
+      toast.success('Upload ảnh thành công!');
+    } catch (e) {
+      toast.error(e?.message || 'Upload ảnh thất bại!');
+      setImageFile(null);
+      setImageUrl('');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!name?.trim() || !description?.trim()) {
+      toast.warning('Vui lòng nhập Name và Description.');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      const payload = {
+        name,
+        description,
+        image: imageUrl, // Use imageUrl as the image field
+        accountId: defaults?.accountId || '',
+        stationId: defaults?.stationId || '',
+        batteryId: defaults?.batteryId || '',
+        reportType,
+      };
+      console.log('Battery Report Payload:', payload); // Add logging to verify payload
+      const res = await authAPI.addBatteryReport(payload);
+      if (res?.isSuccess) {
+        toast.success('Tạo Battery Report thành công!');
+        onCreated?.(res);
+        setName('');
+        setDescription('');
+        setReportType('General');
+        setImageFile(null);
+        setImageUrl('');
+      } else {
+        toast.error(res?.responseCode || 'Tạo Battery Report thất bại');
+      }
+    } catch (e) {
+      toast.error(e?.message || 'Tạo Battery Report thất bại');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        marginTop: 16,
+        padding: 16,
+        borderRadius: 12,
+        background: 'rgba(255,255,255,0.75)',
+        border: '1px solid rgba(15,23,42,0.08)',
+      }}
+    >
+      <h3 style={{ margin: '0 0 10px 0' }}>🧾 Tạo Battery Report</h3>
+      <div style={{ display: 'grid', gap: 10 }}>
+        <div style={{ display: 'grid', gap: 6 }}>
+          <label><strong>Tên báo cáo (Name)</strong></label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ví dụ: Báo cáo pin hư cell…"
+            className="select"
+            style={{ padding: 10 }}
+          />
+        </div>
+
+        <div style={{ display: 'grid', gap: 6 }}>
+          <label><strong>Mô tả (Description)</strong></label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Mô tả chi tiết tình trạng, thời điểm, nguyên nhân dự đoán…"
+            className="select"
+            rows={4}
+            style={{ padding: 10, resize: 'vertical' }}
+          />
+        </div>
+
+        <div style={{ display: 'grid', gap: 6 }}>
+          <label><strong>Report Type</strong></label>
+          <select
+            value={reportType}
+            onChange={(e) => setReportType(e.target.value)}
+            className="select"
+            style={{ padding: 10 }}
+          >
+            <option value="General">General</option>
+            <option value="Damage">Damage</option>
+            <option value="Maintenance">Maintenance</option>
+            <option value="Exchange">Exchange</option>
+          </select>
+        </div>
+
+        <div className="customer-box" style={{ background: 'rgba(255,255,255,0.6)' }}>
+          <div className="customer-grid">
+            <div><strong>AccountId:</strong> {defaults?.accountId || 'N/A'}</div>
+            <div><strong>StationId:</strong> {defaults?.stationId || 'N/A'}</div>
+            <div><strong>BatteryId:</strong> {defaults?.batteryId || 'N/A'}</div>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gap: 8 }}>
+          <label><strong>Ảnh minh hoạ (Image)</strong></label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelect}
+            disabled={uploading}
+          />
+          {uploading && (
+            <div style={{ fontSize: 12, color: '#0f172a', fontStyle: 'italic' }}>
+              Đang upload ảnh...
+            </div>
+          )}
+          {imageUrl && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 12, color: '#059669', marginBottom: 8 }}>
+                ✅ Ảnh đã được upload thành công
+              </div>
+              <img
+                src={imageUrl}
+                alt="preview"
+                style={{
+                  width: 220,
+                  height: 140,
+                  objectFit: 'cover',
+                  borderRadius: 10,
+                  border: '1px solid rgba(15,23,42,0.08)',
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+          <button
+            className="status-apply-btn"
+            onClick={handleSubmit}
+            disabled={submitting || uploading}
+          >
+            {submitting ? 'Đang tạo...' : 'Tạo Battery Report'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StaffPage() {
+  const [messageApi, contextHolder] = message.useMessage();
+  const toast = messageApi;
   const [forms, setForms] = useState([]);
   const [selectedForm, setSelectedForm] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -19,7 +218,7 @@ function StaffPage() {
   const [showProfile, setShowProfile] = useState(false);
 
   // Chế độ hiển thị: 'forms' hoặc 'battery-report'
-  const [viewMode, setViewMode] = useState('forms');
+  const [viewMode, setViewMode] = useState(DEFAULT_VIEW_KEY);
 
   // Dropdown chọn trạng thái theo từng form
   const [statusChoice, setStatusChoice] = useState({});
@@ -47,17 +246,136 @@ function StaffPage() {
   // Phân trang
   const [page, setPage] = useState(1);
 
+  // State for battery report form pre-population
+  const [batteryReportDefaults, setBatteryReportDefaults] = useState({});
+
+  const activeViewKey = VIEW_CONFIG[viewMode] ? viewMode : DEFAULT_VIEW_KEY;
+  const activeView = VIEW_CONFIG[activeViewKey];
+  const isFormsView = activeViewKey === 'forms';
+  const isStationScheduleView = activeViewKey === 'station-schedule';
+  const isBatteryReportView = activeViewKey === 'battery-report';
+  const pageTitle = activeView?.label || VIEW_CONFIG[DEFAULT_VIEW_KEY].label;
+
+  const handleSwitchView = useCallback((nextView) => {
+    const safeView = VIEW_CONFIG[nextView] ? nextView : DEFAULT_VIEW_KEY;
+    setSelectedForm(null);
+    setViewMode(safeView);
+    if (safeView === DEFAULT_VIEW_KEY) {
+      setPage(1);
+    }
+  }, [setViewMode, setSelectedForm, setPage]);
+
+  // New function to handle battery report navigation with form data
+  const handleBatteryReport = useCallback((form) => {
+    const defaults = {
+      accountId: form.accountId || '',
+      stationId: form.stationId || '',
+      batteryId: form.batteryId || form.BatteryId || form.battery?.batteryId || form.battery?._id || form.battery?.id || '',
+      staffName: currentUser?.name || currentUser?.Name || 'Staff'
+    };
+    setBatteryReportDefaults(defaults);
+    handleSwitchView('battery-report');
+  }, [currentUser, handleSwitchView]);
+
+  const stationAssignments = useMemo(() => {
+    const assignments = [];
+    if (!currentUser) {
+      return assignments;
+    }
+
+    const byStationId = stationDetails?.byStationId || {};
+    const byStaffId = stationDetails?.byStaffId || {};
+
+    if (Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs.length > 0) {
+      currentUser.bssStaffs.forEach((staff, index) => {
+        const staffId = staff?.staffId;
+        const stationId = staff?.stationId || staff?.StationId;
+        const stationNameFromCache = (stationId && byStationId[stationId]) || (staffId && byStaffId[staffId]);
+        assignments.push({
+          id: `${staffId || index}-${stationId || index}`,
+          staffId,
+          stationId,
+          stationName: stationNameFromCache || stationId || 'Unknown station',
+          role: staff?.role || staff?.Role || 'Staff',
+        });
+      });
+      return assignments;
+    }
+
+    const fallbackStationId = currentUser?.stationId || currentUser?.StationId || currentUser?.stationID;
+    if (fallbackStationId) {
+      assignments.push({
+        id: `primary-${fallbackStationId}`,
+        staffId: currentUser?.staffId,
+        stationId: fallbackStationId,
+        stationName:
+          byStationId[fallbackStationId] ||
+          (currentUser?.staffId && byStaffId[currentUser.staffId]) ||
+          fallbackStationId,
+        role: Array.isArray(currentUser?.roles)
+          ? currentUser.roles.join(', ')
+          : (currentUser?.role || currentUser?.Role || 'Staff'),
+      });
+    }
+
+    return assignments;
+  }, [currentUser, stationDetails]);
+
+  const batteryReportData = useMemo(() => {
+    const summary = {};
+    forms.forEach((form) => {
+      if (!form) return;
+
+      const batteryId =
+        form?.batteryId ||
+        form?.BatteryId ||
+        form?.battery?.batteryId ||
+        form?.battery?._id ||
+        form?.battery?.id;
+
+      if (!batteryId) return;
+
+      const batteryName =
+        form?.batteryName ||
+        form?.battery?.batteryName ||
+        form?.battery?.name ||
+        `Battery ${batteryId}`;
+
+      const status = form?.status || form?.Status || form?.formStatus || 'Unknown';
+
+      if (!summary[batteryId]) {
+        summary[batteryId] = {
+          batteryId,
+          batteryName,
+          total: 0,
+          statusCounts: {},
+        };
+      }
+
+      summary[batteryId].total += 1;
+      summary[batteryId].statusCounts[status] = (summary[batteryId].statusCounts[status] || 0) + 1;
+    });
+
+    return Object.values(summary).sort((a, b) => b.total - a.total);
+  }, [forms]);
+
   /* ======== Init: current user + prefetch station by staffId + forms by station ======== */
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
+        toast.loading('Đang tải thông tin người dùng...', 0.5);
         const user = await authAPI.getCurrent();
         setCurrentUser(user);
+        toast.success('Tải thông tin người dùng thành công!');
 
         // Prefetch station theo staffId để có stationName (Sxxx) -> cache theo stationId
         const staffIds = Array.isArray(user?.bssStaffs)
           ? user.bssStaffs.map(s => s?.staffId).filter(Boolean)
           : [];
+        
+        if (staffIds.length > 0) {
+          toast.loading('Đang tải thông tin trạm...', 0.5);
+        }
         staffIds.forEach(fetchStationByStaffId);
 
         // Lấy stationId để load forms
@@ -67,12 +385,14 @@ function StaffPage() {
         }
 
         if (stationId) {
+          toast.loading('Đang tải danh sách form...', 1);
           await fetchFormsForStation(stationId);
         } else {
-          message.warning('Không tìm thấy station ID cho user hiện tại');
+          toast.warning('Không tìm thấy station ID cho user hiện tại');
         }
-      } catch {
-        message.error('Lỗi khi tải thông tin người dùng');
+      } catch (error) {
+        console.error('Error fetching current user:', error);
+        toast.error('Lỗi khi tải thông tin người dùng: ' + (error?.message || 'Lỗi không xác định'));
       }
     };
     fetchCurrentUser();
@@ -127,9 +447,13 @@ function StaffPage() {
               }
             : (prev?.byStationId || {}),
         }));
+        toast.success(`Tải thông tin trạm ${stationName} thành công!`);
+      } else {
+        toast.warning(`Không tìm thấy thông tin trạm cho Staff ID: ${staffId}`);
       }
     } catch (err) {
       console.error("Error fetching station for staffId:", staffId, err);
+      toast.error(`Lỗi khi tải thông tin trạm cho Staff ID ${staffId}: ${err?.message || 'Lỗi không xác định'}`);
       setStationDetails(prev => ({
         ...prev,
         byStaffId: {
@@ -147,14 +471,37 @@ function StaffPage() {
       const arr = Array.isArray(data) ? data : [];
       const normalized = arr.map(f => ({ ...f, formId: f.formId ?? f.id ?? f._id ?? null }));
       setForms(normalized);
+      
+      // Fetch customer and battery details for each form
+      const customerPromises = [];
+      const batteryPromises = [];
+      
       normalized.forEach(f => { 
-        if (f.accountId) fetchAccountByCustomerId(f.accountId);
-        if (f.batteryId) fetchBatteryDetails(f.batteryId);
+        if (f.accountId && !customerDetails[f.accountId]) {
+          customerPromises.push(fetchAccountByCustomerId(f.accountId));
+        }
+        if (f.batteryId && !batteryDetails[f.batteryId]) {
+          batteryPromises.push(fetchBatteryDetails(f.batteryId));
+        }
       });
+
+      // Wait for all customer and battery details to load
+      if (customerPromises.length > 0) {
+        toast.loading('Đang tải thông tin khách hàng...', 1);
+        await Promise.allSettled(customerPromises);
+      }
+      
+      if (batteryPromises.length > 0) {
+        toast.loading('Đang tải thông tin pin...', 1);
+        await Promise.allSettled(batteryPromises);
+      }
+
       setStatusChoice({});
       setPage(1);
-    } catch {
-      message.error('Lỗi khi tải forms theo trạm');
+      toast.success(`Tải thành công ${normalized.length} form từ trạm ${stationId}`);
+    } catch (error) {
+      console.error('Error fetching forms:', error);
+      toast.error('Lỗi khi tải forms theo trạm: ' + (error?.message || 'Lỗi không xác định'));
     } finally {
       setLoading(false);
     }
@@ -171,12 +518,15 @@ function StaffPage() {
       const battery = await authAPI.getBatteryById(batteryId);
       if (battery) {
         setBatteryDetails(prev => ({ ...prev, [batteryId]: battery }));
+        toast.success(`Tải thông tin pin ${batteryId} thành công!`);
       } else {
         setBatteryDetails(prev => ({ ...prev, [batteryId]: null }));
+        toast.warning(`Không tìm thấy thông tin pin ${batteryId}`);
       }
     } catch (error) {
       console.error('Error fetching battery details:', error);
       setBatteryDetails(prev => ({ ...prev, [batteryId]: null }));
+      toast.error(`Lỗi khi tải thông tin pin ${batteryId}: ${error?.message || 'Lỗi không xác định'}`);
     } finally {
       setBatteryLoading(prev => ({ ...prev, [batteryId]: false }));
     }
@@ -201,9 +551,13 @@ function StaffPage() {
           status: acc.status || acc.Status || ''
         };
         setCustomerDetails(prev => ({ ...prev, [accountId]: customerInfo }));
+        toast.success(`Tải thông tin khách hàng ${customerInfo.name || accountId} thành công!`);
+      } else {
+        toast.warning(`Không tìm thấy thông tin khách hàng cho Account ID: ${accountId}`);
       }
-    } catch {
-      /* silent */
+    } catch (error) {
+      console.error('Error fetching customer details:', error);
+      toast.error(`Lỗi khi tải thông tin khách hàng ${accountId}: ${error?.message || 'Lỗi không xác định'}`);
     } finally {
       setDetailLoading(prev => ({ ...prev, [accountId]: false }));
     }
@@ -215,8 +569,13 @@ function StaffPage() {
     else { setSortBy(field); setSortDirection('desc'); }
   };
 
+  // FILTER OUT deleted forms
   const filteredAndSortedForms = useMemo(() => {
-    let results = [...forms];
+    // Only display non-deleted forms (status not 'deleted')
+    let results = [...forms].filter(form => {
+      const status = form?.status?.toLowerCase?.() || '';
+      return status !== 'deleted';
+    });
 
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -273,42 +632,144 @@ function StaffPage() {
 
   /* ======== Status / Actions ======== */
   const handleUpdateStatus = async (formId, status) => {
-    if (!formId) { message.error('Không xác định được Form ID'); return; }
-    if (!status) { message.info('Hãy chọn trạng thái trước khi cập nhật'); return; }
+    if (!formId) { 
+      toast.error('Không xác định được Form ID'); 
+      return; 
+    }
+    if (!status) { 
+      toast.info('Hãy chọn trạng thái trước khi cập nhật'); 
+      return; 
+    }
+    
+    const loadingMessage = toast.loading('Đang cập nhật trạng thái form...', 0);
     try {
       setLoading(true);
-      await formAPI.updateFormStatusStaff({ formId, status });
-      message.success(status?.toLowerCase() === 'approved' ? 'Đã duyệt form' : 'Đã từ chối form');
+      const response = await formAPI.updateFormStatusStaff({ formId, status });
+      loadingMessage();
+      
+      // Check if response indicates success
+      if (response?.isSuccess !== false && !response?.error) {
+        const successMsg = status?.toLowerCase() === 'approved' 
+          ? `✅ Đã duyệt form ${formId} thành công!` 
+          : `✅ Đã từ chối form ${formId} thành công!`;
+        
+        toast.success({
+          content: successMsg,
+          duration: 3,
+          style: { fontSize: 16 }
+        });
 
-      const stationId =
-        (Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs.length > 0)
-          ? (currentUser.bssStaffs[0]?.stationId || currentUser.bssStaffs[0]?.StationId)
-          : (currentUser?.stationId || currentUser?.StationId || currentUser?.stationID);
-      if (stationId) await fetchFormsForStation(stationId);
-    } catch (e) {
-      message.error(e?.message || 'Cập nhật trạng thái thất bại');
-    } finally { setLoading(false); }
-  };
+        // Clear the status choice for this form
+        setStatusChoice(prev => {
+          const newChoice = { ...prev };
+          delete newChoice[formId];
+          return newChoice;
+        });
 
-  const handleDeleteForm = async (formId) => {
-    if (!formId) { message.error('Không xác định được Form ID'); return; }
-    if (!window.confirm('Bạn có chắc muốn xóa form này?')) return;
-    try {
-      setLoading(true);
-      const resp = await formAPI.deleteForm(formId);
-      if (resp?.isSuccess) {
-        message.success('Xóa form thành công!');
-        setSelectedForm(null);
+        // Refresh forms
         const stationId =
           (Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs.length > 0)
             ? (currentUser.bssStaffs[0]?.stationId || currentUser.bssStaffs[0]?.StationId)
             : (currentUser?.stationId || currentUser?.StationId || currentUser?.stationID);
-        if (stationId) await fetchFormsForStation(stationId);
+        if (stationId) {
+          await fetchFormsForStation(stationId);
+        }
       } else {
-        message.error('Xóa form thất bại');
+        // Handle API error response
+        const errorMsg = response?.message || response?.responseCode || response?.error || 'Lỗi không xác định từ server';
+        toast.error({
+          content: `❌ Cập nhật trạng thái thất bại: ${errorMsg}`,
+          duration: 4,
+          style: { fontSize: 16 }
+        });
       }
     } catch (e) {
-      message.error(e?.message || 'Xóa form thất bại');
+      loadingMessage();
+      console.error('Error updating form status:', e);
+      
+      // Detailed error message
+      let errorDetail = 'Lỗi không xác định';
+      if (e?.response?.data?.message) {
+        errorDetail = e.response.data.message;
+      } else if (e?.response?.data?.error) {
+        errorDetail = e.response.data.error;
+      } else if (e?.message) {
+        errorDetail = e.message;
+      } else if (e?.response?.status) {
+        errorDetail = `HTTP ${e.response.status}: ${e.response.statusText || 'Lỗi server'}`;
+      }
+      
+      toast.error({
+        content: `❌ Cập nhật trạng thái thất bại: ${errorDetail}`,
+        duration: 5,
+        style: { fontSize: 16 }
+      });
+    } finally { 
+      setLoading(false); 
+    }
+  };
+
+  const handleDeleteForm = async (formId) => {
+    if (!formId) { 
+      toast.error('Không xác định được Form ID'); 
+      return; 
+    }
+    if (!window.confirm('Bạn có chắc muốn xóa form này? Hành động này không thể hoàn tác.')) return;
+    
+    const loadingMessage = toast.loading('Đang xóa form...', 0);
+    try {
+      setLoading(true);
+      const resp = await formAPI.deleteForm(formId);
+      loadingMessage();
+      
+      if (resp?.isSuccess) {
+        toast.success({
+          content: `✅ Xóa form ${formId} thành công!`,
+          duration: 3,
+          style: { fontSize: 16 }
+        });
+        setSelectedForm(null);
+        
+        // Refresh forms
+        const stationId =
+          (Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs.length > 0)
+            ? (currentUser.bssStaffs[0]?.stationId || currentUser.bssStaffs[0]?.StationId)
+            : (currentUser?.stationId || currentUser?.StationId || currentUser?.stationID);
+        if (stationId) {
+          await fetchFormsForStation(stationId);
+        }
+      } else {
+        // Handle API error response
+        const errorMsg = resp?.responseCode || resp?.message || resp?.error || 'Lỗi không xác định từ server';
+        toast.error({
+          content: `❌ Xóa form thất bại: ${errorMsg}`,
+          duration: 4,
+          style: { fontSize: 16 }
+        });
+      }
+    } catch (e) {
+      loadingMessage();
+      console.error('Error deleting form:', e);
+      
+      // Detailed error message
+      let errorDetail = 'Lỗi không xác định';
+      if (e?.response?.data?.message) {
+        errorDetail = e.response.data.message;
+      } else if (e?.response?.data?.error) {
+        errorDetail = e.response.data.error;
+      } else if (e?.message) {
+        errorDetail = e.message;
+      } else if (e?.response?.status) {
+        errorDetail = `HTTP ${e.response.status}: ${e.response.statusText || 'Lỗi server'}`;
+      } else if (e?.code) {
+        errorDetail = `Mã lỗi: ${e.code}`;
+      }
+      
+      toast.error({
+        content: `❌ Xóa form thất bại: ${errorDetail}`,
+        duration: 5,
+        style: { fontSize: 16 }
+      });
     } finally {
       setLoading(false);
     }
@@ -340,19 +801,33 @@ function StaffPage() {
       (Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs.length > 0)
         ? (currentUser.bssStaffs[0]?.stationId || currentUser.bssStaffs[0]?.StationId)
         : (currentUser?.stationId || currentUser?.StationId || currentUser?.stationID);
-    if (stationId) await fetchFormsForStation(stationId);
-    else message.warning('Không tìm thấy station ID để refresh');
+    
+    if (stationId) {
+      toast.loading('Đang làm mới dữ liệu...', 1);
+      await fetchFormsForStation(stationId);
+    } else {
+      toast.warning('Không tìm thấy station ID để refresh');
+    }
   };
 
   const handleLogout = () => {
     try {
+      toast.loading('Đang đăng xuất...', 1);
       // Gỡ mọi token/token staff khỏi localStorage/sessionStorage và cookies nếu có
       sessionStorage.setItem('authToken', '');
       sessionStorage.removeItem('authToken');
       
       document.cookie = 'authToken=; Max-Age=0; path=/;'; 
-    } catch (e) {}
-    window.location.replace('/signin');
+      toast.success('Đăng xuất thành công!');
+      
+      setTimeout(() => {
+        window.location.replace('/signin');
+      }, 500);
+    } catch (e) {
+      console.error('Error during logout:', e);
+      toast.error('Có lỗi xảy ra khi đăng xuất');
+      window.location.replace('/signin');
+    }
   };
 
   /* Helper: ký tự viết tắt cho avatar khi không có ảnh */
@@ -367,6 +842,7 @@ function StaffPage() {
   /* =================== RENDER =================== */
   return (
     <>
+      {contextHolder}
       {/* NỀN ẢNH TOÀN TRANG */}
       <div className="staff-bg" />
 
@@ -397,9 +873,18 @@ function StaffPage() {
             )}
           </button>
 
-          <button className="action-fab" title="Thông tin 1" onClick={() => setViewMode('battery-report')}>i</button>
-          <button className="action-fab" title="Thông tin 2">i</button>
-          <button className="action-fab" title="Thông tin 3">i</button>
+          {VIEW_NAV.map(({ key, label, icon }) => (
+            <button
+              key={key}
+              type="button"
+              className={`action-fab ${activeViewKey === key ? 'active' : ''}`}
+              title={label}
+              aria-pressed={activeViewKey === key}
+              onClick={() => handleSwitchView(key)}
+            >
+              {icon}
+            </button>
+          ))}
         </div>
 
         {/* Backdrop + Drawer */}
@@ -420,10 +905,6 @@ function StaffPage() {
                   <div className="profile-row"><div className="profile-label">Địa chỉ</div><div className="profile-value">{currentUser.address || currentUser.Address || 'N/A'}</div></div>
                   <div className="profile-row"><div className="profile-label">Vai trò</div><div className="profile-value">{Array.isArray(currentUser.roles) ? currentUser.roles.join(', ') : (currentUser.role || currentUser.Role || 'N/A')}</div></div>
                   <div className="profile-row"><div className="profile-label">Account ID</div><div className="profile-value">{currentUser.accountId || currentUser.accountID || currentUser.AccountId || 'N/A'}</div></div>
-                  <div className="profile-row">
-                    <div className="profile-label">Staff ID</div>
-                    <div className="profile-value">{ currentUser?.staffId || 'N/A' }</div>
-                  </div>
                   <div className="profile-row"><div className="profile-label">Station ID</div>
                     <div className="profile-value">
                       {(Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs[0]?.stationId) ||
@@ -439,8 +920,10 @@ function StaffPage() {
           </div>
         </aside>
 
-        <h1 className="staff-title">Quản lý Form</h1>
+        <h1 className="staff-title">{pageTitle}</h1>
 
+        {isFormsView && (
+          <>
         {/* Filters (GLASS) */}
         <section className="filters glass">
           <h2 className="filters-title">Tìm kiếm & Sắp xếp Form</h2>
@@ -506,7 +989,7 @@ function StaffPage() {
 
           {loading ? (
             <div className="state-center"><p>Đang tải dữ liệu...</p></div>
-          ) : forms.length === 0 ? (
+          ) : forms.filter(f => (f?.status?.toLowerCase?.() ?? '') !== 'deleted').length === 0 ? (
             <div className="state-center"><p>Không có form nào</p></div>
           ) : currentForms.length === 0 ? (
             <div className="state-center"><p>Không tìm thấy form nào phù hợp với tiêu chí tìm kiếm</p></div>
@@ -623,6 +1106,13 @@ function StaffPage() {
                           onClick={(e) => { e.stopPropagation(); handleDeleteForm(fid); }}
                         >
                           Xóa
+                        </button>
+                        <button
+                          className="status-apply-btn"
+                          onClick={(e) => { e.stopPropagation(); handleBatteryReport(form); }}
+                          style={{ fontSize: '12px', padding: '6px 12px' }}
+                        >
+                          Báo cáo pin
                         </button>
                       </div>
                     </div>
@@ -754,6 +1244,108 @@ function StaffPage() {
               </div>
             </div>
           </div>
+        )}
+        </>
+        )}
+
+        {isStationScheduleView && (
+          <section className="glass" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
+            <h2 className="filters-title">Station Schedule</h2>
+            <p style={{ marginTop: 4, color: 'rgba(15,23,42,0.7)' }}>
+              Danh sách được tự động tổng hợp từ thông tin bssStaffs và station cache.
+            </p>
+            {stationAssignments.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginTop: 20 }}>
+                {stationAssignments.map((assignment) => (
+                  <div
+                    key={assignment.id}
+                    style={{
+                      padding: 16,
+                      borderRadius: 18,
+                      background: 'rgba(255,255,255,0.75)',
+                      border: '1px solid rgba(15,23,42,0.08)',
+                      boxShadow: '0 10px 30px rgba(15,23,42,0.08)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ fontSize: 16, fontWeight: 600, color: '#0f172a' }}>
+                      {assignment.stationName || 'Station'}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#334155', fontSize: 14 }}>
+                      <span>Station ID</span>
+                      <span>{assignment.stationId || 'N/A'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#334155', fontSize: 14 }}>
+                      <span>Staff ID</span>
+                      <span>{assignment.staffId || 'N/A'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#334155', fontSize: 14 }}>
+                      <span>Role</span>
+                      <span>{assignment.role || 'Staff'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ marginTop: 24, padding: 24, textAlign: 'center', background: 'rgba(15,23,42,0.05)', borderRadius: 16, color: '#475569' }}>
+                Chưa có dữ liệu lịch trực cho trạm của bạn.
+              </div>
+            )}
+          </section>
+        )}
+
+        {isBatteryReportView && (
+          <section className="glass" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
+            <h2 className="filters-title">Battery Report</h2>
+            <p style={{ marginTop: 4, color: 'rgba(15,23,42,0.7)' }}>
+              Báo cáo dựa trên các form đã tải về. Chọn một form ở chế độ quản lý để cập nhật dữ liệu.
+            </p>
+            
+            {/* Add Battery Report Form */}
+            <BatteryReportForm
+              defaults={{
+                accountId: batteryReportDefaults.accountId || currentUser?.accountId || currentUser?.accountID || currentUser?.AccountId || '',
+                stationId: batteryReportDefaults.stationId || (Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs.length > 0)
+                  ? (currentUser.bssStaffs[0]?.stationId || currentUser.bssStaffs[0]?.StationId)
+                  : (currentUser?.stationId || currentUser?.StationId || currentUser?.stationID || ''),
+                batteryId: batteryReportDefaults.batteryId || '',
+                staffName: batteryReportDefaults.staffName || currentUser?.name || currentUser?.Name || 'Staff'
+              }}
+              onCreated={(result) => {
+                setBatteryReportDefaults({});
+                if (result?.isSuccess !== false && !result?.error) {
+                  // Thành công
+                  toast.success({
+                    content: (
+                      <div>
+                        <span role="img" aria-label="success" style={{fontSize: 22, marginRight: 8}}>✅</span>
+                        <b>Battery Report đã được tạo thành công!</b>
+                      </div>
+                    ),
+                    duration: 3,
+                    style: { marginTop: '30vh', fontSize: 18 }
+                  });
+                } else {
+                  // Thất bại - show lỗi chi tiết ra màn hình
+                  let errorMsg = result?.message || result?.error || 'Đã xảy ra lỗi khi tạo Battery Report.';
+                  toast.error({
+                    content: (
+                      <div>
+                        <span role="img" aria-label="error" style={{fontSize: 22, marginRight: 8}}>❌</span>
+                        <b>Tạo Battery Report thất bại!</b>
+                        <div style={{ marginTop: 4, fontWeight: 400, fontSize: 15 }}>{errorMsg}</div>
+                      </div>
+                    ),
+                    duration: 5,
+                    style: { marginTop: '30vh', fontSize: 18 }
+                  });
+                }
+              }}
+              messageApi={toast}
+            />
+          </section>
         )}
       </div>
     </>
