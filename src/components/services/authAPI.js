@@ -52,14 +52,22 @@ export const authAPI = {
 updateProfile: async (profileData) => {
   try {
     const form = new FormData();
-    form.append('Name', profileData.name);
-    form.append('Phone', profileData.phone);
-    form.append('Address', profileData.address ?? '');
-    form.append('Email', profileData.email);
     
-    // Thêm trường avatar nếu có
+    // Đảm bảo không gửi undefined values
+    form.append('Name', profileData.name || '');
+    form.append('Phone', profileData.phone || '');
+    form.append('Address', profileData.address || '');
+    form.append('Email', profileData.email || '');
+    
+    // QUAN TRỌNG: Backend có thể mong đợi field 'Avatar' 
     if (profileData.avatar) {
-      form.append('Avatar', profileData.avatar);
+      // Nếu avatar là URL string, gửi dưới dạng string
+      if (typeof profileData.avatar === 'string') {
+        form.append('Avatar', profileData.avatar);
+      } else {
+        // Nếu là File object, gửi như file
+        form.append('Avatar', profileData.avatar);
+      }
     }
 
     const response = await api.put('/api/Account/update_current_profile', form, {
@@ -68,6 +76,7 @@ updateProfile: async (profileData) => {
     
     return response.data;
   } catch (error) {
+    console.error('Update profile error:', error.response?.data || error);
     throw error.response?.data || error;
   }
 },
@@ -723,12 +732,14 @@ uploadToCloudinary: async (file) => {
       }
     });
     
-    console.log('Cloudinary upload response:', response);
+    console.log('FULL Cloudinary upload response:', response);
+    console.log('Response data:', response.data);
+    console.log('Response data.data:', response.data?.data);
     
-    // Trả về toàn bộ response data để xử lý
     return response.data;
   } catch (error) {
-    console.error('Cloudinary upload error:', error);
+    console.error('Cloudinary upload error details:', error);
+    console.error('Error response:', error.response);
     const errorMsg = error?.response?.data?.message || 
                     error?.message || 
                     JSON.stringify(error) || 

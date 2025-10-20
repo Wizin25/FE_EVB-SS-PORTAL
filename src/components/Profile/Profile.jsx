@@ -212,56 +212,72 @@ function Profile({ theme = "light" }) {
   }, []);
 
   const handleAvatarUpload = useCallback(async (file) => {
-    if (!file) return;
+  if (!file) return;
 
-    setIsUploadingAvatar(true);
-    setError(null);
+  setIsUploadingAvatar(true);
+  setError(null);
 
-    try {
-      console.log('Bắt đầu upload avatar...', file.name);
-      
-      const response = await authAPI.uploadToCloudinary(file);
-      console.log('Upload response:', response);
+  try {
+    console.log('Bắt đầu upload avatar...', file.name);
+    
+    // 1. Upload lên Cloudinary
+    const cloudinaryResponse = await authAPI.uploadToCloudinary(file);
+    console.log('Cloudinary upload response:', cloudinaryResponse);
 
-      // Lấy URL từ response (tuỳ thuộc vào cấu trúc response của backend)
-      const avatarUrl = response.url || response.data?.url || response.data?.secure_url || response.data;
-      
-      if (!avatarUrl) {
-        throw new Error('Không nhận được URL ảnh từ server');
-      }
-
-      console.log('Avatar URL:', avatarUrl);
-
-      // Cập nhật profile với avatar mới
-      const updateData = {
-        ...editData,
-        avatar: avatarUrl
-      };
-
-      const updateResponse = await authAPI.updateProfile(updateData);
-      
-      if (updateResponse?.isSuccess) {
-        // Cập nhật state user với avatar mới
-        setUser(prev => ({ ...prev, avatar: avatarUrl }));
-        setEditData(prev => ({ ...prev, avatar: avatarUrl }));
-        
-        console.log('Cập nhật avatar thành công');
-      } else {
-        throw new Error(updateResponse?.message || 'Cập nhật avatar thất bại');
-      }
-
-    } catch (err) {
-      console.error('Lỗi upload avatar:', err);
-      setError(err?.message || 'Lỗi khi tải lên ảnh đại diện');
-    } finally {
-      setIsUploadingAvatar(false);
-      setAvatarFile(null);
-      // Reset input file
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    // 2. Xử lý response từ Cloudinary
+    let avatarUrl;
+    
+    if (cloudinaryResponse.data?.url) {
+      avatarUrl = cloudinaryResponse.data.url;
+    } else if (cloudinaryResponse.data?.secure_url) {
+      avatarUrl = cloudinaryResponse.data.secure_url;
+    } else if (cloudinaryResponse.url) {
+      avatarUrl = cloudinaryResponse.url;
+    } else if (cloudinaryResponse.secure_url) {
+      avatarUrl = cloudinaryResponse.secure_url;
+    } else if (cloudinaryResponse.data?.publicId) {
+      avatarUrl = `https://res.cloudinary.com/your-cloud-name/image/upload/${cloudinaryResponse.data.publicId}`;
+    } else {
+      console.error('Cloudinary response structure:', cloudinaryResponse);
+      throw new Error('Không nhận được URL ảnh từ Cloudinary');
     }
-  }, [editData]);
+
+    console.log('Avatar URL nhận được:', avatarUrl);
+
+    // 3. Sử dụng user data thay vì editData để đảm bảo có giá trị
+    const updateData = {
+      name: user?.name || "",
+      phone: user?.phone || "", 
+      address: user?.address || "",
+      email: user?.email || "",
+      avatar: avatarUrl
+    };
+
+    console.log('Data gửi lên update profile:', updateData);
+
+    const updateResponse = await authAPI.updateProfile(updateData);
+    
+    if (updateResponse?.isSuccess) {
+      // Cập nhật state user với avatar mới
+      setUser(prev => ({ ...prev, avatar: avatarUrl }));
+      setEditData(prev => ({ ...prev, avatar: avatarUrl }));
+      
+      console.log('Cập nhật avatar thành công');
+    } else {
+      throw new Error(updateResponse?.message || 'Cập nhật avatar thất bại');
+    }
+
+  } catch (err) {
+    console.error('Lỗi upload avatar:', err);
+    setError(err?.message || 'Lỗi khi tải lên ảnh đại diện');
+  } finally {
+    setIsUploadingAvatar(false);
+    setAvatarFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }
+}, [user]); // Thêm user vào dependencies
 
   // Form handlers
   const handleEditChange = useCallback((e) => {
@@ -596,7 +612,7 @@ function Profile({ theme = "light" }) {
                   </div>
                 </div>
 
-                {selectedForm && selectedForm.id === form.id && (
+                {/* {selectedForm && selectedForm.id === form.id && (
                   <div className="liquid-glass" style={{
                     marginTop: '20px',
                     padding: '20px',
@@ -652,7 +668,7 @@ function Profile({ theme = "light" }) {
                       </div>
                     )}
                   </div>
-                )}
+                )} */}
               </div>
             ))}
           </div>
