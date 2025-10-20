@@ -31,7 +31,8 @@ export default function BatteryManagementPage() {
     capacity: "", // integer % 0-100
     batteryType: "",
     specification: "",
-    batteryQuality: ""
+    batteryQuality: "",
+    image: "https://gogoro-about-uploads.s3.ap-northeast-1.amazonaws.com/1byus5c4ubenlumaz6naywxtx240" // Thêm trường image (string)
   });
   const [createLoading, setCreateLoading] = useState(false);
 
@@ -158,9 +159,10 @@ export default function BatteryManagementPage() {
       fd.append("BatteryType", createForm.batteryType);
       fd.append("Specification", createForm.specification);
       fd.append("BatteryQuality", String(parseFloat(createForm.batteryQuality || 0)));
+      fd.append("Image", createForm.image);
 
       await authAPI.createBattery(fd);
-      setCreateForm({ batteryName: "", capacity: "", batteryType: batteryTypeOptions[0] || "", specification: specificationOptions[0] || "", batteryQuality: "" });
+      setCreateForm({ batteryName: "", capacity: "", batteryType: batteryTypeOptions[0] || "", specification: specificationOptions[0] || "", batteryQuality: "", image: "https://gogoro-about-uploads.s3.ap-northeast-1.amazonaws.com/1byus5c4ubenlumaz6naywxtx240" });
       await fetchBatteries();
       alert("Tạo pin thành công!");
     } catch (err) {
@@ -711,6 +713,35 @@ export default function BatteryManagementPage() {
                   <div className="batt-item" key={b.batteryId}>
                     <div className="batt-top">
                       <div className="batt-left">
+                        {/* Battery Image */}
+                        {b.image && (
+                          <div className="batt-image" style={{ 
+                            marginBottom: 8,
+                            width: 60,
+                            height: 60,
+                            borderRadius: 8,
+                            overflow: 'hidden',
+                            border: '2px solid #e2e8f0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: '#f8fafc'
+                          }}>
+                            <img 
+                              src={b.image} 
+                              alt={`Pin ${b.batteryName || b.batteryId}`}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                              }}
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = '<div style="font-size: 12px; color: #64748b; text-align: center;">No Image</div>';
+                              }}
+                            />
+                          </div>
+                        )}
                         <div className="batt-id">{b.batteryName ? b.batteryName : b.batteryId}</div>
                         <div className="batt-meta">{b.batteryType} • {b.capacity}% • {b.specification}</div>
                         <div className="batt-submeta">Trạm: {b.station?.stationName || b.station?.stationId || "Chưa gán"}</div>
@@ -855,6 +886,26 @@ export default function BatteryManagementPage() {
                   </div>
                 ) : (
                   <div style={{ marginTop: 12 }}>
+                    {/* Battery Image in Modal */}
+                    {selectedBattery.image && (
+                      <div style={{ marginBottom: 16, textAlign: 'center' }}>
+                        <img 
+                          src={selectedBattery.image} 
+                          alt={`Pin ${selectedBattery.batteryName || selectedBattery.batteryId}`}
+                          style={{
+                            maxWidth: 200,
+                            maxHeight: 200,
+                            borderRadius: 12,
+                            border: '3px solid #e2e8f0',
+                            objectFit: 'cover',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
                     <p><b>Tên pin:</b> {selectedBattery.batteryName ? selectedBattery.batteryName : selectedBattery.batteryId}</p>
                     <p><b>Loại:</b> {selectedBattery.batteryType}</p>
                     <p><b>Capacity:</b> {selectedBattery.capacity}%</p>
