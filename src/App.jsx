@@ -21,6 +21,7 @@ import Vehicle from './components/Vehicle/Vehicle.jsx'
 import PackageManager from './components/Admin/pages/PackageManager.jsx'
 import Contact from './components/Contact/contact.jsx'
 import Report from './components/Report/Report.jsx';
+import ReportManager from './components/Admin/pages/ReportManager.jsx';
 function App() {
   return (
     <Router>
@@ -43,6 +44,7 @@ function App() {
             <Route path="station" element={<Station/>} />
             <Route path="controller" element={<ControllerPage />} />
             <Route path="package" element={<PackageManager />} />
+            <Route path="reportmanager" element={<ReportManager />} />
           </Route>
           <Route path="/profile" element={<Profile />} />
           <Route path="/booking" element={<Booking />} />

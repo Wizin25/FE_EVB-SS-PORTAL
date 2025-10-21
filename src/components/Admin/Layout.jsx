@@ -12,6 +12,7 @@ const navItems = [
   { to: '/admin/station', label: 'Station' },
   { to: '/admin/controller', label: 'Controller' },
   { to: '/admin/package', label: 'Package' },
+  { to: '/admin/reportmanager', label: 'Report' },
 ];
 
 function ThemeToggle({ className = "" }) {
@@ -204,7 +205,7 @@ export default function AdminLayout() {
 
           {/* Header */}
           <header
-            className="flex items-center justify-between h-16 px-4 bg-white/20 backdrop-blur border-b border-orange-100 admin-header dark:bg-gray-900/70 dark:backdrop-blur dark:border-gray-800"
+            className="flex items-center justify-between h-16 px-4 border-b border-orange-100 bg-white/20 backdrop-blur admin-header dark:bg-gray-900/70 dark:backdrop-blur dark:border-gray-800"
             style={{ boxShadow: "inset 0 0 10px white" }}
           >
             <div className="flex items-center gap-2">

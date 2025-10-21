@@ -1,9 +1,6 @@
-// HeaderDriver.jsx (skeleton)
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LiquidGlass } from '@liquidglass/react';
 import './home.css';
-import Profile from '../Profile/Profile';
 
 export default function Header({
   onToggleTheme, theme,
@@ -11,6 +8,24 @@ export default function Header({
   onOpenBooking
 }) {
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e) => {
+      if (!document.getElementById('account-dropdown-root')?.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  // Avatar URL logic giống như trong Profile
+  const avatarUrl = user?.avatar 
+    ? user.avatar 
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || "U")}&background=2563eb&color=fff&size=128`;
 
   return (
     <header className="app-header">
@@ -36,73 +51,63 @@ export default function Header({
         <div className="notif" title={`${unreadCount} thông báo`}>
           <a href="/notifications">🔔{unreadCount>0 && <span className="badge">{unreadCount}</span>}</a>
         </div>
-        {/*
-          Khi người dùng bấm vào avatar mới hiện dropdown.
-          Sử dụng useState để điều khiển trạng thái mở/đóng dropdown.
-        */}
-        {(() => {
-          const [open, setOpen] = React.useState(false);
-          // Đóng dropdown khi click ra ngoài
-          React.useEffect(() => {
-            if (!open) return;
-            const handleClick = (e) => {
-              // Nếu click ngoài vùng dropdown thì đóng
-              if (!document.getElementById('account-dropdown-root')?.contains(e.target)) {
-                setOpen(false);
-              }
-            };
-            document.addEventListener('mousedown', handleClick);
-            return () => document.removeEventListener('mousedown', handleClick);
-          }, [open]);
-          return (
-            <div
-              className={`account-dropdown${open ? " open" : ""}`}
-              id="account-dropdown-root"
-            >
-              <img
-                src={user?.profileUrl || "https://ui-avatars.com/api/?name=U&background=eee&color=888"}
-                alt="avatar"
-                className="avatar"
-                tabIndex={0}
-                onClick={() => setOpen((v) => !v)}
-                onBlur={e => {
-                  // Đảm bảo dropdown đóng khi tab ra ngoài (nếu cần)
-                  setTimeout(() => setOpen(false), 120);
+
+        {/* Account Dropdown */}
+        <div
+          className={`account-dropdown${open ? " open" : ""}`}
+          id="account-dropdown-root"
+        >
+          <img
+            src={avatarUrl}
+            alt="avatar"
+            className="avatar"
+            tabIndex={0}
+            onClick={() => setOpen((v) => !v)}
+            style={{ 
+              cursor: 'pointer',
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              objectFit: 'cover'
+            }}
+          />
+          {open && (
+            <div className="dropdown">
+              <button 
+                type="button" 
+                onMouseDown={e => e.preventDefault()} 
+                onClick={() => { navigate('/profile'); setOpen(false); }}
+              >
+                Hồ sơ
+              </button>
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => { navigate('/my-bookings'); setOpen(false); }}
+              >
+                Lịch của tôi
+              </button>
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => { navigate('/profile/paymenthistory'); setOpen(false); }}
+              >
+                Lịch sử thanh toán
+              </button>
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
+                  localStorage.removeItem("authToken");
+                  navigate('/signin');
+                  setOpen(false);
                 }}
-              />
-              {open && (
-                <div className="dropdown">
-                  <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => { navigate('/profile'); setOpen(false); }}>Hồ sơ</button>
-                  <button
-                    type="button"
-                    onMouseDown={e => e.preventDefault()}
-                    onClick={() => { navigate('/my-bookings'); setOpen(false); }}
-                  >
-                    Lịch của tôi
-                  </button>
-                  <button
-                    type="button"
-                    onMouseDown={e => e.preventDefault()}
-                    onClick={() => { navigate('/profile/paymenthistory'); setOpen(false); }}
-                  >
-                    Lịch sử thanh toán
-                  </button>
-                  <button
-                    type="button"
-                    onMouseDown={e => e.preventDefault()}
-                    onClick={() => {
-                      localStorage.removeItem("authToken");
-                      navigate('/signin');
-                      setOpen(false);
-                    }}
-                  >
-                    Đăng xuất
-                  </button>
-                </div>
-              )}
+              >
+                Đăng xuất
+              </button>
             </div>
-          );
-        })()}
+          )}
+        </div>
       </div>
 
       {/* Quick booking preview */}
@@ -113,5 +118,5 @@ export default function Header({
         </div>
       )}
     </header>
-);
+  );
 }
