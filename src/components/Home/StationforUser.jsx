@@ -99,13 +99,34 @@ export default function StationForUser() {
           const s = (v.status || v.Status || '').toString().toLowerCase();
           return s === 'active' || s === 'linked';
         });
-        setVehicles(filtered);
-        if (filtered.length > 0) {
-          const vin = vprop(filtered[0], 'vin');
+        
+        // Load battery info for each vehicle
+        const vehiclesWithBattery = await Promise.all(
+          filtered.map(async (vehicle) => {
+            try {
+              const vehicleId = vprop(vehicle, 'vin');
+              if (vehicleId) {
+                const batteryInfo = await vehicleAPI.getBatteryByVehicleId(vehicleId);
+                return {
+                  ...vehicle,
+                  battery: batteryInfo?.data || batteryInfo
+                };
+              }
+              return vehicle;
+            } catch (e) {
+              console.log('Failed to load battery for vehicle:', vprop(vehicle, 'vin'), e);
+              return vehicle;
+            }
+          })
+        );
+        
+        setVehicles(vehiclesWithBattery);
+        if (vehiclesWithBattery.length > 0) {
+          const vin = vprop(vehiclesWithBattery[0], 'vin');
           setSelectedVehicleVin(vin);
         }
       } catch (e) {
-        // silent
+        console.error('Failed to load vehicles:', e);
       }
     })();
   }, []);
@@ -146,11 +167,22 @@ export default function StationForUser() {
 
   const batteryCompatible = (battery) => {
     if (!selectedVehicleVin) return true; // no vehicle chosen, show all
-    const bType = vprop(battery, 'batteryType').toString().toLowerCase();
-    const bSpec = vprop(battery, 'batterySpec').toString().toLowerCase();
-    const typeOk = !selectedVehicleBatteryType || !bType || bType === selectedVehicleBatteryType;
-    const specOk = !selectedVehicleBatterySpec || !bSpec || bSpec === selectedVehicleBatterySpec;
-    return typeOk && specOk;
+    
+    const bType = (vprop(battery, 'batteryType') || '').toString().toLowerCase();
+    const bSpec = (vprop(battery, 'batterySpec') || '').toString().toLowerCase();
+    
+    // Kiểm tra xem xe có thông tin battery type/spec không (không phải chuỗi rỗng)
+    const hasVehicleType = selectedVehicleBatteryType && selectedVehicleBatteryType.trim() !== '';
+    const hasVehicleSpec = selectedVehicleBatterySpec && selectedVehicleBatterySpec.trim() !== '';
+    
+    // Nếu xe không có thông tin battery type/spec, coi như tất cả pin đều compatible
+    if (!hasVehicleType && !hasVehicleSpec) return true;
+    
+    // Nếu xe có thông tin battery type/spec, phải match chính xác
+    const typeMatch = !hasVehicleType || bType === selectedVehicleBatteryType;
+    const specMatch = !hasVehicleSpec || bSpec === selectedVehicleBatterySpec;
+    
+    return typeMatch && specMatch;
   };
 
   const filtered = useMemo(() => {
@@ -853,7 +885,7 @@ export default function StationForUser() {
                                     fontSize: 13
                                   }}
                                 >
-                                  {(compatible && !isBooked) ? '🔁 Chọn pin này' : (isBooked ? 'Đã được đặt' : 'Không phù hợp')}
+                                  {(compatible && !isBooked) ? '🔁 Chọn pin này' : (isBooked ?  'Đã được đặt' : 'Không phù hợp')}
                                 </a>
                               </div>
                             </div>

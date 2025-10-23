@@ -257,7 +257,7 @@ export default function StaffSelectionPopup({
       <div className="staff-popup">
         <div className="staff-popup-header">
           <h3>Thêm nhân viên vào trạm: {stationName}</h3>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <button className="close-btnn" onClick={onClose}>×</button>
         </div>
 
         <div className="staff-popup-content">
