@@ -162,7 +162,7 @@ export default function AdminLayout() {
                     sidebarOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0",
                     isActive
                       ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg scale-105"
-                      : "text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-800 hover:text-orange-600 dark:hover:text-orange-400 hover:scale-105"
+                      : "text-orange-500 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-800 hover:text-orange-600 dark:hover:text-orange-400 hover:scale-105"
                   ].join(" ")
                 }
                 style={{ transitionDelay: `${index * 50}ms` }}

@@ -747,4 +747,16 @@ uploadToCloudinary: async (file) => {
     throw new Error(errorMsg);
   }
 },
+
+// Thêm vào authAPI.js trong object authAPI
+getStationSchedulesByStationId: async (stationId) => {
+  try {
+    const response = await api.get('/api/StationSchedule/get_station_schedules_by_station_id', {
+      params: { stationId }
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error?.message || JSON.stringify(error) || 'Get station schedules failed');
+  }
+},
 };

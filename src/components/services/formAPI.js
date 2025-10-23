@@ -17,14 +17,33 @@ export const formAPI = {
     }
   },
 
-  getFormById: async (formId) => {
-    try {
-      const response = await api.get(`/api/Form/get-form-by-id/${formId}`);
-      return response.data;
-    } catch (error) {
-      throw error;
+  // Trong formAPI.js, đảm bảo hàm getFormById trả về đúng cấu trúc
+getFormById: async (formId) => {
+  try {
+    const response = await api.get(`/api/Form/get-form-by-id/${formId}`);
+    // Chuẩn hóa response structure
+    if (response.data?.isSuccess) {
+      return {
+        isSuccess: true,
+        data: response.data.data,
+        message: response.data.message
+      };
+    } else {
+      return {
+        isSuccess: false,
+        message: response.data?.message || 'Không thể lấy thông tin form',
+        data: null
+      };
     }
-  },
+  } catch (error) {
+    console.error('Get form by id error:', error);
+    return {
+      isSuccess: false,
+      message: error.response?.data?.message || error.message || 'Lỗi khi lấy thông tin form',
+      data: null
+    };
+  }
+},
 
   getAllForms: async () => {
     try {
