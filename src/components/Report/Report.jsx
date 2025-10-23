@@ -294,19 +294,19 @@ const Report = () => {
                 <div className="form-group">
                   <label htmlFor="stationId">Trạm gặp sự cố *</label>
                   <select
-                    id="stationId"
-                    name="stationId"
-                    value={formData.stationId}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    <option value="">Chọn trạm</option>
-                    {stations.map(station => (
-                      <option key={station.stationId} value={station.stationId}>
-                        {station.name} - {station.location}
-                      </option>
-                    ))}
-                  </select>
+  id="stationId"
+  name="stationId"
+  value={formData.stationId}
+  onChange={handleInputChange}
+  required
+>
+  <option value="">Chọn trạm</option>
+  {stations.map(station => (
+    <option key={station.stationId} value={station.stationId}>
+      {station.stationName} ( {station.location} )
+    </option>
+  ))}
+</select>
                 </div>
 
                 <div className="form-group">

@@ -2,9 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { message } from 'antd';
 import { authAPI } from '../services/authAPI';
 import { formAPI } from '../services/formAPI';
-// ❌ Bỏ dependency bên ngoài (không cần): import LiquidGlass from 'liquid-glass-react'
 import './Staff.css';
-import { white } from 'tailwindcss/colors';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -12,7 +10,7 @@ const DEFAULT_VIEW_KEY = 'forms';
 
 const VIEW_NAV = [
   { key: 'forms', label: 'Quản lý Form', icon: '📋' },
-  { key: 'station-schedule', label: 'Lịch đổi pin tại trạm', icon: '📅' },
+  { key: 'station-schedules', label: 'Lịch trình trạm', icon: '🗓️' },
   { key: 'battery-report', label: 'Báo cáo pin', icon: '📝' },
 ];
 
@@ -254,10 +252,16 @@ function StaffPage() {
   // Flag to control when to show success toast
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
+  // THÊM CÁC STATE CHO LỊCH TRÌNH
+  const [stationSchedules, setStationSchedules] = useState({});
+  const [loadingSchedules, setLoadingSchedules] = useState(false);
+  const [expandedScheduleStations, setExpandedScheduleStations] = useState(new Set());
+
   const activeViewKey = VIEW_CONFIG[viewMode] ? viewMode : DEFAULT_VIEW_KEY;
   const activeView = VIEW_CONFIG[activeViewKey];
   const isFormsView = activeViewKey === 'forms';
   const isStationScheduleView = activeViewKey === 'station-schedule';
+  const isStationSchedulesView = activeViewKey === 'station-schedules';
   const isBatteryReportView = activeViewKey === 'battery-report';
   const pageTitle = activeView?.label || VIEW_CONFIG[DEFAULT_VIEW_KEY].label;
 
@@ -269,6 +273,38 @@ function StaffPage() {
       setPage(1);
     }
   }, [setViewMode, setSelectedForm, setPage]);
+
+  // THÊM HÀM XỬ LÝ LỊCH TRÌNH
+  const handleToggleSchedule = async (stationId) => {
+    if (expandedScheduleStations.has(stationId)) {
+      setExpandedScheduleStations(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(stationId);
+        return newSet;
+      });
+      return;
+    }
+
+    setLoadingSchedules(true);
+    try {
+      const res = await authAPI.getStationSchedulesByStationId(stationId);
+      setStationSchedules(prev => ({
+        ...prev,
+        [stationId]: res.data || []
+      }));
+      setExpandedScheduleStations(prev => new Set(prev).add(stationId));
+    } catch (err) {
+      console.error('Failed to fetch station schedules:', err);
+      setStationSchedules(prev => ({
+        ...prev,
+        [stationId]: []
+      }));
+      setExpandedScheduleStations(prev => new Set(prev).add(stationId));
+      toast.error('Lấy lịch trình thất bại: ' + (err?.message || 'Lỗi không xác định'));
+    } finally {
+      setLoadingSchedules(false);
+    }
+  };
 
   // New function to handle battery report navigation with form data
   const handleBatteryReport = useCallback((form) => {
@@ -847,12 +883,6 @@ function StaffPage() {
       {/* SVG filter LiquidGlass (ẩn) – dùng cho card */}
       <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
         <defs>
-          {/* 
-            - feTurbulence tạo noise (map dịch chuyển)
-            - GaussianBlur làm mịn noise
-            - DisplacementMap bẻ cong nền sau card
-            Có thể tăng/giảm scale (25–70) và baseFrequency để tinh chỉnh.
-          */}
           <filter id="liquidGlass" x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
             <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="2" seed="8" result="noise" />
             <feGaussianBlur in="noise" stdDeviation="2" result="map" />
@@ -876,7 +906,6 @@ function StaffPage() {
             {currentUser?.avatarUrl ? (
               <img src={currentUser.avatarUrl} alt="profile" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
             ) : (
-              // icon user, có thể thay bằng svg hoặc chữ viết tắt
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="32"
@@ -957,7 +986,7 @@ function StaffPage() {
             </div>
 
             <div>
-              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6, color: white }}>Filter by Status</div>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6, color: 'white' }}>Filter by Status</div>
               <select className="select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                 <option value="All">All Status</option>
                 <option value="pending">Pending</option>
@@ -968,7 +997,7 @@ function StaffPage() {
             </div>
 
             <div>
-              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6, color: white }}>Sort by</div>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6, color: 'white' }}>Sort by</div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <select className="select" value={sortBy} onChange={(e) => handleSort(e.target.value)}>
                   <option value="date">Date</option>
@@ -1308,6 +1337,187 @@ function StaffPage() {
             ) : (
               <div style={{ marginTop: 24, padding: 24, textAlign: 'center', background: 'rgba(15,23,42,0.05)', borderRadius: 16, color: '#475569' }}>
                 Chưa có dữ liệu lịch trực cho trạm của bạn.
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* THÊM PHẦN HIỂN THỊ LỊCH TRÌNH */}
+        {isStationSchedulesView && (
+          <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
+            <h2 className="filters-title">Lịch trình các trạm</h2>
+            <p style={{ marginTop: 4, color: 'rgba(15,23,42,0.7)' }}>
+              Quản lý và xem lịch trình làm việc của các trạm bạn phụ trách
+            </p>
+
+            {stationAssignments.length > 0 ? (
+              <div style={{ display: 'grid', gap: '20px', marginTop: '20px' }}>
+                {stationAssignments.map((assignment, idx) => {
+                  const isExpanded = expandedScheduleStations.has(assignment.stationId);
+                  const schedules = stationSchedules[assignment.stationId] || [];
+                  
+                  return (
+                    <div 
+                      key={assignment.stationId} 
+                      className="liquid"
+                      style={{ 
+                        padding: '20px', 
+                        borderRadius: '16px',
+                        border: '1px solid rgba(15,23,42,0.1)',
+                        background: 'rgba(255,255,255,0.8)'
+                      }}
+                    >
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        marginBottom: '15px'
+                      }}>
+                        <div>
+                          <h3 style={{ margin: '0 0 5px 0', color: '#0f172a' }}>
+                            🏢 {assignment.stationName}
+                          </h3>
+                          <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>
+                            Station ID: {assignment.stationId} | Staff ID: {assignment.staffId}
+                          </p>
+                        </div>
+                        <button
+                          className="status-apply-btn"
+                          onClick={() => handleToggleSchedule(assignment.stationId)}
+                          disabled={loadingSchedules}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '20px',
+                            border: 'none',
+                            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                            color: 'white',
+                            fontWeight: 'bold',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {loadingSchedules && expandedScheduleStations.has(assignment.stationId) 
+                            ? '🔄 Đang tải...' 
+                            : (isExpanded ? '📅 Đóng lịch' : '📅 Xem lịch')}
+                        </button>
+                      </div>
+
+                      {isExpanded && (
+                        <div style={{
+                          marginTop: '15px',
+                          padding: '15px',
+                          background: 'rgba(15,23,42,0.03)',
+                          borderRadius: '12px',
+                          border: '1px solid rgba(15,23,42,0.05)'
+                        }}>
+                          <h4 style={{
+                            margin: '0 0 15px 0',
+                            color: '#0f172a',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px'
+                          }}>
+                            🗓️ Lịch trình trạm
+                          </h4>
+                          
+                          {loadingSchedules ? (
+                            <div style={{ textAlign: 'center', padding: '20px' }}>
+                              ⏳ Đang tải lịch trình...
+                            </div>
+                          ) : schedules.length > 0 ? (
+                            <div style={{
+                              display: 'grid',
+                              gap: '10px',
+                              maxHeight: '300px',
+                              overflowY: 'auto'
+                            }}>
+                              {schedules.map((schedule, scheduleIdx) => (
+                                <div key={scheduleIdx} style={{
+                                  padding: '12px 16px',
+                                  background: 'rgba(255,255,255,0.9)',
+                                  borderRadius: '8px',
+                                  border: '1px solid rgba(226, 232, 240, 0.8)',
+                                  fontSize: '0.9rem'
+                                }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ color: '#374151', fontWeight: '500' }}>
+                                      📅 {formatDate(schedule.date) || 'Chưa có ngày'}
+                                    </span>
+                                    <span style={{ 
+                                      color: schedule.status === 'Active' ? '#10b981' : 
+                                             schedule.status === 'Pending' ? '#f59e0b' : '#ef4444',
+                                      fontWeight: 'bold',
+                                      fontSize: '0.8rem'
+                                    }}>
+                                      {schedule.status === 'Active' ? '🟢' : 
+                                       schedule.status === 'Pending' ? '🟡' : '🔴'} {schedule.status}
+                                    </span>
+                                  </div>
+                                  <div style={{ 
+                                    color: '#64748b', 
+                                    fontSize: '0.8rem',
+                                    marginTop: '5px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '4px'
+                                  }}>
+                                    <div>
+                                      <strong>ID Lịch trình:</strong> {schedule.stationScheduleId}
+                                    </div>
+                                    <div>
+                                      <strong>Form ID:</strong> {schedule.formId || 'N/A'}
+                                    </div>
+                                    {schedule.description && (
+                                      <div>
+                                        <strong>Mô tả:</strong> {schedule.description}
+                                      </div>
+                                    )}
+                                    <div style={{ display: 'flex', gap: '15px', marginTop: '5px' }}>
+                                      <span>
+                                        <strong>Ngày tạo:</strong> {formatDate(schedule.startDate)}
+                                      </span>
+                                      <span>
+                                        <strong>Cập nhật:</strong> {formatDate(schedule.updateDate)}
+                                      </span>
+                                    </div>
+                                    {schedule.exchangeBatteries && schedule.exchangeBatteries.length > 0 && (
+                                      <div style={{ marginTop: '5px' }}>
+                                        <strong>Pin trao đổi:</strong> {schedule.exchangeBatteries.length} pin
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{ 
+                              textAlign: 'center', 
+                              padding: '30px',
+                              color: '#64748b',
+                              fontStyle: 'italic'
+                            }}>
+                              Không có lịch trình nào cho trạm này
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ 
+                marginTop: 24, 
+                padding: 40, 
+                textAlign: 'center', 
+                background: 'rgba(15,23,42,0.05)', 
+                borderRadius: 16, 
+                color: '#475569' 
+              }}>
+                <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📅</div>
+                <h3 style={{ color: '#475569', marginBottom: '8px' }}>Chưa có trạm nào được phân công</h3>
+                <p style={{ color: '#64748b', margin: 0 }}>
+                  Bạn chưa được phân công quản lý trạm nào. Vui lòng liên hệ quản trị viên.
+                </p>
               </div>
             )}
           </section>

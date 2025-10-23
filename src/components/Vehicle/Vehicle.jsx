@@ -169,38 +169,108 @@ const Vehicle = () => {
     }
   };
 
-  // Hàm lấy thông tin chi tiết pin
+  // HÀM SỬA LỖI: Lấy thông tin chi tiết pin
+  const getBatteryInfoFromVehicle = (vehicle) => {
+    const batteryId = getVehicleProperty(vehicle, 'battery');
+    
+    console.log('🔍 Getting battery info for vehicle:', {
+      batteryId,
+      vehicleData: vehicle,
+      batteryDetails: batteryDetails[batteryId]
+    });
+    
+    // Ưu tiên lấy từ batteryDetails
+    if (batteryId && batteryId !== 'N/A' && batteryDetails[batteryId]) {
+      const battery = batteryDetails[batteryId];
+      console.log('✅ Found battery details:', battery);
+      
+      return {
+        type: battery.Battery_type || battery.batteryType || battery.type || 'Chưa có thông tin',
+        specification: battery.specification || battery.Specification || 'Chưa có thông tin',
+        quality: battery.batteryQuality ? `${battery.batteryQuality}%` : 
+                battery.capacity ? `${battery.capacity}%` : 'Chưa có thông tin',
+        capacity: battery.capacity || 'N/A',
+        status: battery.status || 'N/A',
+        name: battery.batteryName || battery.name || 'Chưa có tên'
+      };
+    }
+    
+    // Fallback: thử lấy từ chính vehicle object
+    const batteryTypeFromVehicle = vehicle.Battery_type || vehicle.batteryType;
+    const specificationFromVehicle = vehicle.specification || vehicle.Specification;
+    const qualityFromVehicle = vehicle.batteryQuality || vehicle.capacity;
+    
+    console.log('🔄 Using fallback battery info from vehicle');
+    
+    return {
+      type: batteryTypeFromVehicle || 'Chưa có thông tin',
+      specification: specificationFromVehicle || 'Chưa có thông tin',
+      quality: qualityFromVehicle ? `${qualityFromVehicle}%` : 'Chưa có thông tin',
+      capacity: qualityFromVehicle || 'N/A',
+      status: vehicle.batteryStatus || 'N/A',
+      name: vehicle.batteryName || 'Chưa có tên'
+    };
+  };
+
+  // HÀM MỚI: Hiển thị trạng thái pin
+  const getBatteryStatusDisplay = (status) => {
+    const statusMap = {
+      'Available': 'Sẵn sàng',
+      'InUse': 'Đang sử dụng',
+      'Charging': 'Đang sạc',
+      'Booked': 'Đã đặt',
+      'Maintenance': 'Bảo trì',
+      'Decommissioned': 'Ngừng sử dụng',
+      'Good': 'Tốt',
+      'Faulty': 'Lỗi',
+      'Active': 'Hoạt động',
+      'Inactive': 'Không hoạt động'
+    };
+    return statusMap[status] || status || 'Không xác định';
+  };
+
+  // HÀM SỬA LỖI: Load battery details với debug tốt hơn
   const loadBatteryDetails = async (vehiclesData) => {
     try {
       const batteryMap = {};
+      const batteryPromises = [];
       
       for (const vehicle of vehiclesData) {
         const batteryId = getVehicleProperty(vehicle, 'battery');
         if (batteryId && batteryId !== 'N/A') {
-          try {
-            console.log(`Loading battery details for batteryId: ${batteryId}`);
-            const batteryResponse = await authAPI.getBatteryById(batteryId);
-            
-            let batteryData = null;
-            if (batteryResponse && batteryResponse.data) {
-              batteryData = batteryResponse.data;
-            } else if (batteryResponse) {
-              batteryData = batteryResponse;
-            }
-            
-            if (batteryData) {
-              batteryMap[batteryId] = batteryData;
-              console.log(`Battery details for ${batteryId}:`, batteryData);
-            }
-          } catch (err) {
-            console.error(`Error loading battery details for ${batteryId}:`, err);
-          }
+          batteryPromises.push(
+            (async () => {
+              try {
+                console.log(`🔋 Loading battery details for: ${batteryId}`);
+                const batteryResponse = await authAPI.getBatteryById(batteryId);
+                
+                let batteryData = null;
+                if (batteryResponse && batteryResponse.data) {
+                  batteryData = batteryResponse.data;
+                } else if (batteryResponse) {
+                  batteryData = batteryResponse;
+                }
+                
+                if (batteryData) {
+                  batteryMap[batteryId] = batteryData;
+                  console.log(`✅ Battery details for ${batteryId}:`, batteryData);
+                } else {
+                  console.warn(`⚠️ No battery data for ID: ${batteryId}`);
+                }
+              } catch (err) {
+                console.error(`❌ Error loading battery ${batteryId}:`, err);
+              }
+            })()
+          );
         }
       }
       
+      // Chờ tất cả promises hoàn thành
+      await Promise.all(batteryPromises);
       setBatteryDetails(batteryMap);
+      
     } catch (err) {
-      console.error('Error loading battery details:', err);
+      console.error('💥 Error in loadBatteryDetails:', err);
     }
   };
 
@@ -225,27 +295,6 @@ const Vehicle = () => {
     } catch (err) {
       console.error('Error loading all packages:', err);
     }
-  };
-
-  // HÀM MỚI: Lấy thông tin pin từ vehicle data
-  const getBatteryInfoFromVehicle = (vehicle) => {
-    const batteryId = getVehicleProperty(vehicle, 'battery');
-    
-    // Ưu tiên lấy từ batteryDetails
-    if (batteryId && batteryId !== 'N/A' && batteryDetails[batteryId]) {
-      const battery = batteryDetails[batteryId];
-      return {
-        type: battery.batteryType || battery.type || 'Chưa có thông tin',
-        specification: battery.specification || 'Chưa có thông tin',
-        quality: battery.batteryQuality ? `${battery.batteryQuality}%` : 'Chưa có thông tin'
-      };
-    }
-    
-    return {
-      type: 'Chưa có thông tin',
-      specification: 'Chưa có thông tin',
-      quality: 'Chưa có thông tin'
-    };
   };
 
   // Hàm xử lý khi chọn tên xe - TỰ ĐỘNG CẬP NHẬT LOẠI XE
@@ -415,6 +464,12 @@ const Vehicle = () => {
       localStorage.setItem("theme", "light");
     }
   };
+
+  // DEBUG: Theo dõi state changes
+  useEffect(() => {
+    console.log('🔍 DEBUG - Current batteryDetails:', batteryDetails);
+    console.log('🔍 DEBUG - Current vehicles:', vehicles);
+  }, [batteryDetails, vehicles]);
 
   useEffect(() => {
     loadVehicles();
@@ -790,8 +845,14 @@ const Vehicle = () => {
                 
                 <div className="vehicle-grid">
                   {vehicles[type].map((vehicle, vIdx) => {
-                    const packageInfo = getPackageDisplayInfo(vehicle);
+                    const batteryId = getVehicleProperty(vehicle, 'battery');
+                    console.log(`🔍 Vehicle ${vIdx} battery ID:`, batteryId);
+                    console.log(`🔍 Vehicle ${vIdx} data:`, vehicle);
+                    
                     const batteryInfo = getBatteryInfoFromVehicle(vehicle);
+                    console.log(`🔍 Battery info for vehicle ${vIdx}:`, batteryInfo);
+                    
+                    const packageInfo = getPackageDisplayInfo(vehicle);
                     
                     return (
                       <div 
@@ -853,23 +914,35 @@ const Vehicle = () => {
                               <span className="detail-value">{getVehicleProperty(vehicle, 'vin')}</span>
                             </div>
                             
-                            {/* THÊM: Hiển thị thông tin pin chi tiết */}
+                            {/* THÔNG TIN PIN CHI TIẾT - ĐÃ SỬA LỖI */}
                             <div className="detail-row">
-                              <span className="detail-label">🔋 Pin</span>
+                              <span className="detail-label">🔋 Tên pin</span>
+                              <span className="detail-value battery-name">
+                                {batteryInfo.name}
+                              </span>
+                            </div>
+                            <div className="detail-row">
+                              <span className="detail-label">⚡ Loại pin</span>
                               <span className="detail-value battery-type">
                                 {batteryInfo.type}
                               </span>
                             </div>
                             <div className="detail-row">
-                              <span className="detail-label">⚡ Thông số pin</span>
+                              <span className="detail-label">📋 Thông số</span>
                               <span className="detail-value battery-spec">
                                 {batteryInfo.specification}
                               </span>
                             </div>
                             <div className="detail-row">
-                              <span className="detail-label">📊 Dung lượng pin</span>
+                              <span className="detail-label">📊 Dung lượng</span>
                               <span className="detail-value battery-quality">
                                 {batteryInfo.quality}
+                              </span>
+                            </div>
+                            <div className="detail-row">
+                              <span className="detail-label">🔄 Trạng thái pin</span>
+                              <span className="detail-value battery-status">
+                                {getBatteryStatusDisplay(batteryInfo.status)}
                               </span>
                             </div>
                             

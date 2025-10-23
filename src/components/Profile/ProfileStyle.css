@@ -644,3 +644,95 @@
   border-color: rgba(56, 189, 248, 0.65);
   box-shadow: 0 12px 32px rgba(56, 189, 248, 0.38), 0 2px 8px rgba(56, 189, 248, 0.15) inset;
 }
+
+/* Thêm animation cho popup form detail */
+.profile-card .liquid-glass {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Đảm bảo popup không bị tràn trên mobile */
+@media (max-width: 480px) {
+  .profile-card .liquid-glass {
+    margin: 16px -16px -16px -16px;
+    border-radius: 0 0 14px 14px;
+  }
+}
+
+/* Tối ưu hiển thị cho popup chi tiết */
+.profile-card .liquid-glass > div {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.profile-card .liquid-glass > div::-webkit-scrollbar {
+  width: 6px;
+}
+
+.profile-card .liquid-glass > div::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.3);
+  border-radius: 3px;
+}
+
+/* Style cho station schedules */
+.station-schedule-item {
+  padding: 8px 12px;
+  margin: 4px 0;
+  background: rgba(56, 189, 248, 0.08);
+  border-radius: 8px;
+  border-left: 3px solid #38bdf8;
+  font-size: 13px;
+}
+
+.profile-container.dark .station-schedule-item {
+  background: rgba(56, 189, 248, 0.15);
+}
+
+/* Tối ưu hiển thị cho popup chi tiết */
+.profile-card .liquid-glass > div {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.profile-card .liquid-glass > div::-webkit-scrollbar {
+  width: 6px;
+}
+
+.profile-card .liquid-glass > div::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.4);
+  border-radius: 3px;
+}
+
+/* Animation cho popup form detail */
+.profile-card .liquid-glass {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Đảm bảo popup không bị tràn trên mobile */
+@media (max-width: 480px) {
+  .profile-card .liquid-glass {
+    margin: 16px -16px -16px -16px;
+    border-radius: 0 0 14px 14px;
+  }
+}

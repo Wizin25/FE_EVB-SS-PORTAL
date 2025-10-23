@@ -367,11 +367,9 @@ const SupportCenter = () => {
               </div>
             </div>
           </section>
+                <Footer theme={theme} />
         </div>
       </div>
-
-      {/* Footer */}
-      <Footer theme={theme} />
     </div>
   );
 };
