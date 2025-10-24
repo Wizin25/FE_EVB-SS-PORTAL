@@ -13,6 +13,14 @@ export default function BatteryManagementPage() {
   const [batteryTypeFilter, setBatteryTypeFilter] = useState("");
   const [specificationFilter, setSpecificationFilter] = useState("");
   const [stationFilter, setStationFilter] = useState("");
+  const [reports, setReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportsError, setReportsError] = useState("");
+  // Report detail
+  // Map lưu exchange detail theo batteryReportId
+  const [exchangeByReportId, setExchangeByReportId] = useState({});
+  const [exchangeLoadingByReportId, setExchangeLoadingByReportId] = useState({});
+  const [exchangeErrorByReportId, setExchangeErrorByReportId] = useState({});
 
   // sorting
   const [sortBy, setSortBy] = useState("");
@@ -189,6 +197,8 @@ export default function BatteryManagementPage() {
         };
       }
       setSelectedBattery(detail);
+      // Tải danh sách report theo BatteryId từ BE
+      await loadReportsForBattery(batteryId);
       setEditForm({
         batteryName: detail.batteryName ?? "",
         capacity: detail.capacity ?? "",
@@ -385,6 +395,47 @@ export default function BatteryManagementPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [sortBy, sortOrder]);
+
+  // ---------- FETCH REPORTS ----------
+  const loadReportsForBattery = async (batteryId) => {
+    if (!batteryId) {
+      setReports([]);
+      return;
+    }
+    setReportsLoading(true);
+    setReportsError("");
+    try {
+      const list = await authAPI.getBatteryReportsByBatteryId(batteryId);
+      setReports(Array.isArray(list) ? list : []);
+    } catch (e) {
+      setReports([]);
+      setReportsError(e?.message || "Không tải được báo cáo.");
+    } finally {
+      setReportsLoading(false);
+    }
+  };
+  const loadExchangeDetailForReport = async (report) => {
+    if (!report?.exchangeBatteryId) return;
+    const repId = report.batteryReportId || report.id || report.exchangeBatteryId;
+  
+    // If exchange detail is already loaded, toggle it (collapse)
+    if (exchangeByReportId[repId]) {
+      setExchangeByReportId(prev => ({ ...prev, [repId]: null }));
+      return;
+    }
+
+    setExchangeLoadingByReportId(prev => ({ ...prev, [repId]: true }));
+    setExchangeErrorByReportId(prev => ({ ...prev, [repId]: "" }));
+    try {
+      const ex = await authAPI.getExchangeBatteryByExchangeId(report.exchangeBatteryId);
+      setExchangeByReportId(prev => ({ ...prev, [repId]: ex || null }));
+    } catch (e) {
+      setExchangeByReportId(prev => ({ ...prev, [repId]: null }));
+      setExchangeErrorByReportId(prev => ({ ...prev, [repId]: e?.message || "Không tải được chi tiết trao đổi" }));
+    } finally {
+      setExchangeLoadingByReportId(prev => ({ ...prev, [repId]: false }));
+    }
+  };  
 
   // ---------- RENDER ----------
   return (
@@ -715,7 +766,7 @@ export default function BatteryManagementPage() {
                       <div className="batt-left">
                         {/* Battery Image */}
                         {b.image && (
-                          <div className="batt-image" style={{ 
+                          <div className="batt-image" style={{
                             marginBottom: 8,
                             width: 60,
                             height: 60,
@@ -727,8 +778,8 @@ export default function BatteryManagementPage() {
                             justifyContent: 'center',
                             background: '#f8fafc'
                           }}>
-                            <img 
-                              src={b.image} 
+                            <img
+                              src={b.image}
                               alt={`Pin ${b.batteryName || b.batteryId}`}
                               style={{
                                 width: '100%',
@@ -754,10 +805,10 @@ export default function BatteryManagementPage() {
                             onChange={(e) => handleUpdateBatteryStatus(b.batteryId, e.target.value)}
                             disabled={statusUpdateLoading || b.status === 'InUse'}
                             className={`status-select ${b.status === 'Available' ? 'status-available' :
-                                b.status === 'InUse' ? 'status-inuse' :
-                                  b.status === 'Charging' ? 'status-charging' :
-                                    b.status === 'Maintenance' ? 'status-maintenance' :
-                                      b.status === 'Decommissioned' ? 'status-decommissioned' : ''
+                              b.status === 'InUse' ? 'status-inuse' :
+                                b.status === 'Charging' ? 'status-charging' :
+                                  b.status === 'Maintenance' ? 'status-maintenance' :
+                                    b.status === 'Decommissioned' ? 'status-decommissioned' : ''
                               }`}
                           >
                             <option value="Available">Available</option>
@@ -889,8 +940,8 @@ export default function BatteryManagementPage() {
                     {/* Battery Image in Modal */}
                     {selectedBattery.image && (
                       <div style={{ marginBottom: 16, textAlign: 'center' }}>
-                        <img 
-                          src={selectedBattery.image} 
+                        <img
+                          src={selectedBattery.image}
                           alt={`Pin ${selectedBattery.batteryName || selectedBattery.batteryId}`}
                           style={{
                             maxWidth: 200,
@@ -920,10 +971,10 @@ export default function BatteryManagementPage() {
                         onChange={(e) => handleUpdateBatteryStatus(selectedBattery.batteryId, e.target.value)}
                         disabled={statusUpdateLoading || selectedBattery.status === 'InUse'}
                         className={`status-select ${selectedBattery.status === 'Available' ? 'status-available' :
-                            selectedBattery.status === 'InUse' ? 'status-inuse' :
-                              selectedBattery.status === 'Charging' ? 'status-charging' :
-                                selectedBattery.status === 'Maintenance' ? 'status-maintenance' :
-                                  selectedBattery.status === 'Decommissioned' ? 'status-decommissioned' : ''
+                          selectedBattery.status === 'InUse' ? 'status-inuse' :
+                            selectedBattery.status === 'Charging' ? 'status-charging' :
+                              selectedBattery.status === 'Maintenance' ? 'status-maintenance' :
+                                selectedBattery.status === 'Decommissioned' ? 'status-decommissioned' : ''
                           }`}
                         style={{ marginLeft: '8px' }}
                       >
@@ -943,10 +994,153 @@ export default function BatteryManagementPage() {
                         <ul className="detail-list">{selectedBattery.batteryHistories.map((h, i) => <li key={i}>{JSON.stringify(h)}</li>)}</ul>
                       ) : <div className="empty-note">Không có lịch sử</div>}
 
-                      <div className="section-title">Reports</div>
-                      {selectedBattery.batteryReports?.length ? (
-                        <ul className="detail-list">{selectedBattery.batteryReports.map((r, i) => <li key={i}>{JSON.stringify(r)}</li>)}</ul>
-                      ) : <div className="empty-note">Không có báo cáo</div>}
+                      <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span>Reports</span>
+                        <button
+                          className="btn small"
+                          onClick={() => loadReportsForBattery(selectedBattery.batteryId)}
+                          disabled={reportsLoading}
+                        >
+                          {reportsLoading ? "Đang tải..." : "Reload"}
+                        </button>
+                      </div>
+
+                      {reportsError ? (
+                        <div className="station-error">{reportsError}</div>
+                      ) : reportsLoading ? (
+                        <div className="station-loading">Đang tải báo cáo...</div>
+                      ) : (reports?.length ? (
+                        <div className="detail-list" style={{ display: 'grid', gap: 8 }}>
+                          {reports.map((r) => (
+                            <div
+                              key={r.batteryReportId || r.id}
+                              style={{
+                                border: '1px solid #e2e8f0',
+                                borderRadius: 10,
+                                padding: 10,
+                                background: '#ffffff'
+                              }}
+                            >
+                              <div style={{ display: 'flex', gap: 12 }}>
+                                {r.image ? (
+                                  <img
+                                    src={r.image}
+                                    alt={r.name || r.batteryReportId}
+                                    style={{ width: 72, height: 72, borderRadius: 8, objectFit: 'cover', border: '1px solid #e2e8f0' }}
+                                    onError={(e) => (e.currentTarget.style.display = 'none')}
+                                  />
+                                ) : null}
+
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontWeight: 700 }}>
+                                    {r.name || 'Unnamed Report'}
+                                    <span style={{
+                                      marginLeft: 8,
+                                      fontSize: 12,
+                                      padding: '2px 8px',
+                                      borderRadius: 999,
+                                      border: '1px solid #cbd5e1',
+                                    }}>
+                                      {r.status || 'Pending'}
+                                    </span>
+                                  </div>
+
+                                  {r.description ? (
+                                    <div style={{ fontSize: 13, color: '#475569', marginTop: 4 }}>
+                                      {r.description}
+                                    </div>
+                                  ) : null}
+
+                                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>
+                                    Station: <b>{r.station?.stationName || r.stationId || '-'}</b>
+                                    {r.exchangeBatteryId ? (
+                                      <span> • Exchange: <b>{r.exchangeBatteryId}</b></span>
+                                    ) : null}
+                                  </div>
+
+                                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                                    Bắt đầu: {r.startDate ? new Date(r.startDate).toLocaleString() : '-'} •
+                                    Cập nhật: {r.updateDate ? new Date(r.updateDate).toLocaleString() : '-'}
+                                  </div>
+
+                                  {/* Actions */}
+                                  {r.exchangeBatteryId ? (
+                                    <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                      <button
+                                        className="btn small"
+                                        onClick={() => loadExchangeDetailForReport(r)}
+                                        disabled={exchangeLoadingByReportId[r.batteryReportId || r.id || r.exchangeBatteryId]}
+                                      >
+                                        {exchangeLoadingByReportId[r.batteryReportId || r.id || r.exchangeBatteryId] ? "Đang mở..." : 
+                                         exchangeByReportId[r.batteryReportId || r.id || r.exchangeBatteryId] ? "Thu gọn" : "Xem trao đổi"}
+                                      </button>
+                                    </div>
+                                  ) : null}
+
+                                  {/* Exchange detail drawer */}
+                                  {(() => {
+                                    const repId = r.batteryReportId || r.id || r.exchangeBatteryId;
+                                    const ex = exchangeByReportId[repId];
+                                    const exErr = exchangeErrorByReportId[repId];
+                                    const exLoading = exchangeLoadingByReportId[repId];
+
+                                    if (exErr) {
+                                      return <div style={{ marginTop: 8, color: '#b91c1c', fontSize: 13 }}>{exErr}</div>;
+                                    }
+                                    if (!ex && !exLoading) return null;
+
+                                    // Khi có dữ liệu, hiển thị "thẻ chi tiết"
+                                    return ex ? (
+                                      <div
+                                        style={{
+                                          marginTop: 10,
+                                          borderTop: '1px dashed #cbd5e1',
+                                          paddingTop: 10,
+                                          display: 'grid',
+                                          gap: 6,
+                                          fontSize: 13,
+                                          color: '#0f172a'
+                                        }}
+                                      >
+                                        <div><b>Exchange ID:</b> {ex.exchangeBatteryId}</div>
+                                        <div><b>Trạng thái:</b> {ex.status}</div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                          <div>
+                                            <div><b>Old Battery:</b> {ex.oldBattery?.batteryName || ex.oldBatteryId || '-'}</div>
+                                            <div><b>New Battery:</b> {ex.newBattery?.batteryName || ex.newBatteryId || '-'}</div>
+                                          </div>
+                                          <div>
+                                            <div><b>Station:</b> {ex.station?.stationName || ex.stationId || '-'}</div>
+                                            <div><b>Order:</b> {ex.order?.orderId || ex.orderId || '-'}</div>
+                                          </div>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                          <div><b>Staff:</b> {ex.staffAccount?.name || ex.staffAccountId || '-'}</div>
+                                          <div><b>VIN:</b> {ex.vinNavigation?.vin || ex.vin || '-'}</div>
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                          <div><b>Schedule:</b> {ex.schedule?.scheduleId || ex.scheduleId || '-'}</div>
+                                          <div><b>Ghi chú:</b> {ex.notes || '-'}</div>
+                                        </div>
+
+                                        <div style={{ color: '#64748b' }}>
+                                          <span><b>Tạo:</b> {ex.startDate ? new Date(ex.startDate).toLocaleString() : '-'}</span> •{" "}
+                                          <span><b>Cập nhật:</b> {ex.updateDate ? new Date(ex.updateDate).toLocaleString() : '-'}</span>
+                                        </div>
+                                      </div>
+                                    ) : null;
+                                  })()}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="empty-note">Không có báo cáo</div>
+                      ))}
                     </div>
 
                     {/* Ngày tạo, cập nhật nằm dưới cuối cùng */}

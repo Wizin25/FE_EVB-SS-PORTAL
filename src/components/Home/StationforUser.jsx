@@ -776,7 +776,7 @@ export default function StationForUser() {
                           const isBooked = bstatus.toLowerCase() === 'booked';
 
                           // Smart icon and status color
-                          let statusChipColor = '#eab308', statusIcon = '🟡';
+                          let statusChipColor = '#22c55e', statusIcon = '🟢';
                           if (bstatus.toLowerCase() === 'active') { statusChipColor = '#22c55e'; statusIcon = '🟢'; }
                           else if (isBooked) { statusChipColor = '#f87171'; statusIcon = '🔴'; }
                           else if (bstatus.toLowerCase().includes('ready')) { statusChipColor = '#06b6d4'; statusIcon = '🔋'; }

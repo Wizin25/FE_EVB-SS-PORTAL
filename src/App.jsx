@@ -22,6 +22,8 @@ import PackageManager from './components/Admin/pages/PackageManager.jsx'
 import Contact from './components/Contact/contact.jsx'
 import Report from './components/Report/Report.jsx';
 import ReportManager from './components/Admin/pages/ReportManager.jsx';
+import PaymentSuccess from './components/Payment/PaymentSuccess.jsx';
+import PaymentFailure from './components/Payment/PaymentFailure.jsx';
 function App() {
   return (
     <Router>
@@ -52,6 +54,8 @@ function App() {
           <Route path="/vehicles" element={<Vehicle />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/report" element={<Report />} />
+          <Route path="/payment/success" element={<PaymentSuccess />} />
+          <Route path="/payment/failure" element={<PaymentFailure />} />
         </Routes>
       </div>
     </Router>

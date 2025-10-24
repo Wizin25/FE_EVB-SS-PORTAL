@@ -20,7 +20,7 @@ export const authAPI = {
       form.append('Phone', userData.phone);
       form.append('Address', userData.address ?? '');
       form.append('Email', userData.email);
-      
+
       const response = await api.post('/api/Account/register', form, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
@@ -49,37 +49,37 @@ export const authAPI = {
   },
 
   // Trong authAPI object, cập nhật hàm updateProfile:
-updateProfile: async (profileData) => {
-  try {
-    const form = new FormData();
-    
-    // Đảm bảo không gửi undefined values
-    form.append('Name', profileData.name || '');
-    form.append('Phone', profileData.phone || '');
-    form.append('Address', profileData.address || '');
-    form.append('Email', profileData.email || '');
-    
-    // QUAN TRỌNG: Backend có thể mong đợi field 'Avatar' 
-    if (profileData.avatar) {
-      // Nếu avatar là URL string, gửi dưới dạng string
-      if (typeof profileData.avatar === 'string') {
-        form.append('Avatar', profileData.avatar);
-      } else {
-        // Nếu là File object, gửi như file
-        form.append('Avatar', profileData.avatar);
-      }
-    }
+  updateProfile: async (profileData) => {
+    try {
+      const form = new FormData();
 
-    const response = await api.put('/api/Account/update_current_profile', form, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-    
-    return response.data;
-  } catch (error) {
-    console.error('Update profile error:', error.response?.data || error);
-    throw error.response?.data || error;
-  }
-},
+      // Đảm bảo không gửi undefined values
+      form.append('Name', profileData.name || '');
+      form.append('Phone', profileData.phone || '');
+      form.append('Address', profileData.address || '');
+      form.append('Email', profileData.email || '');
+
+      // QUAN TRỌNG: Backend có thể mong đợi field 'Avatar' 
+      if (profileData.avatar) {
+        // Nếu avatar là URL string, gửi dưới dạng string
+        if (typeof profileData.avatar === 'string') {
+          form.append('Avatar', profileData.avatar);
+        } else {
+          // Nếu là File object, gửi như file
+          form.append('Avatar', profileData.avatar);
+        }
+      }
+
+      const response = await api.put('/api/Account/update_current_profile', form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Update profile error:', error.response?.data || error);
+      throw error.response?.data || error;
+    }
+  },
 
   changePassword: async (passwordData) => {
     try {
@@ -88,7 +88,7 @@ updateProfile: async (profileData) => {
         newPassword: passwordData.newPassword,
         confirmPassword: passwordData.confirmPassword
       });
-      
+
       // Trả về toàn bộ response data để xử lý
       return response.data;
     } catch (error) {
@@ -142,7 +142,7 @@ updateProfile: async (profileData) => {
       throw error;
     }
   },
-  
+
   getAllCustomers: async () => {
     try {
       const response = await api.get('/api/Account/get_all_customer_for_admin');
@@ -234,14 +234,14 @@ updateProfile: async (profileData) => {
     }
   },
 
-  createStation: async ({ stationName ,batteryNumber, location}) => {
+  createStation: async ({ stationName, batteryNumber, location }) => {
     try {
       const form = new FormData();
       // Backend yêu cầu field name exactly as docs: BatteryNumber, Location, StationName
       form.append("Name", stationName ?? "");
       form.append("BatteryNumber", batteryNumber ?? 0);
       form.append("Location", location ?? "");
-      
+
       const res = await api.post("/api/Station/add_station_for_admin", form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -282,7 +282,7 @@ updateProfile: async (profileData) => {
     }
   },
 
-  updateStation: async ({ stationName,stationId, batteryNumber, location }) => {
+  updateStation: async ({ stationName, stationId, batteryNumber, location }) => {
     try {
       const form = new FormData();
       form.append("Name", stationName ?? "");
@@ -560,7 +560,7 @@ updateProfile: async (profileData) => {
   removeStaffFromStation: async ({ staffId, stationId }) => {
     try {
       const res = await api.delete('/api/Station/remove_staff_from_station_for_admin', {
-        params: { stationId ,staffId },
+        params: { stationId, staffId },
       });
       return res.data;
     } catch (err) {
@@ -613,35 +613,35 @@ updateProfile: async (profileData) => {
       throw new Error(msg);
     }
   },
-  
-    getCustomerByAccountId: async (accountId) => {
-      if (!accountId) throw new Error('accountId is required');
-      try {
-        const res = await api.get('/api/Account/get_customer_by_account_id', {
-          params: { accountId }
-        });
-        // Chuẩn hoá trả về giống các hàm khác
-        if (res?.data?.isSuccess) return res.data.data || null;
-        // Một số BE có thể trả raw object
-        if (res?.data && res.status === 200) return res.data;
-        return null;
-      } catch (err) {
-        const msg =
-          err?.response?.data?.message ||
-          err?.message ||
-          'Lấy thông tin customer theo accountId thất bại';
-        throw new Error(msg);
-      }
-    },
+
+  getCustomerByAccountId: async (accountId) => {
+    if (!accountId) throw new Error('accountId is required');
+    try {
+      const res = await api.get('/api/Account/get_customer_by_account_id', {
+        params: { accountId }
+      });
+      // Chuẩn hoá trả về giống các hàm khác
+      if (res?.data?.isSuccess) return res.data.data || null;
+      // Một số BE có thể trả raw object
+      if (res?.data && res.status === 200) return res.data;
+      return null;
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Lấy thông tin customer theo accountId thất bại';
+      throw new Error(msg);
+    }
+  },
 
   // Report APIs - ĐÃ SỬA ĐỔI để dùng Cloudinary publicId
   addReport: (formData) => {
-  return api.post('/api/Report/add_report', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  });
-},
+    return api.post('/api/Report/add_report', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
 
   getAllReports: async () => {
     try {
@@ -717,46 +717,158 @@ updateProfile: async (profileData) => {
       throw new Error(msg);
     }
   },
+  // Lấy danh sách Battery Reports theo batteryId
+  getBatteryReportsByBatteryId: async (batteryId) => {
+    if (!batteryId) return [];
+    try {
+      const res = await api.get('/api/BatteryReport/get_battery_reports_by_battery_id', {
+        params: { batteryId }
+      });
+      // BE trả wrapper { isSuccess, data } hoặc 404 khi rỗng -> FE coi 404 là []
+      if (res?.data?.isSuccess && Array.isArray(res.data.data)) {
+        return res.data.data;
+      }
+      // fallback cho trường hợp BE trả raw array
+      if (Array.isArray(res?.data)) return res.data;
+      return [];
+    } catch (err) {
+      // Một số trường hợp BE trả 404 khi list rỗng -> biến về []
+      const code = err?.response?.status;
+      if (code === 404) return [];
+      const msg = err?.response?.data?.message || err?.message || 'Chưa có báo cáo pin nào';
+      throw new Error(msg);
+    }
+  },
+  // Lấy chi tiết ExchangeBattery theo exchangeId
+  getExchangeBatteryByExchangeId: async (exchangeId) => {
+    if (!exchangeId) return null;
+    try {
+      // Controller định nghĩa: GET /api/ExchangeBattery/get_exchange_battery_by_exchange{id}
+      // -> phải nối trực tiếp id vào cuối path
+      const res = await api.get(`/api/ExchangeBattery/get_exchange_battery_by_exchange${exchangeId}`);
+      // Chuẩn hoá: nếu BE bọc wrapper { isSuccess, data }
+      if (res?.data?.isSuccess && res?.data?.data) return res.data.data;
+      // Một số tình huống có thể trả raw object
+      if (res?.status === 200 && res?.data) return res.data;
+      return null;
+    } catch (err) {
+      const code = err?.response?.status;
+      if (code === 404) return null;
+      const msg = err?.response?.data?.message || err?.message || 'Không lấy được chi tiết ExchangeBattery';
+      throw new Error(msg);
+    }
+  },
 
   // Trong authAPI object, cập nhật hàm uploadToCloudinary:
-uploadToCloudinary: async (file) => {
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    console.log('Uploading file to Cloudinary:', file.name, file.type, file.size);
-    
-    const response = await api.post('/api/Cloudinary/upload', formData, {
-      headers: { 
-        'Content-Type': 'multipart/form-data',
-      }
-    });
-    
-    console.log('FULL Cloudinary upload response:', response);
-    console.log('Response data:', response.data);
-    console.log('Response data.data:', response.data?.data);
-    
-    return response.data;
-  } catch (error) {
-    console.error('Cloudinary upload error details:', error);
-    console.error('Error response:', error.response);
-    const errorMsg = error?.response?.data?.message || 
-                    error?.message || 
-                    JSON.stringify(error) || 
-                    'Upload image failed';
-    throw new Error(errorMsg);
-  }
-},
+  uploadToCloudinary: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
 
-// Thêm vào authAPI.js trong object authAPI
-getStationSchedulesByStationId: async (stationId) => {
-  try {
-    const response = await api.get('/api/StationSchedule/get_station_schedules_by_station_id', {
-      params: { stationId }
-    });
-    return response.data;
-  } catch (error) {
-    throw new Error(error?.message || JSON.stringify(error) || 'Get station schedules failed');
-  }
-},
+      console.log('Uploading file to Cloudinary:', file.name, file.type, file.size);
+
+      const response = await api.post('/api/Cloudinary/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        }
+      });
+
+      console.log('FULL Cloudinary upload response:', response);
+      console.log('Response data:', response.data);
+      console.log('Response data.data:', response.data?.data);
+
+      return response.data;
+    } catch (error) {
+      console.error('Cloudinary upload error details:', error);
+      console.error('Error response:', error.response);
+      const errorMsg = error?.response?.data?.message ||
+        error?.message ||
+        JSON.stringify(error) ||
+        'Upload image failed';
+      throw new Error(errorMsg);
+    }
+  },
+
+  // Thêm vào authAPI.js trong object authAPI
+  getStationSchedulesByStationId: async (stationId) => {
+    try {
+      const response = await api.get('/api/StationSchedule/get_station_schedules_by_station_id', {
+        params: { stationId }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Get station schedules failed');
+    }
+  },
+
+  // ======== NEW: ORDER + PAYOS ========
+  /**
+    * Create Order theo rule:
+    * - serviceType: 'Package' | 'PrePaid' | 'UsePackage' | 'PaidAtStation'
+    * - Với PrePaid/UsePackage: KHÔNG gửi Vin, KHÔNG gửi ExchangeId; ServiceId = formId
+    * - Với PaidAtStation: PHẢI gửi ExchangeId (ServiceId = formId), KHÔNG gửi Vin
+    * - Với Package: PHẢI gửi Vin, KHÔNG gửi ExchangeId; ServiceId = packageId
+    */
+  createOrder: async ({
+    serviceType,
+    total,
+    accountId,
+    serviceId,      // formId hoặc packageId tùy loại
+    batteryId,
+    vin,            // chỉ gửi khi serviceType === 'Package'
+    exchangeId,     // chỉ gửi khi serviceType === 'PaidAtStation'
+  }) => {
+    try {
+      const form = new FormData();
+      form.append('ServiceType', serviceType); // backend nên map với enum PaymentType
+      form.append('AccountId', accountId ?? '');// sau các dòng append gốc:
+      form.append('accountId', accountId);
+      form.append('AccountID', accountId);
+      form.append('Total', total);
+      form.append('serviceId', serviceId);
+      form.append('ServiceID', serviceId);
+
+      form.append('batteryId', batteryId);
+      form.append('BatteryID', batteryId);
+
+      form.append('ServiceId', serviceId ?? '');
+      form.append('BatteryId', batteryId ?? '');
+
+      // Rule theo mô tả:
+      if (serviceType === 'Package') {
+        if (!vin) throw new Error('Vin là bắt buộc khi mua gói (Package).');
+        form.append('Vin', vin);
+      }
+      if (serviceType === 'PaidAtStation') {
+        if (!exchangeId) throw new Error('ExchangeId là bắt buộc khi thanh toán tại trạm.');
+        form.append('ExchangeId', exchangeId);
+      }
+      // PrePaid / UsePackage: KHÔNG gửi Vin + ExchangeId => không append 2 field này
+
+      const res = await api.post('/api/Order/create_order', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return res.data; // kỳ vọng { isSuccess, data: { orderId, ... } }
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Tạo Order thất bại';
+      throw new Error(msg);
+    }
+  },
+
+  /**
+   * Gọi PayOS để tạo link thanh toán
+   * Body JSON: { orderId, description }
+   */
+  createPayOSPayment: async ({ orderId, description }) => {
+    try {
+      const res = await api.post('/api/PayOS/create-payment', {
+        orderId,
+        description,
+      });
+      return res.data; // kỳ vọng { isSuccess, data: { checkoutUrl, ... } }
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Tạo thanh toán PayOS thất bại';
+      throw new Error(msg);
+    }
+  },
 };
