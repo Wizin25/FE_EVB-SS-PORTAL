@@ -430,6 +430,27 @@ export const authAPI = {
     }
   },
 
+  // Lấy Battery Histories theo batteryId
+  getBatteryHistoryByBatteryId: async (batteryId) => {
+    if (!batteryId) return [];
+    try {
+      const res = await api.get('/api/BatteryHistory/get_battery_history_by_battery_id', {
+        params: { batteryId }
+      });
+      // BE thường bọc wrapper { isSuccess, data }
+      if (res?.data?.isSuccess && Array.isArray(res.data.data)) return res.data.data;
+      // fallback nếu BE trả raw array
+      if (Array.isArray(res?.data)) return res.data;
+      return [];
+    } catch (err) {
+      // Nếu BE trả 404 khi rỗng → trả []
+      if (err?.response?.status === 404) return [];
+      const msg = err?.response?.data?.message || err?.message || 'Không tải được lịch sử pin';
+      throw new Error(msg);
+    }
+  },
+
+
   updateStationStatus: async (stationId, status) => {
     try {
       const formData = new FormData();
