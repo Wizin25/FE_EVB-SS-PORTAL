@@ -269,6 +269,36 @@ export default function BookingForm() {
 
     try {
       setPaying(true);
+
+      // Handle UsePackage - 0 cost order, no PayOS call
+      if (serviceType === SERVICE_TYPES.USE_PACKAGE) {
+        // Build payload for UsePackage
+        const usePackagePayload = {
+          serviceType: SERVICE_TYPES.USE_PACKAGE,
+          accountId,
+          serviceId: createdFormId,  // formId
+          batteryId,
+          total: 0,                  // <<< bắt buộc: 0 đồng
+          // không gửi vin/exchangeBatteryId
+        };
+
+        console.log("=== USE PACKAGE - CREATE ORDER PAYLOAD ===");
+        console.log(JSON.stringify(usePackagePayload, null, 2));
+        console.log("==========================================");
+
+        // Tạo Order 0đ, không gọi PayOS
+        const orderRes = await authAPI.createOrder(usePackagePayload);
+
+        const orderId =
+          orderRes?.data?.orderId || orderRes?.data?.OrderId || orderRes?.orderId || orderRes?.OrderId;
+
+        // UX tuỳ bạn: đóng modal + báo thành công, hoặc điều hướng trang success nội bộ
+        setShowPayModal(false);
+        setSuccess("Đã xác nhận dùng gói. Đơn hàng 0đ được tạo thành công.");
+        // Ví dụ: window.location.href = `/payment-success?orderId=${orderId || ""}`;
+        return; // <<< DỪNG TẠI ĐÂY, KHÔNG GỌI PayOS
+      }
+
       // Total mặc định để test
       const total = 10000;
 
