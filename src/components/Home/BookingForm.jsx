@@ -350,6 +350,15 @@ export default function BookingForm() {
         throw new Error("Không nhận được link thanh toán từ PayOS.");
       }
 
+      // Lưu context để PaymentSuccess dùng lại
+      sessionStorage.setItem('paymentCtx', JSON.stringify({
+        orderId,
+        serviceType: serviceType,
+        formId: createdFormId,
+        batteryId,
+        total
+      }));
+
       // Chuyển người dùng qua trang thanh toán
       window.location.href = redirectUrl;
     } catch (err) {

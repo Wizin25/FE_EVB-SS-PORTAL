@@ -46,13 +46,25 @@ export default function PaymentFailure() {
     }
   };
 
-  const handleRetryPayment = () => {
-    // Có thể redirect về trang thanh toán hoặc booking
-    navigate('/booking');
+  const handleRetryPayment = async () => {
+    try {
+      const ctxStr = sessionStorage.getItem('pkgPaymentCtx');
+      const ctx = ctxStr ? JSON.parse(ctxStr) : null;
+      if (!ctx?.orderId) return navigate('/plans');
+  
+      const desc = `${ctx.packageName || 'Package'} CHUYEN TIEN`;
+      const pay = await authAPI.createPayOSPayment({ orderId: ctx.orderId, description: desc });
+      const url = pay?.data?.checkoutUrl || pay?.data?.payUrl || pay?.data?.shortLink;
+      if (url) window.location.href = url;
+      else navigate('/plans');
+    } catch {
+      navigate('/plans');
+    }
   };
+  
 
   const handleGoHome = () => {
-    navigate('/');
+    navigate('/home');
   };
 
   const handleGoToStations = () => {
@@ -61,7 +73,7 @@ export default function PaymentFailure() {
 
   const handleContactSupport = () => {
     // Có thể mở modal liên hệ hoặc redirect đến trang contact
-    window.open('tel:1900123456', '_self');
+    window.open('/contact');
   };
 
   return (

@@ -913,6 +913,15 @@ export const authAPI = {
     }
   },
 
+  // LẤY ORDER BY ID (xác minh trạng thái thanh toán)
+  getOrderById: async (orderId) => {
+    if (!orderId) throw new Error('orderId is required');
+    // Backend route: /api/Order/get_order_by_{orderId}
+    const safeId = encodeURIComponent(orderId);
+    const res = await api.get(`/api/Order/get_order_by_${safeId}`);
+    return res.data; // kỳ vọng { data: { orderId, status, total, ... } } hoặc object trực tiếp
+  },
+
   /**
    * Gọi PayOS để tạo link thanh toán
    * Body JSON: { orderId, description }
