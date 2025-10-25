@@ -8,7 +8,6 @@ import "./booking.css";
 
 /** Map chuẩn hoá tên serviceType khớp enum PaymentType (BE) */
 const SERVICE_TYPES = {
-  PACKAGE: "Package",
   PREPAID: "PrePaid",
   USE_PACKAGE: "UsePackage",
   PAID_AT_STATION: "PaidAtStation",
@@ -235,7 +234,7 @@ export default function BookingForm() {
       }
 
       setCreatedFormId(String(formId));
-      setSuccess("Đặt lịch thành công.");
+      setSuccess("Bạn cần lựa chọn phương thức thanh toán để hoàn tất đặt lịch.");
       // Mở popup chọn phương thức (Cách 2)
       setShowPayModal(true);
 
@@ -251,7 +250,7 @@ export default function BookingForm() {
   };
 
   // ========== PAY MODAL HANDLER ==========
-  const handleCreatePayment = async ({ serviceType, exchangeId, packageId }) => {
+  const handleCreatePayment = async ({ serviceType, exchangeId }) => {
     setPayError("");
     if (!createdFormId) {
       setPayError("Thiếu formId, vui lòng đặt lịch lại.");
@@ -264,8 +263,7 @@ export default function BookingForm() {
     const accountId = user.accountId || user.accountID || user.AccountId;
     const customerName =
       user?.name || user?.Name || user?.username || user?.Username || "Khach Hang";
-    const serviceId =
-      serviceType === SERVICE_TYPES.PACKAGE ? (packageId || "") : createdFormId;
+    const serviceId = createdFormId;
 
     try {
       setPaying(true);
@@ -309,7 +307,7 @@ export default function BookingForm() {
         total,
         serviceId,
         batteryId,
-        vin: serviceType === SERVICE_TYPES.PACKAGE ? vin : undefined,
+        vin: undefined,
         exchangeId: serviceType === SERVICE_TYPES.PAID_AT_STATION ? (exchangeId || undefined) : undefined,
       };
 
@@ -333,7 +331,7 @@ export default function BookingForm() {
         throw new Error("Không xác định được OrderId từ phản hồi tạo Order.");
       }
 
-      // Gọi PayOS — “name + CHUYEN TIEN”
+      // Gọi PayOS — "name + CHUYEN TIEN"
       const description = `${customerName} CHUYEN TIEN`;
       const payRes = await authAPI.createPayOSPayment({ orderId, description });
 
@@ -494,7 +492,6 @@ export default function BookingForm() {
                     <span className="badge">PrePaid</span>
                     <span className="badge">UsePackage</span>
                     <span className="badge">PaidAtStation</span>
-                    <span className="badge">Package</span>
                   </div>
                   <small>Demo inline: bạn có thể lưu lựa chọn vào sessionStorage và gọi createOrder + PayOS sau khi CreateForm.</small>
                 </div>
@@ -531,14 +528,11 @@ export default function BookingForm() {
 function PaymentMethodModal({ onClose, onConfirm, paying, error, serviceTypes }) {
   const [method, setMethod] = useState(serviceTypes.PREPAID);
   const [exchangeId, setExchangeId] = useState("");
-  const [packageId, setPackageId] = useState("");
 
   const requireExchange = method === serviceTypes.PAID_AT_STATION;
-  const requirePackage = method === serviceTypes.PACKAGE;
 
   const canSubmit = () => {
     if (requireExchange && !exchangeId) return false;
-    if (requirePackage && !packageId) return false;
     return true;
   };
 
@@ -609,7 +603,6 @@ function PaymentMethodModal({ onClose, onConfirm, paying, error, serviceTypes })
               <option value={serviceTypes.PREPAID}>💳 PrePaid — thanh toán trước</option>
               <option value={serviceTypes.USE_PACKAGE}>📦 UsePackage — dùng gói đã mua</option>
               <option value={serviceTypes.PAID_AT_STATION}>🏪 PaidAtStation — thanh toán tại trạm</option>
-              
             </select>
           </label>
 
@@ -637,30 +630,6 @@ function PaymentMethodModal({ onClose, onConfirm, paying, error, serviceTypes })
             </label>
           )}
 
-          {requirePackage && (
-            <label className="form-field" style={{ marginBottom: '16px' }}>
-              <span style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#374151' }}>
-                PackageId (bắt buộc khi mua gói) *
-              </span>
-              <input
-                className="form-input"
-                placeholder="Nhập PackageId"
-                value={packageId}
-                onChange={(e) => setPackageId(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}
-              />
-              <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                ID của gói dịch vụ muốn mua
-              </small>
-            </label>
-          )}
-
           {error && (
             <div className="form-error" style={{ 
               marginTop: 8, 
@@ -677,7 +646,7 @@ function PaymentMethodModal({ onClose, onConfirm, paying, error, serviceTypes })
         </div>
 
         <div className="modal-actions" style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
-          <button
+          {/* <button
             onClick={onClose}
             style={{
               flex: 1,
@@ -692,11 +661,11 @@ function PaymentMethodModal({ onClose, onConfirm, paying, error, serviceTypes })
             }}
           >
             Hủy
-          </button>
+          </button> */}
           <button
             className="btn primary"
             disabled={paying || !canSubmit()}
-            onClick={() => onConfirm({ serviceType: method, exchangeId, packageId })}
+            onClick={() => onConfirm({ serviceType: method, exchangeId })}
             style={{
               flex: 2,
               padding: '12px 16px',
