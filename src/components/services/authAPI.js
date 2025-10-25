@@ -495,7 +495,7 @@ export const authAPI = {
   },
 
   // Rating APIs
-  addRating: async ({ rating1, description, stationId, accountId }) => {
+  addRating: async ({ rating1, description, stationId, accountId, image }) => {
     try {
       const form = new FormData();
       // Field names must match backend exactly as in docs
@@ -503,6 +503,9 @@ export const authAPI = {
       form.append('Description', description ?? '');
       form.append('StationId', stationId);
       form.append('AccountId', accountId);
+      if (typeof image === 'string') {
+        form.append('Image', image);
+      }
 
       const res = await api.post('/api/Rating/add_rating', form, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -523,6 +526,40 @@ export const authAPI = {
       return [];
     } catch (err) {
       const msg = err?.response?.data?.message || err?.message || 'Lấy danh sách đánh giá thất bại';
+      throw new Error(msg);
+    }
+  },
+
+  updateRating: async ({ ratingId, rating1, description, image }) => {
+    try {
+      const form = new FormData();
+      form.append('RatingId', ratingId);
+      if (rating1 !== undefined && rating1 !== null) form.append('Rating1', rating1);
+      if (description !== undefined && description !== null) form.append('Description', description);
+      if (image !== undefined && image !== null) form.append('Image', image);
+
+      const res = await api.put('/api/Rating/update_rating', form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return res.data;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Cập nhật đánh giá thất bại';
+      throw new Error(msg);
+    }
+  },
+
+  deleteRatingForCustomerByRatingId: async ({ ratingId, accountId }) => {
+    try {
+      const form = new FormData();
+      form.append('RatingId', ratingId);
+      form.append('AccountId', accountId);
+
+      const res = await api.put('/api/Rating/delete_rating_for_customer_by_rating_id', form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return res.data;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Xoá đánh giá thất bại';
       throw new Error(msg);
     }
   },
