@@ -13,6 +13,7 @@ const VIEW_NAV = [
   { key: 'forms', label: 'Quản lý Form', icon: '📋' },
   { key: 'station-schedules', label: 'Lịch trình trạm', icon: '🗓️' },
   { key: 'battery-report', label: 'Báo cáo pin', icon: '📝' },
+  { key: 'exchange-battery', label: 'Xác nhận giao dịch', icon: '✅' },
 ];
 
 const VIEW_CONFIG = VIEW_NAV.reduce((acc, item) => {
@@ -170,6 +171,7 @@ function BatteryReportForm({
             <div><strong>AccountId:</strong> {defaults?.accountId || 'N/A'}</div>
             <div><strong>StationId:</strong> {defaults?.stationId || 'N/A'}</div>
             <div><strong>BatteryId:</strong> {defaults?.batteryId || 'N/A'}</div>
+          <div><strong>ExchangeBatteryId:</strong> {defaults?.exchangeBatteryId || 'N/A'}</div>
           </div>
         </div>
 
@@ -254,7 +256,7 @@ function StaffPage() {
   // Tìm kiếm/sắp xếp
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [sortBy, setSortBy] = useState('date');
+  const [sortBy, setSortBy] = useState('startDate');
   const [sortDirection, setSortDirection] = useState('desc');
 
   // Phân trang
@@ -271,6 +273,14 @@ function StaffPage() {
   const [loadingSchedules, setLoadingSchedules] = useState(false);
   const [selectedScheduleDate, setSelectedScheduleDate] = useState(null);
   const [schedulesByDate, setSchedulesByDate] = useState({});
+
+  // ✅ THÊM STATE CHO EXCHANGE BATTERY PANEL
+  const [activePanel, setActivePanel] = useState('dashboard');
+  const [stationIdSelected, setStationIdSelected] = useState(null);
+  const [exchanges, setExchanges] = useState([]);
+  const [loadingExchanges, setLoadingExchanges] = useState(false);
+  const [filters, setFilters] = useState({ status: 'Pending', keyword: '' });
+  const [ordersMap, setOrdersMap] = useState({}); // { [orderId]: { status: 'Paid' | ... } }
 
   // MOVE stationAssignments UP HERE - before functions that use it
   const stationAssignments = useMemo(() => {
@@ -360,6 +370,7 @@ function StaffPage() {
   const isFormsView = activeViewKey === 'forms';
   const isStationSchedulesView = activeViewKey === 'station-schedules';
   const isBatteryReportView = activeViewKey === 'battery-report';
+  const isExchangeBatteryView = activeViewKey === 'exchange-battery';
   const pageTitle = activeView?.label || VIEW_CONFIG[DEFAULT_VIEW_KEY].label;
 
   const handleSwitchView = useCallback((nextView) => {
@@ -588,6 +599,110 @@ function StaffPage() {
     setBatteryReportDefaults(defaults);
     handleSwitchView('battery-report');
   }, [currentUser, handleSwitchView]);
+
+  // ✅ THÊM HÀM LOAD EXCHANGES
+  const loadExchanges = useCallback(async (stationId) => {
+    setLoadingExchanges(true);
+    try {
+      const data = await authAPI.getExchangesByStation(stationId);
+      const list = data?.data ?? data ?? [];
+      setExchanges(list);
+
+      const uniqueOrderIds = [...new Set(list.map(x => x.orderId).filter(Boolean))];
+      if (uniqueOrderIds.length) {
+        const results = await Promise.allSettled(uniqueOrderIds.map((id) => authAPI.getOrderById(id)));
+        const map = {};
+        results.forEach((r, idx) => {
+          const id = uniqueOrderIds[idx];
+          if (r.status === 'fulfilled') {
+            // getOrderById của bạn trả res.data → có thể là object trực tiếp hoặc { data: {...} }
+            const raw = r.value;
+            const od = raw?.data ?? raw ?? {};
+            map[id] = { status: od?.status || od?.orderStatus || od?.data?.status || 'Unknown' };
+          }
+        });
+        setOrdersMap(map);
+      } else {
+        setOrdersMap({});
+      }
+    } catch (e) {
+      console.error('Error loading exchanges:', e);
+      toast.error('Lỗi khi tải danh sách trao đổi: ' + (e?.message || 'Lỗi không xác định'));
+    } finally {
+      setLoadingExchanges(false);
+    }
+  }, [toast]);
+
+  // ✅ MỞ PANEL (gọi ở nút entry point)
+  const openConfirmExchangePanel = useCallback((stationId) => {
+    setStationIdSelected(stationId);
+    setActivePanel('confirmExchange');
+  }, []);
+
+  // ✅ CHUYỂN SANG KHỐI BÁO CÁO PIN (prefill exchangeBatteryId)
+  const handleOpenReport = useCallback((exchange) => {
+    const defaults = {
+      stationId: stationIdSelected,
+      batteryId: exchange?.oldBatteryId,            // tuỳ nghiệp vụ
+      exchangeBatteryId: exchange?.exchangeBatteryId, // BẮT BUỘC
+      accountId: exchange?.accountId || '',
+    };
+    setBatteryReportDefaults(defaults);
+    handleSwitchView('battery-report');
+  }, [stationIdSelected, handleSwitchView]);
+
+  // ✅ ĐIỀU KIỆN ENABLE "HOÀN TẤT"
+  const canComplete = useCallback((exchange) => {
+    const orderStatus = ordersMap?.[exchange?.orderId]?.status;
+    const orderPaid = ['Paid', 'PAID'].includes(orderStatus);
+
+    // Nếu BE đã trả kèm các field này thì dùng trực tiếp; nếu chưa có, tạm coi true (để không chặn sai).
+    const reportCompleted = exchange?.reportStatus ? exchange.reportStatus === 'Completed' : true;
+    const newBatteryAvailable = exchange?.newBatteryStatus ? exchange.newBatteryStatus === 'Available' : true;
+
+    return orderPaid && reportCompleted && newBatteryAvailable && exchange?.status === 'Pending';
+  }, [ordersMap]);
+
+  // ✅ PUT "Completed"
+  const handleComplete = useCallback(async (exchange) => {
+    try {
+      const currentStaffId = currentUser?.staffId || currentUser?.accountId;
+      await authAPI.updateExchangeStatus({
+        StaffId: currentStaffId, // Changed from staffId to StaffId
+        ExchangeBatteryId: exchange.exchangeBatteryId, // Changed from exchangeBatteryId to ExchangeBatteryId
+        status: 'Completed',
+      });
+      await loadExchanges(stationIdSelected);
+      toast.success('Đã hoàn tất trao đổi.');
+    } catch (e) {
+      console.error('Error completing exchange:', e);
+      toast.error('Không thể hoàn tất: ' + (e?.message || 'Lỗi không xác định'));
+    }
+  }, [currentUser, stationIdSelected, loadExchanges, toast]);
+
+  // ✅ PUT "Cancelled"
+  const handleCancel = useCallback(async (exchange) => {
+    try {
+      const currentStaffId = currentUser?.staffId || currentUser?.accountId;
+      await authAPI.updateExchangeStatus({
+        StaffId: currentStaffId, // Changed from staffId to StaffId
+        ExchangeBatteryId: exchange.exchangeBatteryId, // Changed from exchangeBatteryId to ExchangeBatteryId
+        status: 'Cancelled',
+      });
+      await loadExchanges(stationIdSelected);
+      toast.success('Đã huỷ yêu cầu.');
+    } catch (e) {
+      console.error('Error cancelling exchange:', e);
+      toast.error('Không thể huỷ: ' + (e?.message || 'Lỗi không xác định'));
+    }
+  }, [currentUser, stationIdSelected, loadExchanges, toast]);
+
+  // ✅ TỰ LOAD KHI VÀO PANEL
+  useEffect(() => {
+    if (activePanel === 'confirmExchange' && stationIdSelected) {
+      loadExchanges(stationIdSelected);
+    }
+  }, [activePanel, stationIdSelected, loadExchanges]);
 
   // Preload station schedules khi stationAssignments thay đổi
   useEffect(() => {
@@ -1184,329 +1299,472 @@ function StaffPage() {
 
         {isFormsView && (
           <>
-        {/* Filters (GLASS) */}
-        <section className="filters glass liquid">
-          <h2 className="filters-title">Tìm kiếm & Sắp xếp Form</h2>
-          <div className="filters-row">
-            <div className="input-search">
-              <input
-                type="text"
-                placeholder="Search by Customer, Phone, Email, Station..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <span className="icon">🔍</span>
-            </div>
+            {/* Filters (GLASS) */}
+            <section className="filters glass liquid">
+              <h2 className="filters-title">Tìm kiếm & Sắp xếp Form</h2>
+              <div className="filters-row">
+                <div className="input-search">
+                  <input
+                    type="text"
+                    placeholder="Search by Customer, Phone, Email, Station..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  <span className="icon">🔍</span>
+                </div>
 
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6, color: 'white' }}>Filter by Status</div>
-              <select className="select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                <option value="All">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6, color: 'white' }}>Filter by Status</div>
+                  <select className="select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <option value="All">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
 
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6, color: 'white' }}>Sort by</div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <select className="select" value={sortBy} onChange={(e) => handleSort(e.target.value)}>
-                  <option value="date">Date</option>
-                  <option value="title">Title</option>
-                  <option value="status">Status</option>
-                </select>
-                <button
-                  className="btn-sortdir"
-                  onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
-                >
-                  {sortDirection === 'asc' ? '↑ Asc' : '↓ Desc'}
-                </button>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6, color: 'white' }}>Sort by</div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <select className="select" value={sortBy} onChange={(e) => handleSort(e.target.value)}>
+                      <option value="date">Date</option>
+                      <option value="title">Title</option>
+                      <option value="status">Status</option>
+                    </select>
+                    <button
+                      className="btn-sortdir"
+                      onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
+                    >
+                      {sortDirection === 'asc' ? '↑ Asc' : '↓ Desc'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="results">
+                  <span>Results</span>
+                  <div>Showing: {filteredAndSortedForms.length} / {forms.length} forms</div>
+                </div>
               </div>
-            </div>
+            </section>
 
-            <div className="results">
-              <span>Results</span>
-              <div>Showing: {filteredAndSortedForms.length} / {forms.length} forms</div>
-            </div>
-          </div>
-        </section>
 
-        {/* List (GLASS) */}
-        <section className="list-wrap liquid">
-          <div className="list-header">
-            <h2>
-              Danh sách Forms
-              <span className="list-title-sub">({currentForms.length} / {filteredAndSortedForms.length} trên {forms.length} forms)</span>
-            </h2>
-            <div>
-              <button className="btn-refresh" onClick={handleRefresh} disabled={loading}>
-                {loading ? 'Đang tải...' : 'Làm mới'}
-              </button>
-            </div>
-          </div>
+            {/* Duyệt Form (bên ngoài phần Form đã gửi) */}
+            <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
+              <h3 style={{ 
+                margin: '0 0 16px 0', 
+                color: '#0f172a',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span>✅</span>
+                Duyệt Form đổi pin
+              </h3>
+              {forms.filter(f => f.status?.toLowerCase() === 'submitted').length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '40px',
+                  color: '#64748b',
+                  fontStyle: 'italic'
+                }}>
+                  <div style={{ fontSize: '2.2rem', marginBottom: '16px' }}>🎉</div>
+                  <h4 style={{ color: '#475569', marginBottom: '8px' }}>Không có form nào đang chờ duyệt</h4>
+                  <p>Tất cả form đã được duyệt hoặc chuyển trạng thái khác.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {forms.filter(f => f.status?.toLowerCase() === 'submitted').map((form) => {
+                    const fid = getFormId(form);
+                    const accountId = form.accountId;
+                    const customer = customerDetails[accountId];
+                    const battery = batteryDetails[form.batteryId];
 
-          {loading ? (
-            <div className="state-center"><p>Đang tải dữ liệu...</p></div>
-          ) : forms.filter(f => (f?.status?.toLowerCase?.() ?? '') !== 'deleted').length === 0 ? (
-            <div className="state-center"><p>Không có form nào</p></div>
-          ) : currentForms.length === 0 ? (
-            <div className="state-center"><p>Không tìm thấy form nào phù hợp với tiêu chí tìm kiếm</p></div>
-          ) : (
-            <>
-              <div className="list-grid">
-                {currentForms.map((form) => {
-                  const fid = getFormId(form);
-                  const accountId = form.accountId;
-                  const customer = customerDetails[accountId];
-                  const isCustomerLoading = detailLoading[accountId];
-                  const stationName =   stationDetails.byStationId?.[form.stationId] || '—';
-                  const currentChoice = statusChoice[fid] || '';
-
-                  return (
-                    <div key={fid ?? Math.random()} className="form-card liquid" onClick={() => setSelectedForm(form)}>
-                      <div style={{ flex: 1 }}>
-                        <h3 className="form-title">Title: {form.title}</h3>
-                        <p className="form-desc">Description: {form.description}</p>
-
-                        <div className="form-meta">
-                          <span>
-                            <strong>Station: </strong>
-                            {stationName}
-                          </span>
-                          {form.date && <span><strong>Ngày tạo:</strong> {formatDate(form.date)}</span>}
-                          {form.batteryId && <span><strong>Battery ID:</strong> {form.batteryId}</span>}
+                    return (
+                      <div 
+                        key={fid ?? Math.random()}
+                        style={{
+                          padding: '16px',
+                          background: 'rgba(255,255,255,0.95)',
+                          borderRadius: '12px',
+                          border: '2px solid rgba(59,130,246,0.25)',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                              <h4 style={{ 
+                                margin: 0, 
+                                color: '#0f172a',
+                                fontSize: '16px',
+                                fontWeight: '600'
+                              }}>
+                                📋 {form.title || 'Form đổi pin'}
+                              </h4>
+                              <span style={{
+                                padding: '4px 12px',
+                                borderRadius: '20px',
+                                fontSize: '12px',
+                                fontWeight: '700',
+                                background: 'linear-gradient(135deg, #60a5fa 0%, #2563eb 100%)',
+                                color: 'white'
+                              }}>
+                                📤 Đang chờ duyệt
+                              </span>
+                            </div>
+                            <div style={{ 
+                              display: 'grid', 
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
+                              gap: '12px',
+                              marginBottom: '12px'
+                            }}>
+                              <div>
+                                <strong>📅 Ngày đăng ký:</strong> {formatDate(form.date || form.startDate)}
+                              </div>
+                              <div>
+                                <strong>🔋 Battery ID:</strong> {form.batteryId || 'N/A'}
+                              </div>
+                              <div>
+                                <strong>🏢 Trạm:</strong> {stationDetails.byStationId?.[form.stationId] || form.stationId || 'N/A'}
+                              </div>
+                              <div>
+                                <strong>👤 Khách hàng:</strong> {customer?.name || 'Đang tải...'}
+                              </div>
+                            </div>
+                            {form.description && (
+                              <div style={{ marginBottom: '12px' }}>
+                                <strong>📝 Mô tả:</strong> {form.description}
+                              </div>
+                            )}
+                            {/* Thông tin pin chi tiết */}
+                            {battery && (
+                              <div style={{
+                                background: 'rgba(16, 185, 129, 0.1)',
+                                padding: '12px',
+                                borderRadius: '8px',
+                                marginBottom: '12px'
+                              }}>
+                                <div style={{ fontWeight: '600', marginBottom: '8px', color: '#059669' }}>
+                                  🔋 Thông tin pin
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', fontSize: '13px' }}>
+                                  <div><strong>Tên:</strong> {battery.batteryName || 'N/A'}</div>
+                                  <div><strong>Trạng thái:</strong> {battery.status || 'N/A'}</div>
+                                  <div><strong>Dung lượng:</strong> {battery.capacity ? `${battery.capacity}%` : 'N/A'}</div>
+                                  <div><strong>Chất lượng:</strong> {battery.batteryQuality ? `${battery.batteryQuality}%` : 'N/A'}</div>
+                                </div>
+                              </div>
+                            )}
+                            {/* Thông tin khách hàng chi tiết */}
+                            {customer && (
+                              <div style={{
+                                background: 'rgba(59, 130, 246, 0.1)',
+                                padding: '12px',
+                                borderRadius: '8px',
+                                marginBottom: '12px'
+                              }}>
+                                <div style={{ fontWeight: '600', marginBottom: '8px', color: '#2563eb' }}>
+                                  👤 Thông tin khách hàng
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', fontSize: '13px' }}>
+                                  <div><strong>Tên:</strong> {customer.name || 'N/A'}</div>
+                                  <div><strong>SĐT:</strong> {customer.phone || 'N/A'}</div>
+                                  <div><strong>Email:</strong> {customer.email || 'N/A'}</div>
+                                  <div><strong>Account ID:</strong> {accountId}</div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          {/* Actions */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '180px', marginLeft: '10px' }}>
+                            <select
+                              className="status-select"
+                              value={statusChoice[fid] || ''}
+                              onChange={(e) => setStatusChoice(prev => ({ ...prev, [fid]: e.target.value }))}
+                              style={{ marginBottom: 8 }}
+                            >
+                              <option value="">-- Chọn trạng thái --</option>
+                              <option value="approved">Duyệt (Approved)</option>
+                              <option value="rejected">Từ chối (Rejected)</option>
+                            </select>
+                            <button
+                              className="status-apply-btn"
+                              style={{
+                                padding: '8px 16px',
+                                borderRadius: '8px',
+                                background: 'rgba(16, 185, 129, 0.15)',
+                                color: '#059669',
+                                border: '1px solid rgba(15,23,42,0.13)',
+                                fontSize: '14px'
+                              }}
+                              disabled={!statusChoice[fid] || loading}
+                              onClick={() => handleUpdateStatus(fid, statusChoice[fid])}
+                            >
+                              Xác nhận giao dịch đổi pin
+                            </button>
+                            <button
+                              className="status-apply-btn"
+                              onClick={() => setSelectedForm(form)}
+                              style={{
+                                padding: '8px 16px',
+                                borderRadius: '8px',
+                                background: 'rgba(15,23,42,0.08)',
+                                color: '#0f172a',
+                                border: '1px solid rgba(15,23,42,0.16)',
+                                fontSize: '14px'
+                              }}
+                            >
+                              👁️ Xem chi tiết
+                            </button>
+                          </div>
                         </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
 
-                        {/* Dropdown đổi trạng thái */}
-                        <div className="status-inline" onClick={(e) => e.stopPropagation()}>
+            {selectedForm && (
+              <div className="modal-root">
+                <div className="modal-card liquid">
+                  <div className="modal-head liquid">
+                    <h2>Form Chi Tiết</h2>
+                    <button className="btn-close" onClick={() => setSelectedForm(null)}>Đóng</button>
+                  </div>
+                  <div className="modal-body liquid">
+                    {/* <pre className="modal-pre">{JSON.stringify(selectedForm, null, 2)}</pre> */}
+                    {/* Hiển thị chi tiết cục pin nếu có batteryId */}
+                    {selectedForm?.batteryId && (
+                      <div style={{ marginTop: 16, background: "#f9fafb", padding: 12, borderRadius: 8 }}>
+                        <h4>Thông tin Pin</h4>
+                        {batteryLoading[selectedForm.batteryId] ? (
+                          <div>Đang tải thông tin pin...</div>
+                        ) : batteryDetails[selectedForm.batteryId] ? (
+                          <table className="battery-detail-table" style={{ width: '100%' }}>
+                            <tbody>
+                              {[
+                                { key: 'batteryName', label: 'Tên Pin' },
+                                { key: 'status', label: 'Trạng thái' },
+                                { key: 'capacity', label: 'Dung lượng', isPercent: true },
+                                { key: 'batteryType', label: 'Loại Pin' },
+                                { key: 'specification', label: 'Thông số kỹ thuật' },
+                                { key: 'batteryQuality', label: 'Chất lượng Pin', isPercent: true }
+                              ].map(({ key, label, isPercent }) => {
+                                const value = batteryDetails[selectedForm.batteryId][key];
+                                let displayValue = value;
+                                if (
+                                  value !== undefined &&
+                                  value !== null &&
+                                  isPercent
+                                ) {
+                                  const numVal = typeof value === 'number' ? value : parseFloat(value);
+                                  if (!isNaN(numVal)) {
+                                    displayValue = `${numVal}%`;
+                                  } else if (typeof value === 'string' && !value.trim().endsWith('%')) {
+                                    displayValue = `${value}%`;
+                                  } else {
+                                    displayValue = value;
+                                  }
+                                }
+                                return value !== undefined && value !== null ? (
+                                  <tr key={key}>
+                                    <td style={{ fontWeight: 500, paddingRight: 8 }}>{label}:</td>
+                                    <td>{displayValue}</td>
+                                  </tr>
+                                ) : null;
+                              })}
+                            </tbody>
+                          </table>
+                        ) : (
+                          <div>Không tìm thấy thông tin pin.</div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Dropdown đổi status trong modal */}
+                    {(() => {
+                      const fid = getFormId(selectedForm);
+                      return (
+                        <div className="status-inline" style={{ marginTop: 12 }}>
                           <select
                             className="status-select"
-                            value={currentChoice}
+                            value={statusChoice[fid] || ''}
                             onChange={(e) => setStatusChoice(prev => ({ ...prev, [fid]: e.target.value }))}
                           >
                             <option value="">-- Chọn trạng thái --</option>
-                            <option value="Approved">Approved</option>
-                            <option value="Rejected">Rejected</option>
+                            <option value="approved">Duyệt (Approved)</option>
+                            <option value="rejected">Từ chối (Rejected)</option>
                           </select>
                           <button
                             className="status-apply-btn"
-                            disabled={!currentChoice || loading}
-                            onClick={() => handleUpdateStatus(fid, currentChoice)}
+                            disabled={!statusChoice[fid] || loading}
+                            onClick={() => handleUpdateStatus(fid, statusChoice[fid])}
                           >
                             Cập nhật
                           </button>
                         </div>
-
-                        {/* Customer */}
-                        {accountId && (
-                          <div className="customer-box">
-                            <h4 className="customer-title">📋 Thông tin Khách hàng:</h4>
-                            {isCustomerLoading ? (
-                              <div className="customer-loading">
-                                <span>⏳ Đang tải thông tin khách hàng...</span>
-                              </div>
-                            ) : customer ? (
-                              <div className="customer-info">
-                                <div className="customer-row">
-                                  <span className="customer-label">👤 Tên: </span>
-                                  <span className="customer-value">{customer.name || customer.Name || 'Chưa có thông tin'}</span>
-                                </div>
-                                <div className="customer-row">
-                                  <span className="customer-label">📞 Số điện thoại: </span>
-                                  <span className="customer-value">{customer.phone || customer.Phone || 'Chưa có thông tin'}</span>
-                                </div>
-                                <div className="customer-row">
-                                  <span className="customer-label">📧 Email: </span>
-                                  <span className="customer-value">{customer.email || customer.Email || 'Chưa có thông tin'}</span>
-                                </div>
-                                <div className="customer-row">
-                                  <span className="customer-label">🏠 Địa chỉ: </span>
-                                  <span className="customer-value">{customer.address || customer.Address || 'Chưa có thông tin'}</span>
-                                </div>
-                                <div className="customer-row">
-                                  <span className="customer-label">🆔 Account ID: </span>
-                                  <span className="customer-value">{accountId}</span>
-                                </div>
-                                {customer.customerID && (
-                                  <div className="customer-row">
-                                    <span className="customer-label">👥 Customer ID: </span>
-                                    <span className="customer-value">{customer.customerID}</span>
-                                  </div>
-                                )}
-                                {customer.username && (
-                                  <div className="customer-row">
-                                    <span className="customer-label">🔑 Username: </span>
-                                    <span className="customer-value">{customer.username}</span>
-                                  </div>
-                                )}
-                                {customer.status && (
-                                  <div className="customer-row">
-                                    <span className="customer-label">📊 Trạng thái: </span>
-                                    <span className={`customer-status ${customer.status === 'Active' ? 'active' : 'inactive'}`}>
-                                      {customer.status}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="customer-error">
-                                <span>❌ Không tìm thấy thông tin khách hàng</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexDirection: 'column' }}>
-                        <span className={getStatusClass(form.status)}>{form.status || 'Chưa xác định'}</span>
-                        <button
-                          className="btn-danger"
-                          onClick={(e) => { e.stopPropagation(); handleDeleteForm(fid); }}
-                        >
-                          Xóa
-                        </button>
-                        <button
-                          className="status-apply-btn"
-                          onClick={(e) => { e.stopPropagation(); handleBatteryReport(form); }}
-                          style={{ fontSize: '12px', padding: '6px 12px' }}
-                        >
-                          Báo cáo pin
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 20 }}>
-                  <button onClick={() => handlePageChange(page - 1)} disabled={page === 1}
-                          className="btn-sortdir" style={{ background: page === 1 ? '#cbd5e1' : '#0f172a', cursor: page === 1 ? 'not-allowed' : 'pointer' }}>
-                    ← Trước
-                  </button>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                      <button key={p}
-                              onClick={() => handlePageChange(p)}
-                              className="select"
-                              style={{ padding: '8px 12px', background: p === page ? '#0f172a' : 'rgba(255,255,255,0.7)', color: p === page ? 'white' : '#334155', border: '1px solid rgba(15,23,42,0.1)', cursor: 'pointer', minWidth: 40, borderRadius: 10 }}>
-                        {p}
+                      );
+                    })()}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                      <button
+                        className="btn-danger"
+                        onClick={() => { const fid = getFormId(selectedForm); handleDeleteForm(fid); setSelectedForm(null); }}
+                      >
+                        Xóa Form
                       </button>
-                    ))}
+                    </div>
                   </div>
-                  <button onClick={() => handlePageChange(page + 1)} disabled={page === totalPages}
-                          className="btn-sortdir" style={{ background: page === totalPages ? '#cbd5e1' : '#0f172a', cursor: 'pointer' }}>
-                    Sau →
-                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Lịch sử giao dịch đã xử lý */}
+            <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
+              <h3 style={{ 
+                margin: '0 0 16px 0', 
+                color: '#0f172a',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span>📋</span>
+                Lịch sử Form đã xử lý
+              </h3>
+
+              {forms.filter(f => ['approved', 'rejected', 'completed'].includes(f.status?.toLowerCase())).length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '40px',
+                  color: '#64748b',
+                  fontStyle: 'italic'
+                }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📭</div>
+                  <h4 style={{ color: '#475569', marginBottom: '8px' }}>Chưa có giao dịch nào được xác nhận</h4>
+                  <p>Các giao dịch đã xác nhận sẽ hiển thị ở đây.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gap: '8px', maxHeight: '400px', overflowY: 'auto' }}>
+                  {forms.filter(f => ['approved', 'rejected', 'completed'].includes(f.status?.toLowerCase())).map((form) => {
+                    const fid = getFormId(form);
+                    const customer = customerDetails[form.accountId];
+                    const statusColor = 
+                      form.status?.toLowerCase() === 'approved' ? '#10b981' :
+                      form.status?.toLowerCase() === 'rejected' ? '#ef4444' : '#3b82f6';
+                    const statusIcon = 
+                      form.status?.toLowerCase() === 'approved' ? '✅' :
+                      form.status?.toLowerCase() === 'rejected' ? '❌' : '🔄';
+
+                    return (
+                      <div 
+                        key={fid ?? Math.random()}
+                        style={{
+                          padding: '12px 16px',
+                          background: 'rgba(255,255,255,0.95)',
+                          borderRadius: '8px',
+                          border: `1px solid ${statusColor}20`,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '16px' }}>{statusIcon}</span>
+                            <h4 style={{ 
+                              margin: 0, 
+                              fontSize: '14px', 
+                              fontWeight: '600',
+                              color: '#0f172a'
+                            }}>
+                              {form.title || 'Giao dịch đổi pin'}
+                            </h4>
+                            <span style={{
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              fontSize: '11px',
+                              fontWeight: '600',
+                              background: `${statusColor}20`,
+                              color: statusColor
+                            }}>
+                              {form.status?.toUpperCase()}
+                            </span>
+                          </div>
+                          <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                            gap: '8px',
+                            fontSize: '12px',
+                            color: '#64748b'
+                          }}>
+                            <div>
+                              <strong>📅 Ngày đặt:</strong> {formatDate(form.date)}
+                            </div>
+                            <div>
+                              <strong>🗓️ Ngày tạo:</strong> {formatDate(form.startDate)}
+                            </div>
+                            <div>
+                              <strong>🔋 Battery:</strong> {form.batteryId || 'N/A'}
+                            </div>
+                            <div>
+                              <strong>👤 Khách hàng:</strong> {customer?.name || 'N/A'}
+                            </div>
+                            <div>
+                              <strong>📞 Sđt khách hàng:</strong> {customer?.phone || 'N/A'}
+                            </div>
+                            <div>
+                              <strong>🏢 Trạm:</strong> {stationDetails.byStationId?.[form.stationId] || form.stationId || 'N/A'}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <button
+                            className="status-apply-btn"
+                            onClick={() => setSelectedForm(form)}
+                            style={{
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              background: 'rgba(15,23,42,0.1)',
+                              color: '#0f172a',
+                              border: '1px solid rgba(15,23,42,0.2)',
+                              fontSize: '12px'
+                            }}
+                          >
+                            👁️ Chi tiết
+                          </button>
+                          {form.status?.toLowerCase() === 'approved' && (
+                            <button
+                              className="status-apply-btn"
+                              onClick={() =>  handleSwitchView('exchange-battery')}
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                background: 'rgba(16, 185, 129, 0.1)',
+                                color: '#059669',
+                                border: '1px solid rgba(16, 185, 129, 0.2)'
+                              }}
+                            >
+                              ✅ Xác nhận giao dịch
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
-            </>
-          )}
-        </section>
-
-        {/* Modal chi tiết (GLASS) */}
-        {selectedForm && (
-          <div className="modal-root">
-            {/* có thể thêm .liquid cho modal-card nếu muốn cũng có LiquidGlass */}
-            <div className="modal-card liquid">
-              <div className="modal-head liquid">
-                <h2>Form Chi Tiết</h2>
-                <button className="btn-close" onClick={() => setSelectedForm(null)}>Đóng</button>
-              
-              </div>
-              <div className="modal-body liquid">
-                {/* <pre className="modal-pre">{JSON.stringify(selectedForm, null, 2)}</pre> */}
-                {/* Hiển thị chi tiết cục pin nếu có batteryId */}
-                {selectedForm?.batteryId && (
-                  <div style={{ marginTop: 16, background: "#f9fafb", padding: 12, borderRadius: 8 }}>
-                    <h4>Thông tin Pin</h4>
-                    {batteryLoading[selectedForm.batteryId] ? (
-                      <div>Đang tải thông tin pin...</div>
-                    ) : batteryDetails[selectedForm.batteryId] ? (
-                      <table className="battery-detail-table" style={{ width: '100%' }}>
-                        <tbody>
-                          {[
-                            { key: 'batteryName', label: 'Tên Pin' },
-                            { key: 'status', label: 'Trạng thái' },
-                            { key: 'capacity', label: 'Dung lượng', isPercent: true },
-                            { key: 'batteryType', label: 'Loại Pin' },
-                            { key: 'specification', label: 'Thông số kỹ thuật' },
-                            { key: 'batteryQuality', label: 'Chất lượng Pin', isPercent: true }
-                          ].map(({ key, label, isPercent }) => {
-                            const value = batteryDetails[selectedForm.batteryId][key];
-                            // Format percent for 'capacity' and 'batteryQuality'
-                            let displayValue = value;
-                            if (
-                              value !== undefined &&
-                              value !== null &&
-                              isPercent
-                            ) {
-                              // Interpret numeric value or string number as percent
-                              const numVal = typeof value === 'number' ? value : parseFloat(value);
-                              if (!isNaN(numVal)) {
-                                displayValue = `${numVal}%`;
-                              } else if (typeof value === 'string' && !value.trim().endsWith('%')) {
-                                displayValue = `${value}%`;
-                              } else {
-                                displayValue = value;
-                              }
-                            }
-                            return value !== undefined && value !== null ? (
-                              <tr key={key}>
-                                <td style={{ fontWeight: 500, paddingRight: 8 }}>{label}:</td>
-                                <td>{displayValue}</td>
-                              </tr>
-                            ) : null;
-                          })}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <div>Không tìm thấy thông tin pin.</div>
-                    )}
-                  </div>
-                )}
-
-                {/* Dropdown đổi status trong modal */}
-                {(() => {
-                  const fid = getFormId(selectedForm);
-                  return (
-                    <div className="status-inline" style={{ marginTop: 12 }}>
-                      <select
-                        className="status-select"
-                        value={statusChoice[fid] || ''}
-                        onChange={(e) => setStatusChoice(prev => ({ ...prev, [fid]: e.target.value }))}
-                      >
-                        <option value="">-- Chọn trạng thái --</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Rejected">Rejected</option>
-                      </select>
-                      <button
-                        className="status-apply-btn"
-                        disabled={!statusChoice[fid] || loading}
-                        onClick={() => handleUpdateStatus(fid, statusChoice[fid])}
-                      >
-                        Cập nhật
-                      </button>
-                    </div>
-                  );
-                })()}
-
-                <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                  <button
-                    className="btn-danger"
-                    onClick={() => { const fid = getFormId(selectedForm); handleDeleteForm(fid); setSelectedForm(null); }}
-                  >
-                    Xóa Form
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        </>
+            </section>
+          </>
         )}
 
         {/* PHẦN LỊCH TRÌNH TRẠM VỚI CALENDAR */}
@@ -1621,6 +1879,324 @@ function StaffPage() {
               }}
               messageApi={toast}
             />
+          </section>
+        )}
+
+        {/* PHẦN XÁC NHẬN GIAO DỊCH PIN */}
+        {isExchangeBatteryView && (
+          <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
+            <h2 className="filters-title">Xác nhận giao dịch đổi pin</h2>
+            <p style={{ marginTop: 4, color: 'rgba(15,23,42,0.7)' }}>
+              Quản lý và xác nhận các giao dịch đổi pin tại trạm của bạn
+            </p>
+
+            {/* Thống kê tổng quan */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+              gap: '16px', 
+              marginBottom: '24px' 
+            }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                padding: '20px',
+                borderRadius: '16px',
+                color: 'white',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🔋</div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
+                  {forms.filter(f => f.status?.toLowerCase() === 'approved').length}
+                </div>
+                <div style={{ fontSize: '14px', opacity: 0.9 }}>Giao dịch đã duyệt</div>
+              </div>
+
+              <div style={{
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                padding: '20px',
+                borderRadius: '16px',
+                color: 'white',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>⏳</div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
+                  {forms.filter(f => f.status?.toLowerCase() === 'pending').length}
+                </div>
+                <div style={{ fontSize: '14px', opacity: 0.9 }}>Chờ xác nhận</div>
+              </div>
+
+              <div style={{
+                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                padding: '20px',
+                borderRadius: '16px',
+                color: 'white',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📊</div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
+                  {forms.filter(f => f.status?.toLowerCase() !== 'deleted').length}
+                </div>
+                <div style={{ fontSize: '14px', opacity: 0.9 }}>Tổng giao dịch</div>
+              </div>
+            </div>
+
+            {/* Station Selection for Exchange Panel */}
+            <div style={{
+              background: 'rgba(255,255,255,0.9)',
+              borderRadius: '16px',
+              padding: '20px',
+              marginBottom: '20px'
+            }}>
+              <h3 style={{ 
+                margin: '0 0 16px 0', 
+                color: '#0f172a',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span>🏢</span>
+                Chọn trạm để xem giao dịch đổi pin
+              </h3>
+              
+              <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
+                {stationAssignments.map((assignment) => (
+                  <button
+                    key={assignment.id}
+                    onClick={() => openConfirmExchangePanel(assignment.stationId)}
+                    style={{
+                      padding: '16px',
+                      background: 'rgba(255,255,255,0.95)',
+                      borderRadius: '12px',
+                      border: '2px solid rgba(59, 130, 246, 0.3)',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                      transition: 'all 0.2s ease',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                    }}
+                  >
+                    <div style={{ fontWeight: '600', color: '#0f172a', marginBottom: '8px' }}>
+                      🏢 {assignment.stationName}
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#64748b' }}>
+                      Station ID: {assignment.stationId}
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#64748b' }}>
+                      Role: {assignment.role}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Confirm Exchange Panel */}
+            {activePanel === 'confirmExchange' && (
+              <div style={{
+                background: 'rgba(255,255,255,0.9)',
+                borderRadius: '16px',
+                padding: '20px',
+                marginBottom: '20px'
+              }}>
+                <header style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  marginBottom: '16px'
+                }}>
+                  <h2 style={{ 
+                    fontSize: '20px', 
+                    fontWeight: '600',
+                    margin: 0,
+                    color: '#0f172a'
+                  }}>
+                    Xác nhận giao dịch đổi pin - {stationDetails.byStationId?.[stationIdSelected] || stationIdSelected}
+                  </h2>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <select
+                      value={filters.status}
+                      onChange={(e) => setFilters(s => ({ ...s, status: e.target.value }))}
+                      className="select"
+                      style={{ padding: '8px 12px', borderRadius: '8px' }}
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                    <input
+                      placeholder="Tìm VIN / OrderId"
+                      value={filters.keyword}
+                      onChange={(e) => setFilters(s => ({ ...s, keyword: e.target.value }))}
+                      className="select"
+                      style={{ padding: '8px 12px', borderRadius: '8px' }}
+                    />
+                    <button
+                      onClick={() => setActivePanel('dashboard')}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        background: 'rgba(15,23,42,0.1)',
+                        color: '#0f172a',
+                        border: '1px solid rgba(15,23,42,0.2)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ← Quay lại
+                    </button>
+                  </div>
+                </header>
+
+                {loadingExchanges ? (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '16px' }}>⏳</div>
+                    <p>Đang tải yêu cầu…</p>
+                  </div>
+                ) : (
+                  <div style={{ 
+                    border: '1px solid rgba(15,23,42,0.1)', 
+                    borderRadius: '12px', 
+                    overflow: 'hidden',
+                    background: 'rgba(255,255,255,0.95)'
+                  }}>
+                    <table style={{ width: '100%', fontSize: '14px' }}>
+                      <thead style={{ background: 'rgba(15,23,42,0.05)' }}>
+                        <tr>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>Exchange ID</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>VIN / Xe</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>Pin cũ → Pin mới</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>Order</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>Status</th>
+                          <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {exchanges
+                          .filter(x => (filters.status ? x.status === filters.status : true))
+                          .filter(x => {
+                            const kw = filters.keyword?.trim()?.toLowerCase();
+                            if (!kw) return true;
+                            return (x.vin?.toLowerCase()?.includes(kw)) || (String(x.orderId || '').includes(kw));
+                          })
+                          .map((x) => {
+                            const order = ordersMap?.[x.orderId];
+                            const isReady = canComplete(x);
+                            return (
+                              <tr key={x.exchangeBatteryId} style={{ borderTop: '1px solid rgba(15,23,42,0.1)' }}>
+                                <td style={{ padding: '12px' }}>{x.exchangeBatteryId}</td>
+                                <td style={{ padding: '12px' }}>
+                                  <div style={{ fontWeight: '500' }}>{x.vin || x.vehicleName}</div>
+                                  <div style={{ color: '#64748b', fontSize: '12px' }}>{x.vehicleName}</div>
+                                </td>
+                                <td style={{ padding: '12px' }}>
+                                  <div style={{ fontSize: '12px' }}>
+                                    <div>Old: {x.oldBatteryName || x.oldBatteryId}</div>
+                                    <div>New: {x.newBatteryName || x.newBatteryId}</div>
+                                  </div>
+                                </td>
+                                <td style={{ padding: '12px' }}>
+                                  <div>{x.orderId || '-'}</div>
+                                  <div style={{ fontSize: '12px', color: '#64748b' }}>
+                                    {order ? `Order: ${order.status}` : 'Đang kiểm tra…'}
+                                  </div>
+                                </td>
+                                <td style={{ padding: '12px' }}>
+                                  <span style={{
+                                    padding: '4px 8px',
+                                    borderRadius: '12px',
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    background: x.status === 'Pending' 
+                                      ? 'rgba(251, 191, 36, 0.2)' 
+                                      : x.status === 'Completed'
+                                      ? 'rgba(16, 185, 129, 0.2)'
+                                      : 'rgba(239, 68, 68, 0.2)',
+                                    color: x.status === 'Pending' 
+                                      ? '#d97706' 
+                                      : x.status === 'Completed'
+                                      ? '#059669'
+                                      : '#dc2626'
+                                  }}>
+                                    {x.status}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '12px', textAlign: 'right' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                    <button
+                                      className="status-apply-btn"
+                                      onClick={() => handleOpenReport(x)}
+                                      style={{
+                                        padding: '6px 12px',
+                                        borderRadius: '6px',
+                                        fontSize: '12px',
+                                        background: 'rgba(15,23,42,0.1)',
+                                        color: '#0f172a',
+                                        border: '1px solid rgba(15,23,42,0.2)'
+                                      }}
+                                    >
+                                      Báo cáo pin
+                                    </button>
+                                    <button
+                                      className="status-apply-btn"
+                                      disabled={!isReady}
+                                      onClick={() => handleComplete(x)}
+                                      title={!isReady ? 'Cần: Order Paid + Report Completed + Pin mới Available' : ''}
+                                      style={{
+                                        padding: '6px 12px',
+                                        borderRadius: '6px',
+                                        fontSize: '12px',
+                                        background: isReady ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#e2e8f0',
+                                        color: isReady ? 'white' : '#64748b',
+                                        border: 'none',
+                                        cursor: isReady ? 'pointer' : 'not-allowed'
+                                      }}
+                                    >
+                                      Hoàn tất trao đổi
+                                    </button>
+                                    <button
+                                      className="btn-danger"
+                                      onClick={() => handleCancel(x)}
+                                      disabled={x.status !== 'Pending'}
+                                      style={{
+                                        padding: '6px 12px',
+                                        borderRadius: '6px',
+                                        fontSize: '12px',
+                                        background: x.status === 'Pending' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : '#e2e8f0',
+                                        color: x.status === 'Pending' ? 'white' : '#64748b',
+                                        border: 'none',
+                                        cursor: x.status === 'Pending' ? 'pointer' : 'not-allowed'
+                                      }}
+                                    >
+                                      Huỷ
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                    {(!exchanges || exchanges.length === 0) && (
+                      <div style={{ 
+                        padding: '40px', 
+                        textAlign: 'center', 
+                        color: '#64748b',
+                        fontStyle: 'italic'
+                      }}>
+                        <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📭</div>
+                        <h4 style={{ color: '#475569', marginBottom: '8px' }}>Chưa có yêu cầu đổi pin</h4>
+                        <p>Chưa có yêu cầu đổi pin tại trạm này.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         )}
       </div>

@@ -402,7 +402,7 @@ export default function FormPage() {
             </label>
             
             <label style={{ display: 'grid', gap: 6 }}>
-              <span>Ngày</span>
+              <span>Ngày đăng ký đổi pin</span>
               <input 
                 type="date"
                 value={formData.date} 
@@ -668,12 +668,12 @@ export default function FormPage() {
                         )}
                         {form.startDate && (
                           <span>
-                            <strong>Ngày tạo:</strong> {formatDate(form.startDate)}
+                            <strong>Ngày tạo form:</strong> {formatDate(form.startDate)}
                           </span>
                         )}
                         {form.date && (
                           <span>
-                            <strong>Ngày đặt lịch:</strong> {formatDate(form.date)}
+                            <strong>Ngày đăng ký đổi pin:</strong> {formatDate(form.date)}
                           </span>
                         )}
                         <span>
