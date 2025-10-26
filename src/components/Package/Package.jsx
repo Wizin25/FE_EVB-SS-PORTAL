@@ -8,6 +8,10 @@ import './Package.css';
 import HeaderDriver from "../Home/header";
 import Footer from "../Home/footer";
 
+// 🆕 THÊM CONSTANTS VÀ SESSION KEY
+const SERVICE_TYPES = { PACKAGE: 'Package' };
+const PAYMENT_CTX = 'paymentCtx'; // sessionStorage key chung cho Package và PrePaid
+
 const Package = () => {
   const [packages, setPackages] = useState([]);
   const [selectedPackage, setSelectedPackage] = useState(null);
@@ -781,6 +785,80 @@ const Package = () => {
     }
   };
 
+  const handleBuyPackageWithPayOS = async () => {
+    if (!selectedPackage || !selectedVehicle) return;
+
+    try {
+      setActionLoading(true);
+      setError('');
+
+      const packageId   = getPackageProperty(selectedPackage, 'id');
+      const packageName = getPackageProperty(selectedPackage, 'name');
+      const price       = Number(getPackageProperty(selectedPackage, 'price') || 0);
+      const vin         = getVehicleProperty(selectedVehicle, 'vin');
+      const batteryId   = getVehicleProperty(selectedVehicle, 'battery');
+
+      if (!packageId || packageId === 'N/A') throw new Error('Không tìm thấy PackageId.');
+      if (!vin || vin === 'N/A')             throw new Error('Không tìm thấy VIN của xe.');
+      if (!batteryId || batteryId === 'N/A') throw new Error('Không tìm thấy BatteryId của xe.');
+      if (!Number.isFinite(price) || price <= 0) throw new Error('Giá gói không hợp lệ.');
+
+      // Lấy accountId và tên người dùng
+      let accountId;
+      let userName = 'User';
+      try {
+        const me = await authAPI.getCurrent?.();
+        accountId = me?.accountId || me?.AccountId || me?.accountID || me?.id || me?.ID;
+        userName = me?.name || me?.Name || me?.userName || me?.username || 'User';
+      } catch {}
+      if (!accountId) throw new Error('Không xác định được AccountId người dùng.');
+
+      // 1) Tạo ORDER (ServiceType=Package, ServiceId = PackageId, Vin bắt buộc)
+      const orderRes = await authAPI.createOrder({
+        serviceType: SERVICE_TYPES.PACKAGE,
+        accountId,
+        serviceId: packageId,
+        batteryId,
+        total: price,
+        vin,
+      });
+
+      const orderId =
+        orderRes?.data?.orderId || orderRes?.data?.OrderId ||
+        orderRes?.orderId || orderRes?.OrderId || orderRes?.id;
+
+      if (!orderId) throw new Error('Không nhận được OrderId sau khi tạo Order.');
+
+      // 2) Gọi PayOS để lấy link
+      const description = `${userName} CHUYEN TIEN`;
+      const payRes = await authAPI.createPayOSPayment({ orderId, description });
+      const redirectUrl =
+        payRes?.data?.paymentUrl || payRes?.data?.checkoutUrl || payRes?.data?.payUrl || payRes?.data?.shortLink ||
+        payRes?.paymentUrl || payRes?.checkoutUrl || payRes?.payUrl || payRes?.shortLink;
+
+      if (!redirectUrl) throw new Error('Không nhận được link thanh toán từ PayOS.');
+
+      // Lưu context để PaymentSuccess dùng lại
+      sessionStorage.setItem(PAYMENT_CTX, JSON.stringify({
+        orderId,
+        serviceType: 'Package',
+        packageId,
+        vin,
+        batteryId,
+        total: price,
+        packageName
+      }));
+
+      // 3) Redirect sang PayOS
+      window.location.href = redirectUrl;
+    } catch (err) {
+      setError(err?.message || 'Không thể khởi tạo thanh toán gói.');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // 🎯 COMPONENT LIFECYCLE
   useEffect(() => {
     if (location.state?.selectedVehicle) {
@@ -1241,13 +1319,13 @@ const Package = () => {
                   </>
                 ) : (
                   <button 
-                    onClick={handlePackagePurchase}
+                    onClick={handleBuyPackageWithPayOS}
                     className="package-purchase-btn"
                     disabled={actionLoading || isPackageDecommissioned(selectedPackage)}
                   >
-                    {actionLoading ? 'ĐANG XỬ LÝ...' : 
+                    {actionLoading ? 'ĐANG CHUYỂN SANG PAYOS…' : 
                      isPackageDecommissioned(selectedPackage) ? 'GÓI ĐÃ NGỪNG KINH DOANH' : 
-                     `CHỌN GÓI NÀY - ${getPackageProperty(selectedPackage, 'price')?.toLocaleString('vi-VN')} VND`}
+                     `THANH TOÁN GÓI NÀY - ${getPackageProperty(selectedPackage, 'price')?.toLocaleString('vi-VN')} VND`}
                   </button>
                 )}
               </div>

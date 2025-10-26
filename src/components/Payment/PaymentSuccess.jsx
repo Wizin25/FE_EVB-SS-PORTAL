@@ -2,354 +2,167 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import HeaderDriver from '../Home/header';
 import Footer from '../Home/footer';
+import { authAPI } from '../services/authAPI';
+import { vehicleAPI } from '../services/vehicleAPI';
+
+const PAYMENT_CTX = 'paymentCtx'; // context dùng chung cho mọi thanh toán qua PayOS
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [theme, setTheme] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("theme") || "light";
-    }
-    return "light";
-  });
+  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
 
-  // Lấy thông tin từ URL params
-  const orderCode = searchParams.get('orderCode');
-  const amount = searchParams.get('amount');
-  const status = searchParams.get('status');
-  const paymentId = searchParams.get('paymentId');
+  const [orderId, setOrderId] = useState('');
+  const [status, setStatus] = useState('Pending');
+  const [serviceType, setServiceType] = useState('PrePaid'); // mặc định
+  const [total, setTotal] = useState(0);
+  const [message, setMessage] = useState('Đang xác minh thanh toán…');
+  const [attaching, setAttaching] = useState(false);
+  const [doneAttach, setDoneAttach] = useState(false);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme") || "light";
-    setTheme(savedTheme);
     const root = document.documentElement;
-    if (savedTheme === "dark") {
-      root.classList.add("dark");
-      document.body.classList.add("dark");
-    }
-  }, []);
+    if (theme === "dark") { root.classList.add("dark"); document.body.classList.add("dark"); }
+  }, [theme]);
 
-  const handleToggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    const root = document.documentElement;
-    if (newTheme === "dark") {
-      root.classList.add("dark");
-      document.body.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      root.classList.remove("dark");
-      document.body.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
+  useEffect(() => {
+    const run = async () => {
+      try {
+        // 1) Lấy orderId từ URL hoặc session (luôn HIỂN THỊ orderId cho người dùng)
+        const ctxStr = sessionStorage.getItem(PAYMENT_CTX);
+        const ctx = ctxStr ? JSON.parse(ctxStr) : {};
+        const qsOrderId = searchParams.get('orderId') || searchParams.get('orderCode'); // BE có thể trả orderCode
+        const oid = qsOrderId || ctx?.orderId;
+        if (!oid) { setMessage('Không tìm thấy mã đơn hàng (orderId).'); return; }
+        setOrderId(String(oid));
+
+        // serviceType fallback từ context (BE có thể trả trong getOrderById)
+        if (ctx?.serviceType) setServiceType(ctx.serviceType);
+
+        // 2) Xác minh trạng thái thanh toán (poll ngắn 6 lần, mỗi 1.5s)
+        setMessage('Đang xác minh trạng thái đơn hàng…');
+        let info = null, st = 'Pending';
+        for (let i = 0; i < 6; i++) {
+          const res = await authAPI.getOrderById(oid);
+          info = res?.data || res;
+          const maybeStatus = (info?.status || info?.Status || '').toString();
+          const maybeType   = (info?.serviceType || info?.ServiceType || ctx?.serviceType || '').toString();
+          const maybeTotal  = Number(info?.total ?? info?.Total ?? ctx?.total ?? 0);
+
+          if (maybeType) setServiceType(maybeType);
+          setTotal(maybeTotal);
+          st = maybeStatus || st;
+          setStatus(st);
+
+          if (/paid|completed|success/i.test(st)) break;
+          await new Promise(r => setTimeout(r, 1500));
+        }
+
+        // 3) Nếu chưa xác nhận Paid
+        if (!/paid|completed|success/i.test(st)) {
+          setMessage('Hệ thống chưa ghi nhận thanh toán thành công. Vui lòng đợi thêm hoặc thử lại sau.');
+          return;
+        }
+
+        // 4) Đã Paid
+        setMessage('Thanh toán đã xác nhận ✓');
+
+        // 5) Nếu là Package → gắn gói vào xe (PrePaid thì KHÔNG gắn gì)
+        const isPackage = /package/i.test(serviceType);
+        if (isPackage) {
+          const vin = ctx?.vin;
+          const packageId = ctx?.packageId;
+          if (!vin || !packageId) {
+            setMessage(prev => prev + ' — Thiếu VIN hoặc PackageId để kích hoạt gói.');
+          } else {
+            try {
+              setAttaching(true);
+              setMessage('Đang kích hoạt gói cho xe…');
+              const attachRes = await vehicleAPI.addVehicleInPackage({ Vin: vin, PackageId: packageId });
+              const ok = attachRes?.isSuccess || attachRes?.data?.isSuccess || attachRes?.status === 200;
+              if (!ok) throw new Error(attachRes?.message || 'Kích hoạt gói thất bại');
+              setDoneAttach(true);
+              setMessage('Gói đã được gắn vào xe thành công!');
+            } catch (e) {
+              setMessage(e?.message || 'Có lỗi khi gắn gói vào xe.');
+            } finally {
+              setAttaching(false);
+            }
+          }
+        }
+
+        // 6) Xoá context dùng một lần
+        sessionStorage.removeItem(PAYMENT_CTX);
+      } catch (e) {
+        setMessage(e?.message || 'Có lỗi xảy ra khi xác minh thanh toán.');
+      }
+    };
+    run();
+  }, [searchParams]);
+
+  // UI helpers
+  const StatusBadge = ({ value }) => {
+    const v = (value || '').toLowerCase();
+    const bg = /paid|success|completed/.test(v) ? '#059669'
+       : /pending|processing/.test(v) ? '#d97706'
+       : '#ef4444';
+    return (
+      <span style={{
+        display:'inline-block', padding:'4px 10px', borderRadius:9999,
+        color:'#fff', background:bg, fontSize:12, letterSpacing:0.2
+      }}>{value || 'Unknown'}</span>
+    );
   };
 
-  const handleGoHome = () => {
-    navigate('/');
-  };
-
-  const handleGoToStations = () => {
-    navigate('/stations');
-  };
-
-  const handleGoToBookings = () => {
-    navigate('/bookings');
-  };
+  const go = (path) => () => navigate(path);
 
   return (
-    <div
-      className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}
-      style={{ maxHeight: "calc(100vh - 120px)", overflowY: "auto" }}
-    >
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`} style={{ maxHeight: "calc(100vh - 120px)", overflowY: "auto" }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
-        <HeaderDriver
-          onToggleTheme={handleToggleTheme}
-          theme={theme}
-          user={null}
-          unreadCount={0}
-          nextBooking={null}
-          onOpenBooking={() => {}}
-        />
+        <HeaderDriver onToggleTheme={() => setTheme(t => t==='dark'?'light':'dark')} theme={theme} user={null} unreadCount={0} nextBooking={null} onOpenBooking={() => {}} />
       </div>
 
-      <div className="payment-container" style={{
-        maxWidth: '800px',
-        margin: '2rem auto',
-        padding: '0 1rem'
-      }}>
-        {/* Success Header */}
-        <div
-          style={{
-            textAlign: "center",
-            marginBottom: "2.5rem",
-            background:
-              theme === "dark"
-                ? "linear-gradient(135deg, #232946 0%, #1f2937 100%)"
-                : "linear-gradient(135deg, #e0ffe7 0%, #b2f5ea 100%)",
-            padding: "2.5rem 1.5rem 2rem 1.5rem",
-            borderRadius: "24px",
-            color: theme === "dark" ? "#f1f5f9" : "#1e293b",
-            position: "relative",
-            overflow: "hidden",
-            boxShadow:
-              theme === "dark"
-                ? "0 8px 32px rgba(0,0,0,0.45)"
-                : "0 8px 32px rgba(29,216,132,0.10)",
-            border: theme === "dark"
-              ? "1.5px solid #334155"
-              : "1.5px solid #bbf7d0"
-          }}
-        >
-          {/* Success Icon */}
-          <div
-            style={{
-              fontSize: "4rem",
-              marginBottom: "1rem",
-              animation: "bounce 2s infinite"
-            }}
-          >
-            ✅
-          </div>
-          
-          <h1
-            style={{
-              color: theme === "dark" ? "#f1f5f9" : "#059669",
-              fontSize: "2.5rem",
-              fontWeight: 800,
-              marginBottom: "0.7rem",
-              letterSpacing: "-1px"
-            }}
-          >
-            Thanh toán thành công!
-          </h1>
-          
-          <p
-            style={{
-              fontSize: "1.2rem",
-              opacity: 0.9,
-              marginBottom: 0,
-              color: theme === "dark" ? "#cbd5e1" : "#334155",
-              fontWeight: 500
-            }}
-          >
-            Cảm ơn bạn đã sử dụng dịch vụ đổi pin
-          </p>
+      <div style={{ maxWidth: 900, margin: '2rem auto', padding: '0 1rem' }}>
+        <div style={{
+          textAlign:'center', marginBottom:'1.5rem',
+          background: theme==='dark'?'linear-gradient(135deg,#232946 0%,#1f2937 100%)':'linear-gradient(135deg,#e0ffe7 0%,#b2f5ea 100%)',
+          padding:'1.75rem 1.25rem', borderRadius:24
+        }}>
+          <div style={{fontSize:'2.5rem', marginBottom:10}}>✅</div>
+          <h1 style={{margin:0, color: theme==='dark'?'#fff':'#059669'}}>Thanh toán thành công</h1>
+          <p style={{opacity:0.92, marginTop:8}}>{message}</p>
         </div>
 
-        {/* Payment Details Card */}
-        <div
-          style={{
-            background: theme === 'dark' 
-              ? 'linear-gradient(145deg, #374151 0%, #1f2937 100%)'
-              : 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
-            border: theme === 'dark' 
-              ? '1px solid #4b5563'
-              : '1px solid #e2e8f0',
-            borderRadius: '16px',
-            boxShadow: theme === 'dark'
-              ? '0 10px 25px rgba(0, 0, 0, 0.3)'
-              : '0 10px 25px rgba(0, 0, 0, 0.1)',
-            padding: '2rem',
-            marginBottom: '2rem'
-          }}
-        >
-          <h2
-            style={{
-              color: theme === 'dark' ? '#f1f5f9' : '#1e293b',
-              fontSize: '1.5rem',
-              fontWeight: 'bold',
-              marginBottom: '1.5rem',
-              textAlign: 'center'
-            }}
-          >
-            📋 Thông tin thanh toán
-          </h2>
-          
-          <div style={{ display: 'grid', gap: '1rem' }}>
-            {orderCode && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b', fontWeight: '500' }}>
-                  Mã đơn hàng:
-                </span>
-                <span style={{ 
-                  color: theme === 'dark' ? '#f1f5f9' : '#1e293b', 
-                  fontWeight: 'bold',
-                  fontFamily: 'monospace'
-                }}>
-                  {orderCode}
-                </span>
-              </div>
-            )}
-            
-            {amount && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b', fontWeight: '500' }}>
-                  Số tiền:
-                </span>
-                <span style={{ 
-                  color: theme === 'dark' ? '#10b981' : '#059669', 
-                  fontWeight: 'bold',
-                  fontSize: '1.1rem'
-                }}>
-                  {parseInt(amount).toLocaleString('vi-VN')} VNĐ
-                </span>
-              </div>
-            )}
-            
-            {paymentId && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b', fontWeight: '500' }}>
-                  Mã giao dịch:
-                </span>
-                <span style={{ 
-                  color: theme === 'dark' ? '#f1f5f9' : '#1e293b', 
-                  fontWeight: 'bold',
-                  fontFamily: 'monospace'
-                }}>
-                  {paymentId}
-                </span>
-              </div>
-            )}
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b', fontWeight: '500' }}>
-                Trạng thái:
-              </span>
-              <span style={{ 
-                color: theme === 'dark' ? '#10b981' : '#059669', 
-                fontWeight: 'bold',
-                background: theme === 'dark' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(5, 150, 105, 0.1)',
-                padding: '4px 12px',
-                borderRadius: '20px',
-                border: theme === 'dark' ? '1px solid #10b981' : '1px solid #059669'
-              }}>
-                ✅ Thành công
-              </span>
-            </div>
+        {/* Thẻ thông tin đơn hàng (HIỂN THỊ orderId rõ ràng) */}
+        <div style={{
+          background: theme==='dark'?'#111827':'#ffffff',
+          border: '1px solid ' + (theme==='dark'?'#374151':'#e5e7eb'),
+          borderRadius: 16, padding: '1.25rem', marginBottom: '1.5rem'
+        }}>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
+            <div><strong>Mã đơn hàng (orderId):</strong><br/>{orderId || '—'}</div>
+            <div><strong>Loại dịch vụ:</strong><br/>{serviceType}</div>
+            <div><strong>Số tiền:</strong><br/>{Number(total || 0).toLocaleString('vi-VN')} VND</div>
+            <div><strong>Trạng thái:</strong><br/><StatusBadge value={status}/></div>
+          </div>
+          {/* Gợi ý hành động theo loại dịch vụ */}
+          <div style={{marginTop:12, fontSize:14, opacity:0.9}}>
+            { /package/i.test(serviceType)
+              ? (attaching ? 'Đang kích hoạt gói vào xe…'
+                : doneAttach ? 'Gói đã kích hoạt. Bạn có thể xem tại mục gói của tôi.'
+                : 'Đã thanh toán gói. Hệ thống sẽ kích hoạt gói cho xe ngay.')
+              : 'Đã thanh toán đặt lịch (PrePaid). Bạn có thể kiểm tra lịch trong hồ sơ của mình.'}
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '1rem',
-            marginBottom: '2rem'
-          }}
-        >
-          <button
-            onClick={handleGoToStations}
-            style={{
-              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-              color: 'white',
-              padding: '12px 24px',
-              borderRadius: '12px',
-              border: 'none',
-              fontWeight: 'bold',
-              fontSize: '1rem',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 4px 15px rgba(59, 130, 246, 0.3)';
-            }}
-          >
-            🔋 Xem trạm đổi pin
-          </button>
-          
-          <button
-            onClick={handleGoToBookings}
-            style={{
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: 'white',
-              padding: '12px 24px',
-              borderRadius: '12px',
-              border: 'none',
-              fontWeight: 'bold',
-              fontSize: '1rem',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.3)';
-            }}
-          >
-            📅 Xem lịch đặt
-          </button>
-          
-          <button
-            onClick={handleGoHome}
-            style={{
-              background: theme === 'dark' ? '#374151' : '#f1f5f9',
-              color: theme === 'dark' ? '#f1f5f9' : '#1e293b',
-              padding: '12px 24px',
-              borderRadius: '12px',
-              border: theme === 'dark' ? '1px solid #4b5563' : '1px solid #d1d5db',
-              fontWeight: 'bold',
-              fontSize: '1rem',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-            }}
-          >
-            🏠 Về trang chủ
-          </button>
-        </div>
-
-        {/* Additional Info */}
-        <div
-          style={{
-            background: theme === 'dark' 
-              ? 'rgba(59, 130, 246, 0.1)' 
-              : 'rgba(59, 130, 246, 0.05)',
-            border: theme === 'dark' 
-              ? '1px solid rgba(59, 130, 246, 0.2)' 
-              : '1px solid rgba(59, 130, 246, 0.1)',
-            borderRadius: '12px',
-            padding: '1.5rem',
-            textAlign: 'center'
-          }}
-        >
-          <p style={{
-            color: theme === 'dark' ? '#cbd5e1' : '#374151',
-            margin: 0,
-            fontSize: '0.9rem'
-          }}>
-            💡 <strong>Lưu ý:</strong> Bạn có thể sử dụng mã đơn hàng để tra cứu thông tin đặt lịch của mình.
-            Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ hotline hỗ trợ.
-          </p>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))', gap:12}}>
+          <button onClick={go('/plans')} style={{background:'#059669', color:'#fff', padding:'12px 16px', borderRadius:12, border:'none'}}>📦 Gói của tôi</button>
+          <button onClick={go('/stations')} style={{background:'#1d4ed8', color:'#fff', padding:'12px 16px', borderRadius:12, border:'none'}}>🔋 Xem trạm</button>
+          <button onClick={go('/home')} style={{background: theme==='dark'?'#374151':'#f1f5f9', color: theme==='dark'?'#fff':'#111827', padding:'12px 16px', borderRadius:12, border:'1px solid #e5e7eb'}}>🏠 Trang chủ</button>
         </div>
       </div>
 
       <Footer />
-
-      <style>
-        {`
-          @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-10px); }
-            60% { transform: translateY(-5px); }
-          }
-        `}
-      </style>
     </div>
   );
 }

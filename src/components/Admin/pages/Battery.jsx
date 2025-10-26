@@ -16,6 +16,10 @@ export default function BatteryManagementPage() {
   const [reports, setReports] = useState([]);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [reportsError, setReportsError] = useState("");
+  // Histories state
+  const [histories, setHistories] = useState([]);
+  const [historiesLoading, setHistoriesLoading] = useState(false);
+  const [historiesError, setHistoriesError] = useState("");
   // Report detail
   // Map lưu exchange detail theo batteryReportId
   const [exchangeByReportId, setExchangeByReportId] = useState({});
@@ -197,8 +201,11 @@ export default function BatteryManagementPage() {
         };
       }
       setSelectedBattery(detail);
-      // Tải danh sách report theo BatteryId từ BE
-      await loadReportsForBattery(batteryId);
+      // Tải histories + reports theo BatteryId
+      await Promise.all([
+        loadHistoriesForBattery(batteryId),
+        loadReportsForBattery(batteryId),
+      ]);
       setEditForm({
         batteryName: detail.batteryName ?? "",
         capacity: detail.capacity ?? "",
@@ -414,6 +421,22 @@ export default function BatteryManagementPage() {
       setReportsLoading(false);
     }
   };
+
+  const loadHistoriesForBattery = async (batteryId) => {
+    if (!batteryId) { setHistories([]); return; }
+    setHistoriesLoading(true);
+    setHistoriesError("");
+    try {
+      const list = await authAPI.getBatteryHistoryByBatteryId(batteryId);
+      setHistories(Array.isArray(list) ? list : []);
+    } catch (e) {
+      setHistories([]);
+      setHistoriesError(e?.message || "Không tải được lịch sử.");
+    } finally {
+      setHistoriesLoading(false);
+    }
+  };
+
   const loadExchangeDetailForReport = async (report) => {
     if (!report?.exchangeBatteryId) return;
     const repId = report.batteryReportId || report.id || report.exchangeBatteryId;
@@ -989,10 +1012,80 @@ export default function BatteryManagementPage() {
                     <p><b>Station:</b> {selectedBattery.station?.stationName || selectedBattery.station?.stationId || "Chưa gán"}</p>
 
                     <div style={{ marginTop: 10 }}>
-                      <div className="section-title">Histories</div>
-                      {selectedBattery.batteryHistories?.length ? (
-                        <ul className="detail-list">{selectedBattery.batteryHistories.map((h, i) => <li key={i}>{JSON.stringify(h)}</li>)}</ul>
-                      ) : <div className="empty-note">Không có lịch sử</div>}
+                      <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span>Histories</span>
+                        <button
+                          className="btn small"
+                          onClick={() => loadHistoriesForBattery(selectedBattery.batteryId)}
+                          disabled={historiesLoading}
+                        >
+                          {historiesLoading ? "Đang tải..." : "Reload"}
+                        </button>
+                      </div>
+
+                      {historiesError ? (
+                        <div className="station-error">{historiesError}</div>
+                      ) : historiesLoading ? (
+                        <div className="station-loading">Đang tải lịch sử...</div>
+                      ) : (histories?.length ? (
+                        <div className="detail-list" style={{ display: 'grid', gap: 8 }}>
+                          {histories.map((h, idx) => (
+                            <div
+                              key={h.batteryHistoryId || h.id || idx}
+                              style={{
+                                border: '1px solid #e2e8f0',
+                                borderRadius: 10,
+                                padding: 10,
+                                background: '#ffffff'
+                              }}
+                            >
+                              <div style={{ display: 'grid', gap: 6, fontSize: 13, color: '#0f172a' }}>
+                                <div style={{ fontWeight: 700 }}>
+                                  {h.title || h.action || 'Battery History'}
+                                  {h.status ? (
+                                    <span style={{
+                                      marginLeft: 8,
+                                      fontSize: 12,
+                                      padding: '2px 8px',
+                                      borderRadius: 999,
+                                      border: '1px solid #cbd5e1',
+                                    }}>
+                                      {h.status}
+                                    </span>
+                                  ) : null}
+                                </div>
+
+                                {h.description ? (
+                                  <div style={{ fontSize: 13, color: '#475569' }}>{h.description}</div>
+                                ) : null}
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                  <div>
+                                    <div><b>Station:</b> {h.station?.stationName || h.stationName || h.stationId || '-'}</div>
+                                    <div><b>Location:</b> {h.location || '-'}</div>
+                                  </div>
+                                  <div>
+                                    <div><b>Exchange:</b> {h.exchangeBatteryId || '-'}</div>
+                                    <div><b>VIN:</b> {h.vin || h.vinNavigation?.vin || '-'}</div>
+                                  </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                  <div><b>Old Station:</b> {h.oldStationId || '-'}</div>
+                                  <div><b>New Station:</b> {h.newStationId || '-'}</div>
+                                </div>
+
+                                <div style={{ color: '#64748b' }}>
+                                  <span><b>Tạo:</b> {h.startDate ? new Date(h.startDate).toLocaleString() : '-'}</span> •{" "}
+                                  <span><b>Cập nhật:</b> {h.updateDate ? new Date(h.updateDate).toLocaleString() : '-'}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="empty-note">Không có lịch sử</div>
+                      ))}
 
                       <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span>Reports</span>
