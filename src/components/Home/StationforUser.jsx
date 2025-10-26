@@ -5,8 +5,11 @@ import HeaderDriver from "./header";
 import Footer from "./footer";
 import "../Admin/pages/Station.css";
 import RatingStation from "./RatingStation";
+import { useNavigate } from "react-router-dom";
 
 export default function StationForUser() {
+  const navigate = useNavigate();
+  
   // theme and header-related states
   const [theme, setTheme] = useState(() => {
     if (typeof window !== "undefined") {
@@ -231,9 +234,9 @@ export default function StationForUser() {
     });
   };
 
-  // Function to handle navigation
-  const navigate = (path) => {
-    window.location.href = path;
+  // Function to handle report button click
+  const handleReportClick = (station) => {
+    navigate(`/report?stationId=${station.stationId}&stationName=${encodeURIComponent(station.stationName || '')}&location=${encodeURIComponent(station.location || '')}`);
   };
 
   return (
@@ -611,7 +614,7 @@ export default function StationForUser() {
                       <div className="emergency-actions" style={{ marginLeft: '16px' }}>
                         <button 
                           className="emergency-btn primary" 
-                          onClick={() => navigate('/report')}
+                          onClick={() => handleReportClick(st)}
                           style={{
                             background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                             color: 'white',
@@ -634,7 +637,7 @@ export default function StationForUser() {
                             e.target.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
                           }}
                         >
-                        ⚠️
+                        ⚠️ Báo cáo
                         </button>
                       </div>
                     </div>

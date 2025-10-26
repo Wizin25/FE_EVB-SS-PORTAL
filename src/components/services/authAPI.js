@@ -938,4 +938,26 @@ export const authAPI = {
       throw new Error(msg);
     }
   },
+
+  // Trong authAPI object
+getAllStationSchedules: async () => {
+  try {
+    const response = await api.get('/api/StationSchedule/get_all_station_schedules');
+    return response.data;
+  } catch (error) {
+    throw new Error(error?.message || JSON.stringify(error) || 'Get all station schedules failed');
+  }
+},
+
+// Thêm vào authAPI object
+getReportsByStationId: async (stationId) => {
+  try {
+    const response = await api.get('/api/Report/get_reports_by_station_id', {
+      params: { stationId }
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error?.message || JSON.stringify(error) || 'Get reports by station id failed');
+  }
+},
 };

@@ -470,3 +470,66 @@
     max-height: 120px;
   }
 }
+
+/* Thêm vào file Report.css */
+
+.selected-station-info {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 12px;
+  color: white;
+  text-align: center;
+}
+
+.station-badge {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.current-station-display {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: #f0fdf4;
+  border: 2px solid #bbf7d0;
+  border-radius: 8px;
+}
+
+.station-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.station-name {
+  font-weight: 600;
+  color: #166534;
+  font-size: 1rem;
+}
+
+.station-location {
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+/* Highlight selected option in dropdown */
+select option.selected-option {
+  background-color: #dcfce7;
+  font-weight: 600;
+  color: #166534;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .station-details {
+    flex-direction: column;
+  }
+  
+  .selected-station-info {
+    padding: 0.75rem;
+  }
+  
+  .station-badge {
+    font-size: 1rem;
+  }
+}

@@ -48,6 +48,9 @@ function Profile({ theme = "light" }) {
   const [avatarFile, setAvatarFile] = useState(null);
   const fileInputRef = useRef(null);
 
+  // Pre-load danh sách trạm để cache
+  const [stationsCache, setStationsCache] = useState({});
+
   const navigate = useNavigate();
 
   // Helper function to format date
@@ -64,6 +67,39 @@ function Profile({ theme = "light" }) {
     } catch (error) {
       return 'Invalid Date';
     }
+  };
+
+  // Hàm pre-load danh sách trạm
+  const loadAllStations = async () => {
+    try {
+      const stations = await authAPI.getAllStations();
+      if (Array.isArray(stations)) {
+        const cache = {};
+        stations.forEach(station => {
+          const stationId = station.stationId || station.StationId || station.id;
+          if (stationId) {
+            cache[stationId] = {
+              stationName: station.stationName || station.Name || 'N/A',
+              location: station.location || 'N/A'
+            };
+          }
+        });
+        setStationsCache(cache);
+      }
+    } catch (error) {
+      console.error('Error pre-loading stations:', error);
+    }
+  };
+
+  // Hàm lấy thông tin trạm từ cache
+  const getStationInfo = (stationId) => {
+    if (!stationId) return { stationName: 'N/A', location: 'N/A' };
+    
+    if (stationsCache[stationId]) {
+      return stationsCache[stationId];
+    }
+    
+    return { stationName: 'N/A', location: 'N/A' };
   };
 
   // Theme handling
@@ -118,6 +154,9 @@ function Profile({ theme = "light" }) {
         setLoading(false);
       });
     
+    // Pre-load stations
+    loadAllStations();
+    
     return () => { mounted = false; };
   }, []);
 
@@ -138,7 +177,7 @@ function Profile({ theme = "light" }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // API calls - Updated fetchForms with battery details
+  // API calls - Updated fetchForms with battery details and station names
   const fetchForms = useCallback(async () => {
     if (!isInRole('EvDriver') || !user) return;
     
@@ -152,37 +191,47 @@ function Profile({ theme = "light" }) {
       if (response?.isSuccess) {
         const formsData = response.data || [];
         
-        // Lấy thông tin batteryName cho từng form
-        const formsWithBatteryDetails = await Promise.all(
+        // Lấy thông tin batteryName và stationName cho từng form
+        const formsWithDetails = await Promise.all(
           formsData.map(async (form) => {
+            let batteryName = 'Không có pin';
+            let stationName = 'Chưa xác định';
+            
+            // Lấy thông tin pin
             if (form.batteryId) {
               try {
                 const batteryDetail = await authAPI.getBatteryById(form.batteryId);
-                return { 
-                  ...form, 
-                  batteryName: batteryDetail?.name || 'Không có tên',
-                  batteryDetail: batteryDetail
-                };
+                batteryName = batteryDetail?.name || 'Không có tên';
               } catch (error) {
                 console.error(`Error fetching battery details for ${form.batteryId}:`, error);
-                return { ...form, batteryName: 'Lỗi khi tải thông tin pin' };
+                batteryName = 'Lỗi khi tải thông tin pin';
               }
-            } else {
-              return { ...form, batteryName: 'Không có pin' };
             }
+            
+            // Lấy thông tin trạm từ cache
+            if (form.stationId) {
+              const stationInfo = getStationInfo(form.stationId);
+              stationName = stationInfo.stationName;
+            }
+            
+            return { 
+              ...form, 
+              batteryName: batteryName,
+              stationName: stationName
+            };
           })
         );
 
-        setForms(formsWithBatteryDetails);
+        setForms(formsWithDetails);
       }
     } catch (error) {
       console.error('Error fetching forms:', error);
     } finally {
       setLoadingForms(false);
     }
-  }, [user]);
+  }, [user, stationsCache]);
 
-  // Updated fetchFormDetail with battery details
+  // Updated fetchFormDetail with battery details and station info
   const fetchFormDetail = useCallback(async (formId) => {
     if (!isInRole('EvDriver') || !formId) return;
     
@@ -207,6 +256,16 @@ function Profile({ theme = "light" }) {
           formDetail.batteryName = 'Không có pin';
         }
         
+        // Lấy thông tin stationName
+        if (formDetail.stationId) {
+          const stationInfo = getStationInfo(formDetail.stationId);
+          formDetail.stationName = stationInfo.stationName;
+          formDetail.stationLocation = stationInfo.location;
+        } else {
+          formDetail.stationName = 'Chưa xác định';
+          formDetail.stationLocation = 'N/A';
+        }
+        
         setFormDetail(formDetail);
       } else {
         throw new Error(response?.message || 'Không thể lấy thông tin chi tiết');
@@ -217,7 +276,7 @@ function Profile({ theme = "light" }) {
     } finally {
       setLoadingFormDetail(false);
     }
-  }, []);
+  }, [stationsCache]);
 
   const fetchUserVehicles = useCallback(async () => {
     if (!isInRole('EvDriver')) {
@@ -656,7 +715,8 @@ function Profile({ theme = "light" }) {
                     </p>
                     <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: localTheme === 'dark' ? '#9ca3af' : '#6b7280', flexWrap: 'wrap', marginTop: 8 }}>
                       <span>📅 {form.date ? formatDateTime(form.date) : 'Chưa có ngày'}</span>
-                      <span>🏢 Trạm: {form.stationId || 'Chưa xác định'}</span>
+                      {/* ĐÃ THAY ĐỔI: Hiển thị tên trạm thay vì ID */}
+                      <span>🏢 Trạm: {form.stationName || form.stationId || 'Chưa xác định'}</span>
                     </div>
                   </div>
                   <div className="profile-badge" style={{ 
@@ -712,6 +772,9 @@ function Profile({ theme = "light" }) {
                           {/* Thông tin VIN */}
                           <div><strong>🚗 VIN:</strong> {formDetail.vin || 'N/A'}</div>
                           
+                          {/* Thông tin trạm - ĐÃ THÊM */}
+                          <div><strong>🏢 Trạm:</strong> {formDetail.stationName || 'N/A'}</div>
+                          <div><strong>📍 Địa chỉ trạm:</strong> {formDetail.stationLocation || 'N/A'}</div>
                           
                           <div>
   <strong>🔋 Thông tin Pin:</strong>

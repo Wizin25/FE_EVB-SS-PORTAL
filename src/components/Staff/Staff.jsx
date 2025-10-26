@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { message } from 'antd';
 import { authAPI } from '../services/authAPI';
 import { formAPI } from '../services/formAPI';
+import Calendar from '../Admin/pages/Calendar'; // Import Calendar component đã sửa
 import './Staff.css';
 
 const ITEMS_PER_PAGE = 10;
@@ -21,6 +22,19 @@ const VIEW_CONFIG = VIEW_NAV.reduce((acc, item) => {
 
 /** Chuẩn hoá ID form */
 const getFormId = (f) => f?.formId ?? f?.id ?? f?._id ?? null;
+
+// Helper function for date formatting
+const formatDate = (dateString) => {
+  if (!dateString || dateString === 'N/A') return 'N/A';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'N/A';
+    return date.toLocaleString('vi-VN', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh'
+    });
+  } catch { return dateString; }
+};
 
 function BatteryReportForm({
   defaults,
@@ -252,72 +266,13 @@ function StaffPage() {
   // Flag to control when to show success toast
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
-  // THÊM CÁC STATE CHO LỊCH TRÌNH
+  // THÊM CÁC STATE CHO LỊCH TRÌNH VỚI CALENDAR
   const [stationSchedules, setStationSchedules] = useState({});
   const [loadingSchedules, setLoadingSchedules] = useState(false);
-  const [expandedScheduleStations, setExpandedScheduleStations] = useState(new Set());
+  const [selectedScheduleDate, setSelectedScheduleDate] = useState(null);
+  const [schedulesByDate, setSchedulesByDate] = useState({});
 
-  const activeViewKey = VIEW_CONFIG[viewMode] ? viewMode : DEFAULT_VIEW_KEY;
-  const activeView = VIEW_CONFIG[activeViewKey];
-  const isFormsView = activeViewKey === 'forms';
-  const isStationScheduleView = activeViewKey === 'station-schedule';
-  const isStationSchedulesView = activeViewKey === 'station-schedules';
-  const isBatteryReportView = activeViewKey === 'battery-report';
-  const pageTitle = activeView?.label || VIEW_CONFIG[DEFAULT_VIEW_KEY].label;
-
-  const handleSwitchView = useCallback((nextView) => {
-    const safeView = VIEW_CONFIG[nextView] ? nextView : DEFAULT_VIEW_KEY;
-    setSelectedForm(null);
-    setViewMode(safeView);
-    if (safeView === DEFAULT_VIEW_KEY) {
-      setPage(1);
-    }
-  }, [setViewMode, setSelectedForm, setPage]);
-
-  // THÊM HÀM XỬ LÝ LỊCH TRÌNH
-  const handleToggleSchedule = async (stationId) => {
-    if (expandedScheduleStations.has(stationId)) {
-      setExpandedScheduleStations(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(stationId);
-        return newSet;
-      });
-      return;
-    }
-
-    setLoadingSchedules(true);
-    try {
-      const res = await authAPI.getStationSchedulesByStationId(stationId);
-      setStationSchedules(prev => ({
-        ...prev,
-        [stationId]: res.data || []
-      }));
-      setExpandedScheduleStations(prev => new Set(prev).add(stationId));
-    } catch (err) {
-      console.error('Failed to fetch station schedules:', err);
-      setStationSchedules(prev => ({
-        ...prev,
-        [stationId]: []
-      }));
-      setExpandedScheduleStations(prev => new Set(prev).add(stationId));
-      toast.error('Lấy lịch trình thất bại: ' + (err?.message || 'Lỗi không xác định'));
-    } finally {
-      setLoadingSchedules(false);
-    }
-  };
-
-  // New function to handle battery report navigation with form data
-  const handleBatteryReport = useCallback((form) => {
-    const defaults = {
-      accountId: form.accountId || '',
-      stationId: form.stationId || '',
-      batteryId: form.batteryId || form.BatteryId || form.battery?.batteryId || form.battery?._id || form.battery?.id || '',
-      staffName: currentUser?.name || currentUser?.Name || 'Staff'
-    };
-    setBatteryReportDefaults(defaults);
-    handleSwitchView('battery-report');
-  }, [currentUser, handleSwitchView]);
-
+  // MOVE stationAssignments UP HERE - before functions that use it
   const stationAssignments = useMemo(() => {
     const assignments = [];
     if (!currentUser) {
@@ -399,6 +354,276 @@ function StaffPage() {
 
     return Object.values(summary).sort((a, b) => b.total - a.total);
   }, [forms]);
+
+  const activeViewKey = VIEW_CONFIG[viewMode] ? viewMode : DEFAULT_VIEW_KEY;
+  const activeView = VIEW_CONFIG[activeViewKey];
+  const isFormsView = activeViewKey === 'forms';
+  const isStationSchedulesView = activeViewKey === 'station-schedules';
+  const isBatteryReportView = activeViewKey === 'battery-report';
+  const pageTitle = activeView?.label || VIEW_CONFIG[DEFAULT_VIEW_KEY].label;
+
+  const handleSwitchView = useCallback((nextView) => {
+    const safeView = VIEW_CONFIG[nextView] ? nextView : DEFAULT_VIEW_KEY;
+    setSelectedForm(null);
+    setViewMode(safeView);
+    if (safeView === DEFAULT_VIEW_KEY) {
+      setPage(1);
+    }
+  }, [setViewMode, setSelectedForm, setPage]);
+
+  // Hàm xử lý khi chọn ngày từ calendar - ĐÃ CẬP NHẬT
+  const handleDateSelect = useCallback((date) => {
+    setSelectedScheduleDate(date);
+    
+    // Format date để so sánh (YYYY-MM-DD)
+    const dateKey = `${date.year}-${String(date.month + 1).padStart(2, '0')}-${String(date.date).padStart(2, '0')}`;
+    
+    // Nếu đã có dữ liệu cho ngày này trong cache, không cần xử lý lại
+    if (schedulesByDate[dateKey]) {
+      return;
+    }
+
+    // Lọc lịch trình từ stationSchedules đã preload theo ngày được chọn
+    const allSchedules = [];
+    Object.keys(stationSchedules).forEach(stationId => {
+      const schedules = stationSchedules[stationId] || [];
+      const assignment = stationAssignments.find(a => a.stationId === stationId);
+      
+      const filteredSchedules = schedules.filter(schedule => {
+        if (!schedule.date && !schedule.startDate) return false;
+        
+        const scheduleDate = new Date(schedule.date || schedule.startDate);
+        const scheduleDateKey = `${scheduleDate.getFullYear()}-${String(scheduleDate.getMonth() + 1).padStart(2, '0')}-${String(scheduleDate.getDate()).padStart(2, '0')}`;
+        
+        return scheduleDateKey === dateKey;
+      });
+
+      filteredSchedules.forEach(schedule => {
+        allSchedules.push({
+          ...schedule,
+          stationName: assignment?.stationName || stationId,
+          stationId: stationId
+        });
+      });
+    });
+
+    // Lưu vào cache
+    setSchedulesByDate(prev => ({
+      ...prev,
+      [dateKey]: allSchedules
+    }));
+  }, [stationAssignments, schedulesByDate, stationSchedules]);
+
+  // Hàm render lịch trình theo ngày đã chọn
+  const renderSchedulesForSelectedDate = useCallback(() => {
+    if (!selectedScheduleDate) return null;
+
+    const dateKey = `${selectedScheduleDate.year}-${String(selectedScheduleDate.month + 1).padStart(2, '0')}-${String(selectedScheduleDate.date).padStart(2, '0')}`;
+    const schedules = schedulesByDate[dateKey] || [];
+
+    if (loadingSchedules) {
+      return (
+        <div style={{ textAlign: 'center', padding: '40px' }}>
+          <div style={{ fontSize: '2rem', marginBottom: '16px' }}>⏳</div>
+          <p>Đang tải lịch trình...</p>
+        </div>
+      );
+    }
+
+    if (schedules.length === 0) {
+      return (
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '40px',
+          color: '#64748b',
+          fontStyle: 'italic'
+        }}>
+          <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📭</div>
+          <h4 style={{ color: '#475569', marginBottom: '8px' }}>Không có lịch trình</h4>
+          <p>Không có lịch trình nào cho ngày này.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{
+        display: 'grid',
+        gap: '16px',
+        maxHeight: '500px',
+        overflowY: 'auto',
+        padding: '10px'
+      }}>
+        {schedules.map((schedule, index) => (
+          <div 
+            key={`${schedule.stationScheduleId}-${index}`}
+            style={{
+              padding: '16px',
+              background: 'rgba(255,255,255,0.95)',
+              borderRadius: '12px',
+              border: '2px solid rgba(226, 232, 240, 0.8)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+            }}
+          >
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'flex-start',
+              marginBottom: '12px'
+            }}>
+              <div style={{ flex: 1 }}>
+                <h4 style={{ 
+                  margin: '0 0 8px 0', 
+                  color: '#0f172a',
+                  fontSize: '16px',
+                  fontWeight: '600'
+                }}>
+                  🏢 {schedule.stationName || `Trạm ${schedule.stationId}`}
+                </h4>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  gap: '8px',
+                  flexWrap: 'wrap'
+                }}>
+                  <span style={{ 
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    background: schedule.status === 'Active' 
+                      ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                      : schedule.status === 'Pending'
+                      ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                      : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    color: 'white'
+                  }}>
+                    {schedule.status === 'Active' ? '🟢' : 
+                     schedule.status === 'Pending' ? '🟡' : '🔴'} {schedule.status}
+                  </span>
+                  <span style={{ 
+                    fontSize: '12px',
+                    color: '#64748b',
+                    background: 'rgba(15,23,42,0.05)',
+                    padding: '4px 8px',
+                    borderRadius: '6px'
+                  }}>
+                    ID: {schedule.stationScheduleId}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ 
+              color: '#475569', 
+              fontSize: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px'
+            }}>
+              {schedule.description && (
+                <div>
+                  <strong>Mô tả:</strong> {schedule.description}
+                </div>
+              )}
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <strong>Form ID:</strong> {schedule.formId || 'N/A'}
+                </div>
+                <div>
+                  <strong>Trạm ID:</strong> {schedule.stationId}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div>
+                  <strong>Ngày tạo:</strong> {formatDate(schedule.startDate)}
+                </div>
+                <div>
+                  <strong>Cập nhật:</strong> {formatDate(schedule.updateDate)}
+                </div>
+              </div>
+
+              {schedule.exchangeBatteries && schedule.exchangeBatteries.length > 0 && (
+                <div style={{ marginTop: '8px' }}>
+                  <strong>🔋 Pin trao đổi:</strong>
+                  <div style={{ 
+                    marginTop: '4px',
+                    padding: '8px',
+                    background: 'rgba(15,23,42,0.03)',
+                    borderRadius: '6px'
+                  }}>
+                    {schedule.exchangeBatteries.map((battery, idx) => (
+                      <div key={idx} style={{ fontSize: '12px' }}>
+                        • {battery.batteryId || battery.id} - {battery.status || 'Unknown'}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }, [selectedScheduleDate, schedulesByDate, loadingSchedules]);
+
+  // New function to handle battery report navigation with form data
+  const handleBatteryReport = useCallback((form) => {
+    const defaults = {
+      accountId: form.accountId || '',
+      stationId: form.stationId || '',
+      batteryId: form.batteryId || form.BatteryId || form.battery?.batteryId || form.battery?._id || form.battery?.id || '',
+      staffName: currentUser?.name || currentUser?.Name || 'Staff'
+    };
+    setBatteryReportDefaults(defaults);
+    handleSwitchView('battery-report');
+  }, [currentUser, handleSwitchView]);
+
+  // Preload station schedules khi stationAssignments thay đổi
+  useEffect(() => {
+    const preloadStationSchedules = async () => {
+      if (stationAssignments.length === 0) return;
+      
+      setLoadingSchedules(true);
+      try {
+        const allSchedules = {};
+        
+        for (const assignment of stationAssignments) {
+          try {
+            const res = await authAPI.getStationSchedulesByStationId(assignment.stationId);
+            
+            // Xử lý response - có thể là array trực tiếp hoặc nested trong data
+            const schedules = Array.isArray(res?.data) ? res.data : 
+                             (Array.isArray(res?.data?.data) ? res.data.data : []);
+            
+            allSchedules[assignment.stationId] = schedules;
+          } catch (err) {
+            console.error(`Error fetching schedules for station ${assignment.stationId}:`, err);
+            allSchedules[assignment.stationId] = [];
+          }
+        }
+        
+        setStationSchedules(allSchedules);
+      } catch (error) {
+        console.error('Error preloading station schedules:', error);
+        toast.error('Lỗi khi tải lịch trình trạm: ' + (error?.message || 'Lỗi không xác định'));
+      } finally {
+        setLoadingSchedules(false);
+      }
+    };
+
+    preloadStationSchedules();
+  }, [stationAssignments]);
 
   /* ======== Init: current user + prefetch station by staffId + forms by station ======== */
   useEffect(() => {
@@ -819,18 +1044,6 @@ function StaffPage() {
     if (s === 'rejected' || s === 'từ chối') return 'status-chip status-rejected';
     if (s === 'completed' || s === 'hoàn thành') return 'status-chip status-completed';
     return 'status-chip status-unknown';
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString || dateString === 'N/A') return 'N/A';
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'N/A';
-      return date.toLocaleString('vi-VN', {
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh'
-      });
-    } catch { return dateString; }
   };
 
   const handleRefresh = async () => {
@@ -1296,230 +1509,66 @@ function StaffPage() {
         </>
         )}
 
-        {isStationScheduleView && (
-          <section className="glass" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
-            <h2 className="filters-title">Station Schedule</h2>
-            <p style={{ marginTop: 4, color: 'rgba(15,23,42,0.7)' }}>
-              Danh sách được tự động tổng hợp từ thông tin bssStaffs và station cache.
-            </p>
-            {stationAssignments.length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginTop: 20 }}>
-                {stationAssignments.map((assignment) => (
-                  <div
-                    key={assignment.id}
-                    className="liquid"
-                    style={{
-                      padding: 16,
-                      borderRadius: 18,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 8,
-                    }}
-                  >
-                    <div style={{ fontSize: 16, fontWeight: 600, color: '#0f172a' }}>
-                      {assignment.stationName || 'Station'}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#334155', fontSize: 14 }}>
-                      <span>Station ID</span>
-                      <span>{assignment.stationId || 'N/A'}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#334155', fontSize: 14 }}>
-                      <span>Staff ID</span>
-                      <span>{assignment.staffId || 'N/A'}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#334155', fontSize: 14 }}>
-                      <span>Role</span>
-                      <span>{assignment.role || 'Staff'}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{ marginTop: 24, padding: 24, textAlign: 'center', background: 'rgba(15,23,42,0.05)', borderRadius: 16, color: '#475569' }}>
-                Chưa có dữ liệu lịch trực cho trạm của bạn.
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* THÊM PHẦN HIỂN THỊ LỊCH TRÌNH */}
+        {/* PHẦN LỊCH TRÌNH TRẠM VỚI CALENDAR */}
         {isStationSchedulesView && (
           <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
-            <h2 className="filters-title">Lịch trình các trạm</h2>
+            <h2 className="filters-title">Lịch trình các trạm theo ngày</h2>
             <p style={{ marginTop: 4, color: 'rgba(15,23,42,0.7)' }}>
-              Quản lý và xem lịch trình làm việc của các trạm bạn phụ trách
+              Chọn ngày để xem lịch trình của các trạm bạn phụ trách
             </p>
 
-            {stationAssignments.length > 0 ? (
-              <div style={{ display: 'grid', gap: '20px', marginTop: '20px' }}>
-                {stationAssignments.map((assignment, idx) => {
-                  const isExpanded = expandedScheduleStations.has(assignment.stationId);
-                  const schedules = stationSchedules[assignment.stationId] || [];
+            {/* Calendar Component */}
+            <div style={{ 
+              background: 'rgba(255,255,255,0.8)', 
+              borderRadius: '16px', 
+              padding: '20px',
+              marginBottom: '20px'
+            }}>
+              <Calendar 
+                onDateSelect={(selectedDate) => {
+                  console.log('Date selected in Staff:', selectedDate);
+                  setSelectedScheduleDate(selectedDate);
                   
-                  return (
-                    <div 
-                      key={assignment.stationId} 
-                      className="liquid"
-                      style={{ 
-                        padding: '20px', 
-                        borderRadius: '16px',
-                        border: '1px solid rgba(15,23,42,0.1)',
-                        background: 'rgba(255,255,255,0.8)'
-                      }}
-                    >
-                      <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center',
-                        marginBottom: '15px'
-                      }}>
-                        <div>
-                          <h3 style={{ margin: '0 0 5px 0', color: '#0f172a' }}>
-                            🏢 {assignment.stationName}
-                          </h3>
-                          <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>
-                            Station ID: {assignment.stationId} | Staff ID: {assignment.staffId}
-                          </p>
-                        </div>
-                        <button
-                          className="status-apply-btn"
-                          onClick={() => handleToggleSchedule(assignment.stationId)}
-                          disabled={loadingSchedules}
-                          style={{
-                            padding: '8px 16px',
-                            borderRadius: '20px',
-                            border: 'none',
-                            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                            color: 'white',
-                            fontWeight: 'bold',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {loadingSchedules && expandedScheduleStations.has(assignment.stationId) 
-                            ? '🔄 Đang tải...' 
-                            : (isExpanded ? '📅 Đóng lịch' : '📅 Xem lịch')}
-                        </button>
-                      </div>
+                  // Format selected date để so sánh (YYYY-MM-DD)
+                  const selectedDateStr = `${selectedDate.year}-${String(selectedDate.month + 1).padStart(2, '0')}-${String(selectedDate.date).padStart(2, '0')}`;
+                  
+                  console.log('Looking for schedules on:', selectedDateStr);
+                  
+                  // Lọc lịch trình từ stationSchedules đã preload
+                  const allSchedulesForDate = [];
+                  Object.keys(stationSchedules).forEach(stationId => {
+                    const schedules = stationSchedules[stationId] || [];
+                    const assignment = stationAssignments.find(a => a.stationId === stationId);
+                    
+                    const filteredSchedules = schedules.filter(schedule => {
+                      if (!schedule.date) return false;
+                      
+                      // Sử dụng UTC để tránh vấn đề timezone
+                      const scheduleDate = new Date(schedule.date);
+                      const scheduleDateStr = `${scheduleDate.getUTCFullYear()}-${String(scheduleDate.getUTCMonth() + 1).padStart(2, '0')}-${String(scheduleDate.getUTCDate()).padStart(2, '0')}`;
+                      
+                      return scheduleDateStr === selectedDateStr;
+                    });
 
-                      {isExpanded && (
-                        <div style={{
-                          marginTop: '15px',
-                          padding: '15px',
-                          background: 'rgba(15,23,42,0.03)',
-                          borderRadius: '12px',
-                          border: '1px solid rgba(15,23,42,0.05)'
-                        }}>
-                          <h4 style={{
-                            margin: '0 0 15px 0',
-                            color: '#0f172a',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '5px'
-                          }}>
-                            🗓️ Lịch trình trạm
-                          </h4>
-                          
-                          {loadingSchedules ? (
-                            <div style={{ textAlign: 'center', padding: '20px' }}>
-                              ⏳ Đang tải lịch trình...
-                            </div>
-                          ) : schedules.length > 0 ? (
-                            <div style={{
-                              display: 'grid',
-                              gap: '10px',
-                              maxHeight: '300px',
-                              overflowY: 'auto'
-                            }}>
-                              {schedules.map((schedule, scheduleIdx) => (
-                                <div key={scheduleIdx} style={{
-                                  padding: '12px 16px',
-                                  background: 'rgba(255,255,255,0.9)',
-                                  borderRadius: '8px',
-                                  border: '1px solid rgba(226, 232, 240, 0.8)',
-                                  fontSize: '0.9rem'
-                                }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ color: '#374151', fontWeight: '500' }}>
-                                      📅 {formatDate(schedule.date) || 'Chưa có ngày'}
-                                    </span>
-                                    <span style={{ 
-                                      color: schedule.status === 'Active' ? '#10b981' : 
-                                             schedule.status === 'Pending' ? '#f59e0b' : '#ef4444',
-                                      fontWeight: 'bold',
-                                      fontSize: '0.8rem'
-                                    }}>
-                                      {schedule.status === 'Active' ? '🟢' : 
-                                       schedule.status === 'Pending' ? '🟡' : '🔴'} {schedule.status}
-                                    </span>
-                                  </div>
-                                  <div style={{ 
-                                    color: '#64748b', 
-                                    fontSize: '0.8rem',
-                                    marginTop: '5px',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '4px'
-                                  }}>
-                                    <div>
-                                      <strong>ID Lịch trình:</strong> {schedule.stationScheduleId}
-                                    </div>
-                                    <div>
-                                      <strong>Form ID:</strong> {schedule.formId || 'N/A'}
-                                    </div>
-                                    {schedule.description && (
-                                      <div>
-                                        <strong>Mô tả:</strong> {schedule.description}
-                                      </div>
-                                    )}
-                                    <div style={{ display: 'flex', gap: '15px', marginTop: '5px' }}>
-                                      <span>
-                                        <strong>Ngày tạo:</strong> {formatDate(schedule.startDate)}
-                                      </span>
-                                      <span>
-                                        <strong>Cập nhật:</strong> {formatDate(schedule.updateDate)}
-                                      </span>
-                                    </div>
-                                    {schedule.exchangeBatteries && schedule.exchangeBatteries.length > 0 && (
-                                      <div style={{ marginTop: '5px' }}>
-                                        <strong>Pin trao đổi:</strong> {schedule.exchangeBatteries.length} pin
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div style={{ 
-                              textAlign: 'center', 
-                              padding: '30px',
-                              color: '#64748b',
-                              fontStyle: 'italic'
-                            }}>
-                              Không có lịch trình nào cho trạm này
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{ 
-                marginTop: 24, 
-                padding: 40, 
-                textAlign: 'center', 
-                background: 'rgba(15,23,42,0.05)', 
-                borderRadius: 16, 
-                color: '#475569' 
-              }}>
-                <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📅</div>
-                <h3 style={{ color: '#475569', marginBottom: '8px' }}>Chưa có trạm nào được phân công</h3>
-                <p style={{ color: '#64748b', margin: 0 }}>
-                  Bạn chưa được phân công quản lý trạm nào. Vui lòng liên hệ quản trị viên.
-                </p>
-              </div>
-            )}
+                    filteredSchedules.forEach(schedule => {
+                      allSchedulesForDate.push({
+                        ...schedule,
+                        stationName: assignment?.stationName || `Trạm ${stationId}`,
+                        stationId: stationId
+                      });
+                    });
+                  });
+
+                  console.log('Found schedules:', allSchedulesForDate.length);
+                  
+                  // Cập nhật cache
+                  setSchedulesByDate(prev => ({
+                    ...prev,
+                    [selectedDateStr]: allSchedulesForDate
+                  }));
+                }}
+              />
+            </div>            
           </section>
         )}
 
