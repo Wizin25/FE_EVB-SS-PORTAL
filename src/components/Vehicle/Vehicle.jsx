@@ -368,40 +368,56 @@ const Vehicle = () => {
     };
   };
 
-  // Hàm format ngày
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
+  // HÀM MỚI: Tính ngày hết hạn dựa trên expiredDate
+  const calculateExpiryDate = (expiredDate) => {
+    if (!expiredDate || expiredDate === 'N/A') return null;
+    
     try {
-      return new Date(dateString).toLocaleDateString('vi-VN');
+      // Nếu expiredDate là số (số ngày), tính từ ngày hiện tại
+      if (typeof expiredDate === 'number') {
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + expiredDate);
+        return expiryDate;
+      }
+      
+      // Nếu expiredDate là chuỗi ngày tháng, parse trực tiếp
+      const date = new Date(expiredDate);
+      return !isNaN(date.getTime()) ? date : null;
     } catch (e) {
-      console.error('Invalid date string:', dateString);
-      return dateString;
+      console.error('Error calculating expiry date:', e);
+      return null;
     }
   };
 
-  // Hàm kiểm tra gói sắp hết hạn (trong 7 ngày)
+  // HÀM MỚI: Format ngày hết hạn
+  const formatExpiryDate = (expiredDate) => {
+    const expiryDate = calculateExpiryDate(expiredDate);
+    if (!expiryDate) return 'Không xác định';
+    
+    return expiryDate.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  // HÀM MỚI: Kiểm tra gói sắp hết hạn (trong 7 ngày) với expiredDate
   const isExpiringSoon = (expiredDate) => {
-    if (!expiredDate) return false;
-    try {
-      const expDate = new Date(expiredDate);
-      const now = new Date();
-      const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      return expDate <= sevenDaysFromNow && expDate > now;
-    } catch (e) {
-      return false;
-    }
+    const expiryDate = calculateExpiryDate(expiredDate);
+    if (!expiryDate) return false;
+    
+    const now = new Date();
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    return expiryDate <= sevenDaysFromNow && expiryDate > now;
   };
 
-  // Hàm kiểm tra gói đã hết hạn
+  // HÀM MỚI: Kiểm tra gói đã hết hạn với expiredDate
   const isExpired = (expiredDate) => {
-    if (!expiredDate) return false;
-    try {
-      const expDate = new Date(expiredDate);
-      const now = new Date();
-      return expDate < now;
-    } catch (e) {
-      return false;
-    }
+    const expiryDate = calculateExpiryDate(expiredDate);
+    if (!expiryDate) return false;
+    
+    const now = new Date();
+    return expiryDate < now;
   };
 
   const loadPackagesForVehicles = async (vehiclesData) => {
@@ -957,15 +973,15 @@ const Vehicle = () => {
                               </span>
                             </div>
                             <div className="detail-row">
-                                <span className="detail-label">Ngày hết hạn gói</span>
-                                <span className="detail-value">
-                                  <span className={`expired-date ${isExpiringSoon(packageInfo.expiredDate) ? 'expiring-soon' : ''} ${isExpired(packageInfo.expiredDate) ? 'expiredDate' : ''}`}>
-                                    ⏰ {formatDate(packageInfo.expiredDate)}
-                                    {isExpiringSoon(packageInfo.expiredDate) && ' (Sắp hết hạn)'}
-                                    {isExpired(packageInfo.expiredDate) && ' (Đã hết hạn)'}
-                                  </span>
+                              <span className="detail-label">Ngày hết hạn gói</span>
+                              <span className="detail-value">
+                                <span className={`expired-date ${isExpiringSoon(packageInfo.expiredDate) ? 'expiring-soon' : ''} ${isExpired(packageInfo.expiredDate) ? 'expired' : ''}`}>
+                                  ⏰ {formatExpiryDate(packageInfo.expiredDate)}
+                                  {isExpiringSoon(packageInfo.expiredDate) && ' (Sắp hết hạn)'}
+                                  {isExpired(packageInfo.expiredDate) && ' (Đã hết hạn)'}
                                 </span>
-                              </div>
+                              </span>
+                            </div>
                           </div>
                         </div>
 

@@ -27,6 +27,7 @@ const Report = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [submitStatus, setSubmitStatus] = useState('');
+  const [selectedStationInfo, setSelectedStationInfo] = useState(null);
 
   // Theme toggle handler
   const handleToggleTheme = () => {
@@ -56,6 +57,27 @@ const Report = () => {
       document.body.classList.add('dark');
     }
 
+    // Check for stationId in URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const stationIdFromUrl = urlParams.get('stationId');
+    const stationNameFromUrl = urlParams.get('stationName');
+    const locationFromUrl = urlParams.get('location');
+
+    if (stationIdFromUrl) {
+      setFormData(prev => ({
+        ...prev,
+        stationId: stationIdFromUrl
+      }));
+      
+      // Store station info for display
+      if (stationNameFromUrl || locationFromUrl) {
+        setSelectedStationInfo({
+          stationName: decodeURIComponent(stationNameFromUrl || ''),
+          location: decodeURIComponent(locationFromUrl || '')
+        });
+      }
+    }
+
     // Fetch data
     const fetchData = async () => {
       try {
@@ -70,6 +92,17 @@ const Report = () => {
         // Fetch stations for dropdown
         const stationsData = await authAPI.getAllStations();
         setStations(stationsData);
+        
+        // If we have stationId from URL but no station info, try to find it in the stations list
+        if (stationIdFromUrl && !selectedStationInfo) {
+          const foundStation = stationsData.find(st => st.stationId === stationIdFromUrl);
+          if (foundStation) {
+            setSelectedStationInfo({
+              stationName: foundStation.stationName || foundStation.Name || '',
+              location: foundStation.location || ''
+            });
+          }
+        }
       } catch (error) {
         console.error("Error fetching stations:", error);
       }
@@ -103,6 +136,17 @@ const Report = () => {
       ...prev,
       [name]: value
     }));
+    
+    // Reset selected station info when user manually changes station
+    if (name === 'stationId' && value) {
+      const selectedStation = stations.find(st => st.stationId === value);
+      if (selectedStation) {
+        setSelectedStationInfo({
+          stationName: selectedStation.stationName || selectedStation.Name || '',
+          location: selectedStation.location || ''
+        });
+      }
+    }
   };
 
   const handleImageChange = (e) => {
@@ -212,6 +256,7 @@ const Report = () => {
       
       // Reset preview và file input
       setImagePreview(null);
+      setSelectedStationInfo(null);
       const fileInput = document.querySelector('input[type="file"]');
       if (fileInput) fileInput.value = '';
       
@@ -258,6 +303,18 @@ const Report = () => {
               <div className="hero-badge">🚨 Báo cáo sự cố</div>
               <h1>Báo cáo sự cố khẩn cấp</h1>
               <p>Chúng tôi sẽ xử lý báo cáo của bạn trong thời gian sớm nhất</p>
+              
+              {/* Hiển thị thông tin trạm nếu có từ URL */}
+              {selectedStationInfo && (
+                <div className="selected-station-info">
+                  <div className="station-badge">
+                    🏢 Trạm được chọn: <strong>{selectedStationInfo.stationName}</strong>
+                    {selectedStationInfo.location && (
+                      <span> - 📍 {selectedStationInfo.location}</span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 
@@ -294,19 +351,36 @@ const Report = () => {
                 <div className="form-group">
                   <label htmlFor="stationId">Trạm gặp sự cố *</label>
                   <select
-  id="stationId"
-  name="stationId"
-  value={formData.stationId}
-  onChange={handleInputChange}
-  required
->
-  <option value="">Chọn trạm</option>
-  {stations.map(station => (
-    <option key={station.stationId} value={station.stationId}>
-      {station.stationName} ( {station.location} )
-    </option>
-  ))}
-</select>
+                    id="stationId"
+                    name="stationId"
+                    value={formData.stationId}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="">Chọn trạm</option>
+                    {stations.map(station => (
+                      <option 
+                        key={station.stationId} 
+                        value={station.stationId}
+                        className={station.stationId === formData.stationId ? 'selected-option' : ''}
+                      >
+                        {station.stationName} ({station.location})
+                        {station.stationId === formData.stationId && " ✅"}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  {/* Hiển thị thông tin trạm đã chọn */}
+                  {selectedStationInfo && formData.stationId && (
+                    <div className="current-station-display">
+                      <div className="station-details">
+                        <span className="station-name">🏢 {selectedStationInfo.stationName}</span>
+                        {selectedStationInfo.location && (
+                          <span className="station-location">📍 {selectedStationInfo.location}</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group">

@@ -689,3 +689,48 @@
     width: 100%;
   }
 }
+
+/* Hình ảnh trong report card - danh sách */
+.report-image {
+  width: 100%;
+  height: 200px; /* Hoặc chiều cao bạn muốn */
+  overflow: hidden;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  background-color: #f3f4f6;
+}
+
+.report-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Cắt ảnh vừa khung, không bị méo */
+  object-position: center;
+  display: block;
+}
+
+/* Hình ảnh trong popup chi tiết */
+.image-container {
+  width: 100%;
+  max-height: 500px;
+  overflow: hidden;
+  border-radius: 8px;
+  background-color: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detail-image {
+  width: 100%;
+  height: auto;
+  max-height: 500px;
+  object-fit: contain; /* Giữ nguyên tỷ lệ, fit trong khung */
+  object-position: center;
+  display: block;
+}
+
+/* Nếu muốn ảnh trong popup cũng fill đầy (crop) thì dùng: */
+.detail-image.cover-mode {
+  object-fit: cover;
+  height: 500px;
+}
