@@ -666,9 +666,14 @@ export default function FormPage() {
                             )}
                           </span>
                         )}
+                        {form.startDate && (
+                          <span>
+                            <strong>Ngày tạo:</strong> {formatDate(form.startDate)}
+                          </span>
+                        )}
                         {form.date && (
                           <span>
-                            <strong>Ngày tạo:</strong> {formatDate(form.date)}
+                            <strong>Ngày đặt lịch:</strong> {formatDate(form.date)}
                           </span>
                         )}
                         <span>

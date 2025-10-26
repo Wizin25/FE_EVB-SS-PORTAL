@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const API_BASE_URL = 'http://103.38.236.148:5000'; // giữ nguyên nếu BE chạy đây
-
+//https://localhost:5001
+//http://103.38.236.148:5000
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {

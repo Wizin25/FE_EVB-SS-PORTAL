@@ -315,7 +315,7 @@
 .profile-row:last-child { border-bottom: 0; }
 .profile-label { font-size: 12px; color: #1b2027; font-weight: 700; }
 .profile-value { font-weight: 800; color: #0f172a; word-break: break-word; }
-.logout-btn { margin-top: 10px; width: 100%; padding: 10px 12px; background: #ef4444; color: #fff; font-weight: 800; border: 0; border-radius: 12px; cursor: pointer; }
+.logout-btn { margin-top: 100px; height: 50%; ;width: 100%; padding: 10px 12px; background: #ef4444; color: #fff; font-weight: 800; border: 0; border-radius: 12px; cursor: pointer; }
 .logout-btn:hover { filter: brightness(1.05); }
 
 /* Ẩn nút Hồ sơ cũ (đã thay bằng avatar tròn) */

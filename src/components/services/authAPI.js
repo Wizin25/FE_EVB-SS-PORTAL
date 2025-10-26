@@ -755,7 +755,7 @@ export const authAPI = {
   },
 
   // BatteryReport APIs
-  addBatteryReport: async ({ name, description, image, imageUrl, accountId, stationId, batteryId, reportType }) => {
+  addBatteryReport: async ({ name, description, image, imageUrl, accountId, stationId, batteryId, reportType, exchangeBatteryId }) => {
     try {
       const form = new FormData();
       form.append('Name', name ?? '');
@@ -765,6 +765,7 @@ export const authAPI = {
       form.append('StationId', stationId ?? '');
       form.append('BatteryId', batteryId ?? '');
       form.append('ReportType', reportType ?? 'General');
+      form.append('ExchangeBatteryId', exchangeBatteryId ?? '');
 
       const res = await api.post('/api/BatteryReport/add_battery_report', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -960,4 +961,21 @@ getReportsByStationId: async (stationId) => {
     throw new Error(error?.message || JSON.stringify(error) || 'Get reports by station id failed');
   }
 },
+
+  //EXCHANGE BATTERY APIs
+  getExchangesByStation: async (stationId) => {
+    if (!stationId) throw new Error('stationId is required');
+    const safeId = encodeURIComponent(stationId);
+    const res = await api.get(`/api/ExchangeBattery/get_exchange_by_station/${safeId}`);
+    return res.data; // { data: [...] } hoặc mảng
+  },
+  updateExchangeStatus: async ({ exchangeBatteryId, status, staffId }) => {
+    if (!exchangeBatteryId || !status || !staffId) throw new Error('Missing payload fields');
+    const res = await api.put(`/api/ExchangeBattery/update_exchange_battery_status`, {
+      exchangeBatteryId,
+      status,
+      staffId,
+    });
+    return res.data;
+  },
 };
