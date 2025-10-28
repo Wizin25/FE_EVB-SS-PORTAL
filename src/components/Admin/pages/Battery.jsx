@@ -313,6 +313,36 @@ export default function BatteryManagementPage() {
     }
   };
 
+  // ---------- REMOVE FROM STATION ----------
+  const handleRemoveFromStation = async (battery) => {
+    if (!battery.station?.stationId) {
+      alert("Pin này chưa được gán vào trạm nào.");
+      return;
+    }
+    
+    if (!window.confirm(`Bạn có chắc chắn muốn gỡ pin ${battery.batteryName || battery.batteryId} khỏi trạm ${battery.station.stationName || battery.station.stationId}?`)) {
+      return;
+    }
+
+    try {
+      await authAPI.deleteBatteryInStation(battery.batteryId);
+      
+      // update local list: remove station info
+      setBatteries(prev => prev.map(b => 
+        b.batteryId === battery.batteryId ? { ...b, station: null } : b
+      ));
+      
+      // update selected battery if it's the same one
+      if (selectedBattery?.batteryId === battery.batteryId) {
+        setSelectedBattery(prev => prev ? { ...prev, station: null } : prev);
+      }
+      
+      alert("Đã gỡ pin khỏi trạm thành công!");
+    } catch (err) {
+      alert("Gỡ pin khỏi trạm thất bại: " + (err?.message || err));
+    }
+  };
+
   // ---------- FILTER ----------
   const filtered = batteries.filter(b => {
     const matchesSearch = search === "" ||
@@ -860,6 +890,9 @@ export default function BatteryManagementPage() {
                           </button>
                           <button className="btn danger small" onClick={() => handleDelete(b.batteryId)}>Xóa</button>
                           <button className="btn small" onClick={() => openAssignModal(b)}>Gán trạm</button>
+                          {b.station?.stationId && (
+                            <button className="btn small" onClick={() => handleRemoveFromStation(b)}>Gỡ khỏi trạm</button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -981,6 +1014,7 @@ export default function BatteryManagementPage() {
                       </div>
                     )}
                     <p><b>Tên pin:</b> {selectedBattery.batteryName ? selectedBattery.batteryName : selectedBattery.batteryId}</p>
+                    <p><b>Mã pin:</b> {selectedBattery.batteryId}</p>
                     <p><b>Loại:</b> {selectedBattery.batteryType}</p>
                     <p><b>Capacity:</b> {selectedBattery.capacity}%</p>
                     <p><b>Specification:</b> {selectedBattery.specification}</p>
@@ -1042,7 +1076,7 @@ export default function BatteryManagementPage() {
                               <div style={{ display: 'grid', gap: 6, fontSize: 13, color: '#0f172a' }}>
                                 <div style={{ fontWeight: 700 }}>
                                   {h.title || h.action || 'Battery History'}
-                                  {h.status ? (
+                                  {h.actionType ? (
                                     <span style={{
                                       marginLeft: 8,
                                       fontSize: 12,
@@ -1050,7 +1084,7 @@ export default function BatteryManagementPage() {
                                       borderRadius: 999,
                                       border: '1px solid #cbd5e1',
                                     }}>
-                                      {h.status}
+                                      {h.actionType}
                                     </span>
                                   ) : null}
                                 </div>
@@ -1060,20 +1094,16 @@ export default function BatteryManagementPage() {
                                 ) : null}
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                  <div>
-                                    <div><b>Station:</b> {h.station?.stationName || h.stationName || h.stationId || '-'}</div>
-                                    <div><b>Location:</b> {h.location || '-'}</div>
-                                  </div>
-                                  <div>
-                                    <div><b>Exchange:</b> {h.exchangeBatteryId || '-'}</div>
-                                    <div><b>VIN:</b> {h.vin || h.vinNavigation?.vin || '-'}</div>
-                                  </div>
+                                  
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                  <div><b>Old Station:</b> {h.oldStationId || '-'}</div>
-                                  <div><b>New Station:</b> {h.newStationId || '-'}</div>
-                                </div>
+
+                                {/* Notes section */}
+                                {h.notes ? (
+                                  <div style={{ fontSize: 13, color: '#334155', marginTop: 4 }}>
+                                    <b>Notes:</b> {h.notes}
+                                  </div>
+                                ) : null}
 
                                 <div style={{ color: '#64748b' }}>
                                   <span><b>Tạo:</b> {h.startDate ? new Date(h.startDate).toLocaleString() : '-'}</span> •{" "}

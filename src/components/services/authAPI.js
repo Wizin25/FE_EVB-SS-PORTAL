@@ -234,13 +234,13 @@ export const authAPI = {
     }
   },
 
-  createStation: async ({ stationName, batteryNumber, location }) => {
+  createStation: async ({ stationName, location, image }) => {
     try {
       const form = new FormData();
       // Backend yêu cầu field name exactly as docs: BatteryNumber, Location, StationName
       form.append("Name", stationName ?? "");
-      form.append("BatteryNumber", batteryNumber ?? 0);
-      form.append("Location", location ?? "");
+      form.append("Location", location ?? 0);
+      form.append("Image", image ?? "");
 
       const res = await api.post("/api/Station/add_station_for_admin", form, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -396,6 +396,19 @@ export const authAPI = {
       return res.data;
     } catch (err) {
       throw new Error(err?.message || "Gán pin vào trạm thất bại");
+    }
+  },
+
+  deleteBatteryInStation: async (batteryId) => {
+    try {
+      const formData = new FormData();
+      formData.append("batteryId", batteryId);
+      const res = await api.put("/api/Battery/delete_battery_in_station", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return res.data;
+    } catch (err) {
+      throw new Error(err?.message || "Xóa pin khỏi trạm thất bại");
     }
   },
 
@@ -783,17 +796,17 @@ export const authAPI = {
       const res = await api.get('/api/BatteryReport/get_battery_reports_by_battery_id', {
         params: { batteryId }
       });
-      // BE trả wrapper { isSuccess, data } hoặc 404 khi rỗng -> FE coi 404 là []
       if (res?.data?.isSuccess && Array.isArray(res.data.data)) {
         return res.data.data;
       }
-      // fallback cho trường hợp BE trả raw array
       if (Array.isArray(res?.data)) return res.data;
       return [];
     } catch (err) {
-      // Một số trường hợp BE trả 404 khi list rỗng -> biến về []
       const code = err?.response?.status;
-      if (code === 404) return [];
+      // Nếu 404 thì luôn throw error với message yêu cầu
+      if (code === 404) {
+        throw new Error('Chưa có báo cáo pin nào');
+      }
       const msg = err?.response?.data?.message || err?.message || 'Chưa có báo cáo pin nào';
       throw new Error(msg);
     }
@@ -814,6 +827,19 @@ export const authAPI = {
       const code = err?.response?.status;
       if (code === 404) return null;
       const msg = err?.response?.data?.message || err?.message || 'Không lấy được chi tiết ExchangeBattery';
+      throw new Error(msg);
+    }
+  },
+
+  getExchangeByStation: async (stationId) => {
+    try {
+      const res = await api.get(`/api/ExchangeBattery/get_exchange_by_station/${stationId}`);
+      if (res.data?.isSuccess && res.data?.data) {
+        return res.data.data;
+      }
+      return null;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || "Lỗi khi lấy thông tin đổi pin theo trạm";
       throw new Error(msg);
     }
   },
@@ -978,4 +1004,11 @@ getReportsByStationId: async (stationId) => {
     });
     return res.data;
   },
+getExchangesBySchedule: async (stationscheduleId) => {
+  if (!stationscheduleId) throw new Error('stationscheduleId is required');
+  const safeId = encodeURIComponent(stationscheduleId);
+  const res = await api.get(`/api/ExchangeBattery/get_exchanges_by_schedule/${safeId}`);
+  return res.data; // { data: [...] } or an array
+},
+
 };

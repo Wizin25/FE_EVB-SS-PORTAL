@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { authAPI } from "../../services/authAPI";
 import StaffSelectionPopup from "./StaffSelectionPopup";
+import StationHistoryPopup from "./StationHistoryPopup";
 import "./Station.css";
 
 export default function Station() {
@@ -38,6 +39,43 @@ export default function Station() {
 
   // Thêm state cho status update
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
+
+  const [showHistoryPopup, setShowHistoryPopup] = useState(false);
+  const [historyStationId, setHistoryStationId] = useState(null);
+  const [historyStationName, setHistoryStationName] = useState("");
+  const [stationHistoryData, setStationHistoryData] = useState({});
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState(null);
+
+  // Thêm state để lưu số lượng exchange history của mỗi trạm
+  const [stationExchangeCounts, setStationExchangeCounts] = useState({});
+
+  // Hàm đếm số lượng exchange battery history của một trạm
+  const getExchangeCountForStation = (stationId) => {
+    return stationExchangeCounts[stationId] || 0;
+  };
+
+  // Hàm fetch và đếm exchange history cho một trạm
+  const fetchAndCountExchangeHistory = async (stationId) => {
+    if (!stationId) return 0;
+    
+    try {
+      const data = await authAPI.getExchangesByStation(stationId);
+      const list = Array.isArray(data?.data)
+        ? data.data
+        : Array.isArray(data)
+        ? data
+        : [];
+      
+      const count = list.length;
+      setStationExchangeCounts(prev => ({ ...prev, [stationId]: count }));
+      return count;
+    } catch (err) {
+      console.error(`Error fetching exchange count for station ${stationId}:`, err);
+      setStationExchangeCounts(prev => ({ ...prev, [stationId]: 0 }));
+      return 0;
+    }
+  };
 
   // ===== STRICT: chỉ trả staffId thật khi đào sâu các nhánh có thể chứa =====
   const getStaffIdStrict = (node) => {
@@ -187,6 +225,17 @@ export default function Station() {
   };
 
   useEffect(() => { fetchStations(); }, []);
+
+  // Fetch exchange counts for all stations when stations are loaded
+  useEffect(() => {
+    if (stations.length > 0) {
+      stations.forEach(station => {
+        if (station.stationId) {
+          fetchAndCountExchangeHistory(station.stationId);
+        }
+      });
+    }
+  }, [stations]);
 
   // Lọc/sắp xếp/paginate
   const filtered = useMemo(() => {
@@ -378,6 +427,67 @@ export default function Station() {
     setSelectedStationName("");
   };
 
+  const fetchStationHistory = useCallback(
+    async (stationId, options = {}) => {
+      if (!stationId) return;
+      const force = options.force ?? false;
+      const hasCached = Object.prototype.hasOwnProperty.call(
+        stationHistoryData,
+        stationId
+      );
+
+      if (!force && hasCached) {
+        setHistoryLoading(false);
+        return;
+      }
+
+      setHistoryLoading(true);
+      setHistoryError(null);
+      try {
+        const data = await authAPI.getExchangesByStation(stationId);
+        const list = Array.isArray(data?.data)
+          ? data.data
+          : Array.isArray(data)
+          ? data
+          : [];
+
+        setStationHistoryData((prev) => ({ ...prev, [stationId]: list }));
+      } catch (err) {
+        setHistoryError(
+          err?.message || "Khong the tai lich su doi pin cho tram nay."
+        );
+      } finally {
+        setHistoryLoading(false);
+      }
+    },
+    [stationHistoryData]
+  );
+
+  const openHistoryPopup = useCallback(
+    (station) => {
+      if (!station || !station.stationId) return;
+      setHistoryStationId(station.stationId);
+      setHistoryStationName(
+        station.stationName || station.Name || station.stationId || "Station"
+      );
+      setShowHistoryPopup(true);
+      setHistoryError(null);
+      fetchStationHistory(station.stationId);
+    },
+    [fetchStationHistory]
+  );
+
+  const closeHistoryPopup = useCallback(() => {
+    setShowHistoryPopup(false);
+    setHistoryStationId(null);
+    setHistoryStationName("");
+    setHistoryError(null);
+  }, []);
+
+  const historyItems = historyStationId
+    ? stationHistoryData[historyStationId]
+    : [];
+
   return (
     <div className="station-container">
       <h2 className="station-title">Quản lý danh sách trạm đổi pin</h2>
@@ -444,6 +554,7 @@ export default function Station() {
                   const batteryCount = safeLen(station.batteries);
                   const isExpanded = expandedId === station.stationId;
                   const staffCount = getStaffCountForStation(station);
+                  const exchangeCount = getExchangeCountForStation(station.stationId);
 
                   return (
                     <article key={station.stationId}
@@ -482,6 +593,12 @@ export default function Station() {
                             <button className="btn small" onClick={()=>toggleExpand(station.stationId)}>
                               {isExpanded ? "Thu gọn" : "Chi tiết"}
                             </button>
+                            <button
+                              className="btn small"
+                              onClick={() => openHistoryPopup(station)}
+                            >
+                              Xem lịch sử
+                            </button>
                             <button className="btn small" onClick={()=>startEdit(station)}>Sửa</button>
                             <button className="btn danger small" onClick={()=>handleDelete(station.stationId)}>Xóa</button>
                             <button className="btn primary small"
@@ -501,13 +618,13 @@ export default function Station() {
                           <div className="summary-num">{batteryCount}</div>
                           <div className="summary-label">Pin đang ở trạm</div>
                         </div>
-                        <div className="summary-item hide-mobile">
-                          <div className="summary-num">{safeLen(station.batteryHistories)}</div>
-                          <div className="summary-label">Lịch sử</div>
-                        </div>
                         <div className="summary-item">
                           <div className="summary-num">{staffCount}</div>
                           <div className="summary-label">Số nhân viên</div>
+                        </div>
+                        <div className="summary-item hide-mobile">
+                          <div className="summary-num">{exchangeCount}</div>
+                          <div className="summary-label">Lịch sử đổi pin</div>
                         </div>
                       </div>
 
@@ -646,6 +763,19 @@ export default function Station() {
         onStaffAdded={handleStaffAdded}
         assignedStaffIds={assignedStaffIds}
       />
+      <StationHistoryPopup
+        isOpen={showHistoryPopup}
+        onClose={closeHistoryPopup}
+        stationName={historyStationName}
+        history={historyItems}
+        loading={historyLoading}
+        error={historyError}
+        onRefresh={() =>
+          historyStationId && fetchStationHistory(historyStationId, { force: true })
+        }
+      />
     </div>
   );
 }
+
+

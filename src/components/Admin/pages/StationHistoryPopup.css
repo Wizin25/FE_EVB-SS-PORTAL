@@ -1,0 +1,204 @@
+.station-history-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 2000;
+}
+
+.station-history-modal {
+  width: min(920px, 100%);
+  max-height: 90vh;
+  background: #ffffff;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+  overflow: hidden;
+}
+
+.station-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  background: linear-gradient(135deg, rgba(226, 232, 240, 0.25), rgba(226, 232, 240, 0.35));
+}
+
+.station-history-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.station-history-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.history-btn {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.history-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+}
+
+.history-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.history-btn.secondary {
+  background: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+}
+
+.history-btn.danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
+}
+
+.station-history-content {
+  padding: 20px 24px 24px;
+  overflow-y: auto;
+}
+
+.station-history-loading,
+.station-history-empty,
+.station-history-error {
+  padding: 28px;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 15px;
+  background: rgba(15, 23, 42, 0.04);
+  color: #0f172a;
+}
+
+.station-history-error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
+.station-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.station-history-item {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 14px;
+  padding: 18px 20px;
+  background: rgba(248, 250, 252, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.station-history-row.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.station-history-id .label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.station-history-id .value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.station-history-status {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #0f172a;
+  background: rgba(100, 116, 139, 0.18);
+}
+
+.station-history-status.pending {
+  background: rgba(245, 158, 11, 0.18);
+  color: #b45309;
+}
+
+.station-history-status.completed {
+  background: rgba(16, 185, 129, 0.18);
+  color: #047857;
+}
+
+.station-history-status.cancelled,
+.station-history-status.canceled {
+  background: rgba(248, 113, 113, 0.18);
+  color: #b91c1c;
+}
+
+.station-history-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px 18px;
+}
+
+.station-history-grid.batteries,
+.station-history-grid.meta {
+  border-top: 1px dashed rgba(148, 163, 184, 0.35);
+  padding-top: 12px;
+}
+
+.station-history-grid .label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.station-history-grid .value {
+  font-size: 14px;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.station-history-note .label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.station-history-note p {
+  margin: 0;
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.45;
+}

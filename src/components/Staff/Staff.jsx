@@ -94,6 +94,7 @@ function BatteryReportForm({
         accountId: defaults?.accountId || '',
         stationId: defaults?.stationId || '',
         batteryId: defaults?.batteryId || '',
+        exchangeBatteryId: defaults?.exchangeBatteryId || '',
         reportType,
       };
       console.log('Battery Report Payload:', payload); // Add logging to verify payload
@@ -998,6 +999,15 @@ function StaffPage() {
     return results;
   }, [forms, searchTerm, statusFilter, sortBy, sortDirection, customerDetails, stationDetails]);
 
+  // Separate filtered forms for different sections
+  const submittedForms = useMemo(() => {
+    return filteredAndSortedForms.filter(f => f.status?.toLowerCase() === 'submitted');
+  }, [filteredAndSortedForms]);
+
+  const processedForms = useMemo(() => {
+    return filteredAndSortedForms.filter(f => ['approved', 'rejected', 'completed'].includes(f.status?.toLowerCase()));
+  }, [filteredAndSortedForms]);
+
   /* ======== Pagination ======== */
   const totalItems = filteredAndSortedForms.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
@@ -1328,7 +1338,7 @@ function StaffPage() {
                   <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6, color: 'white' }}>Sort by</div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <select className="select" value={sortBy} onChange={(e) => handleSort(e.target.value)}>
-                      <option value="date">Date</option>
+                      <option value="startDate">Date</option>
                       <option value="title">Title</option>
                       <option value="status">Status</option>
                     </select>
@@ -1361,7 +1371,7 @@ function StaffPage() {
                 <span>✅</span>
                 Duyệt Form đổi pin
               </h3>
-              {forms.filter(f => f.status?.toLowerCase() === 'submitted').length === 0 ? (
+              {submittedForms.length === 0 ? (
                 <div style={{
                   textAlign: 'center',
                   padding: '40px',
@@ -1374,7 +1384,7 @@ function StaffPage() {
                 </div>
               ) : (
                 <div style={{ display: 'grid', gap: '12px' }}>
-                  {forms.filter(f => f.status?.toLowerCase() === 'submitted').map((form) => {
+                  {submittedForms.map((form) => {
                     const fid = getFormId(form);
                     const accountId = form.accountId;
                     const customer = customerDetails[accountId];
@@ -1634,7 +1644,7 @@ function StaffPage() {
                 Lịch sử Form đã xử lý
               </h3>
 
-              {forms.filter(f => ['approved', 'rejected', 'completed'].includes(f.status?.toLowerCase())).length === 0 ? (
+              {processedForms.length === 0 ? (
                 <div style={{
                   textAlign: 'center',
                   padding: '40px',
@@ -1647,7 +1657,7 @@ function StaffPage() {
                 </div>
               ) : (
                 <div style={{ display: 'grid', gap: '8px', maxHeight: '400px', overflowY: 'auto' }}>
-                  {forms.filter(f => ['approved', 'rejected', 'completed'].includes(f.status?.toLowerCase())).map((form) => {
+                  {processedForms.map((form) => {
                     const fid = getFormId(form);
                     const customer = customerDetails[form.accountId];
                     const statusColor = 

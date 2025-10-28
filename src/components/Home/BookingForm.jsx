@@ -200,6 +200,14 @@ export default function BookingForm() {
       setError("Vui lòng nhập đủ Title, Description, Date và chọn Station.");
       return;
     }
+    if (title.length < 3 || title.length > 100) {
+      setError("Tiêu đề (Title) phải từ 3 đến 100 ký tự.");
+      return;
+    }
+    if (description.length < 10 || description.length > 500) {
+      setError("Mô tả (Description) phải từ 10 đến 500 ký tự.");
+      return;
+    }
     if (!vin) {
       setError("Thiếu VIN. Vui lòng chọn xe hoặc quay lại chọn từ trạm.");
       return;
@@ -405,18 +413,47 @@ export default function BookingForm() {
             <div className="form-row">
               <label className="form-field">
                 <span>Title</span>
-                <input className="form-input" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nhập tiêu đề" />
+                <input className="form-input" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nhập tiêu đề 3 - 100 ký tự" />
               </label>
               <label className="form-field">
                 <span>Description</span>
-                <input className="form-input" type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả ngắn" />
+                <input className="form-input" type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả ngắn 10 - 15 ký tự" />
               </label>
             </div>
 
             <div className="form-row">
               <label className="form-field">
                 <span>Date & Time</span>
-                <input className="form-input" type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
+                <input
+                  className="form-input"
+                  type="datetime-local"
+                  value={date}
+                  min="2023-01-01T07:00"
+                  step="1800" // mỗi 30 phút
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    // Validate: must be within working hours (07:00-12:00 or 13:30-17:00)
+                    const dt = new Date(val);
+                    const hh = dt.getHours();
+                    const mm = dt.getMinutes();
+                    // Chỉ cho phép giờ sáng: 7:00-12:00, chiều: 13:30-17:00
+                    const isMorning = hh >= 7 && (hh < 12 || (hh === 12 && mm === 0));
+                    const isAfternoon = (hh > 13 || (hh === 13 && mm >= 30)) && (hh < 17 || (hh === 17 && mm === 0));
+                    if (!val) {
+                      setDate(val);
+                      return;
+                    }
+                    if (isMorning || isAfternoon) {
+                      setDate(val);
+                    } else {
+                      alert("Giờ làm việc: Sáng 7:00-12:00, Chiều 13:30-17:00");
+                      // Nếu ngoài giờ, không cập nhật.
+                    }
+                  }}
+                />
+                <small style={{ color: '#888' }}>
+                  Giờ làm việc: Sáng 7:00-12:00, Chiều 13:30-17:00
+                </small>
               </label>
               <label className="form-field">
                 <span>Station</span>
@@ -572,7 +609,7 @@ function PaymentMethodModal({ onClose, onConfirm, paying, error, serviceTypes })
           <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#1f2937' }}>
             Chọn phương thức thanh toán
           </h3>
-          <button 
+          {/* <button 
             onClick={onClose}
             style={{
               background: 'none',
@@ -584,7 +621,7 @@ function PaymentMethodModal({ onClose, onConfirm, paying, error, serviceTypes })
             }}
           >
             ×
-          </button>
+          </button> */}
         </div>
         
         <p style={{ marginTop: 4, color: '#6b7280', marginBottom: '20px', lineHeight: '1.5' }}>
