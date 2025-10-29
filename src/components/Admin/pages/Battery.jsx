@@ -872,11 +872,9 @@ export default function BatteryManagementPage() {
                               }`}
                           >
                             <option value="Available">Available</option>
-                            <option value="InUse">InUse</option>
                             <option value="Charging">Charging</option>
                             <option value="Maintenance">Maintenance</option>
                             <option value="Decommissioned">Decommissioned</option>
-                          <option value="Booked">Booked</option>
                           </select>
                         </div>
 

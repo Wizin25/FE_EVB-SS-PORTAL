@@ -740,7 +740,7 @@ const Vehicle = () => {
   const vehicleTypes = Object.keys(vehicles);
 
   return (
-    <div className="vehicle-page" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+    <div className="vehicle-page" style={{ overflowY: 'auto', maxHeight: '1000vh' }}>
       {/* HeaderDriver là lớp trên cùng của màn hình */}
       <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
         <HeaderDriver

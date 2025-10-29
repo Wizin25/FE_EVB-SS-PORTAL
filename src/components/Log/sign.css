@@ -3,6 +3,44 @@
   padding: 0;
   box-sizing: border-box;
 }
+:root {
+
+  /* LiquidGlass tunables (áp cho card) */
+  --liquid-blur: 0px;
+  --liquid-saturate: 1.35;
+  --liquid-overlay: rgba(255, 255, 255, 0); /* overlay */
+  --liquid-border: rgba(255, 255, 255, 0.999);
+  --liquid-radius: 14px;
+}
+
+/* ========== LIQUID GLASS (áp cho các card) ========== */
+.liquid {
+  position: relative;
+  border-radius: var(--liquid-radius);
+  background: var(--liquid-overlay);
+  border: 2px solid var(--liquid-border);
+  /* Fallback blur + saturate */
+  backdrop-filter: blur(var(--liquid-blur)) saturate(var(--liquid-saturate));
+  -webkit-backdrop-filter: blur(var(--liquid-blur)) saturate(var(--liquid-saturate));
+  /* Distortion (Chromium/Edge): */
+  backdrop-filter: url(#liquidGlass) blur(var(--liquid-blur)) saturate(var(--liquid-saturate));
+  -webkit-backdrop-filter: url(#liquidGlass) blur(var(--liquid-blur)) saturate(var(--liquid-saturate));
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(0,0,0,.14);
+}
+
+/* highlight cạnh kính */
+.liquid::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(255,255,255,.35), transparent 40%),
+    radial-gradient(120% 60% at 0% -10%, rgba(255,255,255,.28), transparent 60%),
+    radial-gradient(90% 70% at 100% -20%, rgba(255,255,255,.18), transparent 60%);
+  mix-blend-mode: overlay;
+}
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -15,8 +53,7 @@ body {
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background: linear-gradient(135deg, #ff9a56 0%, #ff6b35 30%, #ff8c42 70%, #ffa726 100%);
-  background-size: 400% 400%;
+  
   animation: gradientShift 8s ease infinite;
   padding: 20px;
 }
@@ -31,19 +68,22 @@ body {
 /* Main container holding both panels */
 .sign-main-container {
   display: flex;
-  width: 90%;
-  max-width: 1200px;
-  height: 85vh; /* Tăng height để chứa nhiều fields hơn */
-  min-height: 650px; /* Tăng min-height */
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.15);
+  justify-content: center;
+  align-items: center;
+  width: 80%;
+  max-width: 500px;
+  height: 80vh;
+  min-height: 400px;
+  background: rgba(236, 236, 236, 0);
+  border-radius: 16px;
+  border: 2px solid #ffffffcc;
+  box-shadow: inset 0 15px 40px rgba(255, 255, 255, 0.12);
   overflow: hidden;
   position: relative;
   animation: containerFadeIn 1s ease-out;
+  margin: 0 auto;
   transform: translateY(0);
 }
-
 /* Container fade in animation */
 @keyframes containerFadeIn {
   0% {
@@ -190,16 +230,18 @@ body {
 /* White Panel - Right Side - 60% */
 .sign-container {
   width: 60%;
-  height: 100%;
-  background: white;
+  height: 150%;
+  max-height: fit-content;
+  background: rgba(255, 255, 255, 0);
   display: flex;
   flex-direction: column;
   justify-content: center;
+  
   align-items: center;
   padding: 30px 40px; /* Giảm padding để có thêm không gian */
   position: relative;
   animation: formSlideIn 1s ease-out 0.2s both;
-  overflow-y: auto; /* Cho phép scroll nếu cần */
+  
 }
 
 /* Form slide in animation */
@@ -224,7 +266,28 @@ body {
 }
 
 /* Form Styles */
-.sign-container h1,
+.sign-container h1 {
+  color: #18780e;
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: 1.3px;
+  text-align: center;
+  margin-bottom: 18px;
+  margin-top: 5px;
+  background: rgb(239, 239, 239);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 4px 16px rgba(56, 218, 90, 0.08));
+  animation: fadeInUp 0.9s cubic-bezier(0.23, 1, 0.32, 1.1) 0.4s both;
+  transition: all 0.2s;
+}
+
+.sign-container h1:hover {
+  letter-spacing: 2px;
+  filter: drop-shadow(0 2px 30px #acffbd8c);
+  transform: scale(1.04);
+}
 .sign-container h2 {
   font-size: 1.8rem; /* Tăng lại font size */
   font-weight: 700;
@@ -356,6 +419,7 @@ body {
   margin-bottom: 10px; /* Giảm margin */
   position: relative;
   animation: inputSlideIn 0.5s ease-out both;
+  color: #ffffff;
 }
 
 .input-group:nth-child(1) { animation-delay: 1s; }
@@ -364,6 +428,7 @@ body {
 .input-group:nth-child(4) { animation-delay: 1.3s; }
 .input-group:nth-child(5) { animation-delay: 1.4s; }
 .input-group:nth-child(6) { animation-delay: 1.5s; }
+.input-group:nth-child(7) { animation-delay: 1.6s; }
 
 @keyframes inputSlideIn {
   0% {
@@ -383,14 +448,14 @@ body {
   border-bottom: 1px solid #e0e0e0;
   background: transparent;
   font-size: 14px; /* Tăng font size */
-  color: black;
+  color: rgb(255, 255, 255);
   transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
   outline: none;
   position: relative;
 }
 
 .input-group input::placeholder {
-  color: #999;
+  color: #ffffff;
   font-weight: 400;
   transition: all 0.3s ease;
 }
@@ -496,7 +561,7 @@ body {
 .forgot-link {
   display: block;
   text-align: right;
-  color: rgb(47, 6, 255);
+  color: rgb(81, 255, 0);
   font-weight: 600;
   text-decoration: none;
   transition: all 0.3s ease;
@@ -512,7 +577,7 @@ body {
   left: 0;
   width: 0;
   height: 2px;
-  background: rgb(47, 6, 255);
+  background: rgb(81, 255, 0);
   transition: width 0.3s ease;
 }
 
@@ -524,7 +589,7 @@ body {
 .sign-link {
   text-align: center;
   margin-top: 20px; /* Giảm margin */
-  color: #666;
+  color: #ffffff;
   font-size: 14px; /* Tăng font size */
   animation: linkFadeIn 0.5s ease-out 1.7s both;
 }
@@ -541,7 +606,7 @@ body {
 }
 
 .sign-link a {
-  color: black;
+  color: rgb(81, 255, 0);
   font-weight: 600;
   text-decoration: none;
   transition: all 0.3s ease;
@@ -633,11 +698,13 @@ body {
   
   .input-group {
     margin-bottom: 8px; /* Giảm margin */
+    text-decoration-color: #e0e0e0;
   }
   
   .input-group input {
     padding: 8px 0; /* Giảm padding */
     font-size: 13px;
+    color: #ffffff;
   }
   
   .sign-button {

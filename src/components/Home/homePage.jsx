@@ -121,6 +121,31 @@ export default function HomePage() {
 
   return (
     <>
+    <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+          pointerEvents: "none",
+          backgroundImage: "url('https://res.cloudinary.com/dscvguyvb/image/upload/v1760692941/8214be62-181e-4b47-ac49-6896dcc2a590_1_qnev9i.png')",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "top right",
+          backgroundSize: "100% auto",
+          
+          transition: "opacity 0.2s"
+        }}
+        aria-hidden="true"
+      />
+       <div
+        className={`min-h-screen transition-colors duration-300 ${theme === 'dark'
+            ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900'
+            : 'bg-gradient-to-br from-blue-50 via-white to-green-50'
+          }`}
+        style={scrollStyles}
+      >
       {/* SVG filter LiquidGlass (ẩn) */}
       <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
         <defs>
@@ -131,14 +156,6 @@ export default function HomePage() {
           </filter>
         </defs>
       </svg>
-
-      <div
-        className={`min-h-screen transition-colors duration-300 ${theme === 'dark'
-            ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900'
-            : 'bg-gradient-to-br from-blue-50 via-white to-green-50'
-          }`}
-        style={scrollStyles}
-      >
         {/* HeaderDriver là lớp trên cùng của màn hình */}
         <div style={{ position: 'sticky', top: 0, zIndex: 1000 }}>
           <HeaderDriver

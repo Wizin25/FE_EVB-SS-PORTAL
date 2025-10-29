@@ -240,10 +240,29 @@ export default function StationForUser() {
   };
 
   return (
+    
     <div
       className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}
       style={{ maxHeight: "calc(100vh - 120px)", overflowY: "auto" }}
     >
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 0,
+          pointerEvents: "none",
+          backgroundImage: "url('https://res.cloudinary.com/dscvguyvb/image/upload/v1760692941/8214be62-181e-4b47-ac49-6896dcc2a590_1_qnev9i.png')",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "top right",
+          backgroundSize: "100% auto",
+          
+          transition: "opacity 0.2s"
+        }}
+        aria-hidden="true"
+      />
       <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
         <HeaderDriver
           onToggleTheme={handleToggleTheme}
