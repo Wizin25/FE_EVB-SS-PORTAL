@@ -4,6 +4,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 18px 36px;
+  position: relative;
+  z-index: 1000;
   /* dùng gradient có alpha để thấy backdrop-filter */
   background: linear-gradient(90deg, rgba(255,255,255,0.68) 0%, rgba(243,244,246,0.45) 100%);
   border-bottom: 1.5px solid rgba(180, 220, 255, 0.18);
@@ -16,7 +18,7 @@
 
 /* thêm LiquidGlass displacement cho header */
 .app-header.liquid {
-  backdrop-filter: url(#liquidGlass) blur(16px) saturate(1.2);
+  /* backdrop-filter: url(#liquidGlass) blur(16px) saturate(1.2); */
   -webkit-backdrop-filter: url(#liquidGlass) blur(16px) saturate(1.2);
 }
 
@@ -69,11 +71,11 @@
 
 :root {
   /* LiquidGlass tunables (áp cho card/nav) */
-  --liquid-blur: 6px;            /* tăng blur một chút cho nav pills */
+  --liquid-blur: 0px;            /* tăng blur một chút cho nav pills */
   --liquid-saturate: 1.25;
   --liquid-overlay: rgba(255, 255, 255, 0.22); /* overlay */
   --liquid-border: rgba(255, 255, 255, 0.35);
-  --liquid-radius: 14px;
+  --liquid-radius: 10px;
 }
 
 /* ========== LIQUID GLASS (áp cho các card/pill) ========== */
@@ -204,6 +206,7 @@
   position: relative;
   display: flex;
   align-items: center;
+  z-index: 99999;
 }
 
 /* Avatar button for toggling dropdown */
@@ -240,11 +243,14 @@
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 8px 32px 0 rgba(56,189,248,0.13), 0 2px 12px 0 rgba(56,189,248,0.10) inset;
-  z-index: 100;
+  z-index: 99999;
   animation: fadeInDropdown 0.18s;
   transition: opacity 0.2s ease-in-out, background 0.18s;
   backdrop-filter: blur(8px) saturate(1.1);
   -webkit-backdrop-filter: blur(8px) saturate(1.1);
+  transform: translateZ(0);
+  will-change: transform;
+  isolation: isolate;
 }
 @keyframes fadeInDropdown {
   from { opacity: 0; transform: translateY(-8px);}
