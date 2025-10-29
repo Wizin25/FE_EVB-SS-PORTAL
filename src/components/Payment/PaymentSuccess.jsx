@@ -193,6 +193,9 @@ export default function PaymentSuccess() {
           <button onClick={go('/plans')} style={{background:'#059669', color:'#fff', padding:'12px 16px', borderRadius:12, border:'none'}}>📦 Gói của tôi</button>
           <button onClick={go('/stations')} style={{background:'#1d4ed8', color:'#fff', padding:'12px 16px', borderRadius:12, border:'none'}}>🔋 Xem trạm</button>
           <button onClick={go('/home')} style={{background: theme==='dark'?'#374151':'#f1f5f9', color: theme==='dark'?'#fff':'#111827', padding:'12px 16px', borderRadius:12, border:'1px solid #e5e7eb'}}>🏠 Trang chủ</button>
+          { /paidatstation/i.test(serviceType || '') && (
+            <button onClick={go('/staff')} style={{background:'#0ea5e9', color:'#fff', padding:'12px 16px', borderRadius:12, border:'none'}}>👷 Quay về trang Staff</button>
+          )}
         </div>
       </div>
 

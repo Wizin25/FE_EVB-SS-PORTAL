@@ -283,6 +283,12 @@ export default function BatteryManagementPage() {
 
   // ---------- ASSIGN STATION ----------
   const openAssignModal = async (battery) => {
+    // Kiểm tra nếu pin có trạng thái "Booked" thì không cho phép gán trạm
+    if (battery.status === 'Booked') {
+      alert("Không thể gán trạm cho pin đang có trạng thái 'Booked'.");
+      return;
+    }
+    
     setSelectedBatteryForAssign(battery);
     try {
       const list = await authAPI.getAllStations();
@@ -697,6 +703,7 @@ export default function BatteryManagementPage() {
             <option value="Charging">Charging</option>
             <option value="Maintenance">Maintenance</option>
             <option value="Decommissioned">Decommissioned</option>
+            <option value="Booked">Booked</option>
           </select>
         </div>
 
@@ -856,12 +863,12 @@ export default function BatteryManagementPage() {
                           <select
                             value={b.status || ''}
                             onChange={(e) => handleUpdateBatteryStatus(b.batteryId, e.target.value)}
-                            disabled={statusUpdateLoading || b.status === 'InUse'}
+                            disabled={statusUpdateLoading || b.status === 'InUse' || b.status === 'Booked'}
                             className={`status-select ${b.status === 'Available' ? 'status-available' :
                               b.status === 'InUse' ? 'status-inuse' :
                                 b.status === 'Charging' ? 'status-charging' :
                                   b.status === 'Maintenance' ? 'status-maintenance' :
-                                    b.status === 'Decommissioned' ? 'status-decommissioned' : ''
+                                    b.status === 'Decommissioned' ? 'status-decommissioned' : ' '
                               }`}
                           >
                             <option value="Available">Available</option>
@@ -869,6 +876,7 @@ export default function BatteryManagementPage() {
                             <option value="Charging">Charging</option>
                             <option value="Maintenance">Maintenance</option>
                             <option value="Decommissioned">Decommissioned</option>
+                          <option value="Booked">Booked</option>
                           </select>
                         </div>
 
@@ -889,7 +897,7 @@ export default function BatteryManagementPage() {
                             Chi tiết
                           </button>
                           <button className="btn danger small" onClick={() => handleDelete(b.batteryId)}>Xóa</button>
-                          <button className="btn small" onClick={() => openAssignModal(b)}>Gán trạm</button>
+                          <button className="btn small" onClick={() => openAssignModal(b)} disabled={b.status === 'Booked'}>Gán trạm</button>
                           {b.station?.stationId && (
                             <button className="btn small" onClick={() => handleRemoveFromStation(b)}>Gỡ khỏi trạm</button>
                           )}
@@ -1026,7 +1034,7 @@ export default function BatteryManagementPage() {
                       <select
                         value={selectedBattery.status || ''}
                         onChange={(e) => handleUpdateBatteryStatus(selectedBattery.batteryId, e.target.value)}
-                        disabled={statusUpdateLoading || selectedBattery.status === 'InUse'}
+                        disabled={statusUpdateLoading || selectedBattery.status === 'InUse' || selectedBattery.status === 'Booked'}
                         className={`status-select ${selectedBattery.status === 'Available' ? 'status-available' :
                           selectedBattery.status === 'InUse' ? 'status-inuse' :
                             selectedBattery.status === 'Charging' ? 'status-charging' :
@@ -1040,6 +1048,7 @@ export default function BatteryManagementPage() {
                         <option value="Charging">Charging</option>
                         <option value="Maintenance">Maintenance</option>
                         <option value="Decommissioned">Decommissioned</option>
+                        <option value="Booked">Booked</option>
                       </select>
                     </div>
 

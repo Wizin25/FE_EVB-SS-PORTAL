@@ -305,6 +305,19 @@ export default function BookingForm() {
         return; // <<< DỪNG TẠI ĐÂY, KHÔNG GỌI PayOS
       }
 
+      // Handle PaidAtStation - stop after form creation, no order
+      if (serviceType === SERVICE_TYPES.PAID_AT_STATION) {
+        console.log("=== PAID AT STATION - FORM CREATED, STOPPING HERE ===");
+        console.log(`FormId: ${createdFormId}`);
+        console.log(`ExchangeId: ${exchangeId || 'Not provided'}`);
+        console.log("====================================================");
+
+        // Đóng modal và báo thành công
+        setShowPayModal(false);
+        setSuccess("Đặt lịch thành công! Bạn sẽ thanh toán trực tiếp tại trạm khi đổi pin.");
+        return; // <<< DỪNG TẠI ĐÂY, KHÔNG TẠO ORDER
+      }
+
       // Total mặc định để test
       const total = 10000;
 
@@ -428,28 +441,7 @@ export default function BookingForm() {
                   className="form-input"
                   type="datetime-local"
                   value={date}
-                  min="2023-01-01T07:00"
-                  step="1800" // mỗi 30 phút
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    // Validate: must be within working hours (07:00-12:00 or 13:30-17:00)
-                    const dt = new Date(val);
-                    const hh = dt.getHours();
-                    const mm = dt.getMinutes();
-                    // Chỉ cho phép giờ sáng: 7:00-12:00, chiều: 13:30-17:00
-                    const isMorning = hh >= 7 && (hh < 12 || (hh === 12 && mm === 0));
-                    const isAfternoon = (hh > 13 || (hh === 13 && mm >= 30)) && (hh < 17 || (hh === 17 && mm === 0));
-                    if (!val) {
-                      setDate(val);
-                      return;
-                    }
-                    if (isMorning || isAfternoon) {
-                      setDate(val);
-                    } else {
-                      alert("Giờ làm việc: Sáng 7:00-12:00, Chiều 13:30-17:00");
-                      // Nếu ngoài giờ, không cập nhật.
-                    }
-                  }}
+                  onChange={(e) => setDate(e.target.value)}
                 />
                 <small style={{ color: '#888' }}>
                   Giờ làm việc: Sáng 7:00-12:00, Chiều 13:30-17:00
@@ -575,11 +567,9 @@ function PaymentMethodModal({ onClose, onConfirm, paying, error, serviceTypes })
   const [method, setMethod] = useState(serviceTypes.PREPAID);
   const [exchangeId, setExchangeId] = useState("");
 
-  const requireExchange = method === serviceTypes.PAID_AT_STATION;
-
+  // Remove the requireExchange logic since we don't need ExchangeId anymore
   const canSubmit = () => {
-    if (requireExchange && !exchangeId) return false;
-    return true;
+    return true; // Always allow submission since no fields are required
   };
 
   return (
@@ -623,7 +613,7 @@ function PaymentMethodModal({ onClose, onConfirm, paying, error, serviceTypes })
             ×
           </button> */}
         </div>
-        
+
         <p style={{ marginTop: 4, color: '#6b7280', marginBottom: '20px', lineHeight: '1.5' }}>
           Vui lòng chọn phương thức thanh toán để hoàn tất đặt lịch. Hệ thống sẽ tự động tạo Order và chuyển bạn sang cổng PayOS.
         </p>
@@ -652,33 +642,11 @@ function PaymentMethodModal({ onClose, onConfirm, paying, error, serviceTypes })
             </select>
           </label>
 
-          {requireExchange && (
-            <label className="form-field" style={{ marginBottom: '16px' }}>
-              <span style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#374151' }}>
-                ExchangeId (bắt buộc khi thanh toán tại trạm) *
-              </span>
-              <input
-                className="form-input"
-                placeholder="Nhập ExchangeId"
-                value={exchangeId}
-                onChange={(e) => setExchangeId(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}
-              />
-              <small style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                ID của giao dịch đổi pin tại trạm
-              </small>
-            </label>
-          )}
+          {/* Remove the ExchangeId input field completely */}
 
           {error && (
-            <div className="form-error" style={{ 
-              marginTop: 8, 
+            <div className="form-error" style={{
+              marginTop: 8,
               padding: '12px',
               backgroundColor: '#fef2f2',
               border: '1px solid #fecaca',
@@ -692,22 +660,7 @@ function PaymentMethodModal({ onClose, onConfirm, paying, error, serviceTypes })
         </div>
 
         <div className="modal-actions" style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
-          {/* <button
-            onClick={onClose}
-            style={{
-              flex: 1,
-              padding: '12px 16px',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              backgroundColor: 'white',
-              color: '#374151',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}
-          >
-            Hủy
-          </button> */}
+        
           <button
             className="btn primary"
             disabled={paying || !canSubmit()}
