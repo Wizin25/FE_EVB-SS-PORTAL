@@ -811,7 +811,10 @@ export const authAPI = {
       throw new Error(msg);
     }
   },
-  // Lấy chi tiết ExchangeBattery theo exchangeId
+
+
+
+  //EXCHANGE BATTERY APIs
   getExchangeBatteryByExchangeId: async (exchangeId) => {
     if (!exchangeId) return null;
     try {
@@ -842,6 +845,71 @@ export const authAPI = {
       const msg = err?.response?.data?.message || err?.message || "Lỗi khi lấy thông tin đổi pin theo trạm";
       throw new Error(msg);
     }
+  },
+
+  getExchangesBySchedule: async (stationscheduleId) => {
+    if (!stationscheduleId) return null;
+    try {
+      const res = await api.get(`/api/ExchangeBattery/get_exchanges_by_schedule/${stationscheduleId}`);
+      // Chuẩn hoá kết quả trả về nếu backend bọc trong { isSuccess, data }
+      if (res?.data?.isSuccess && res?.data?.data) {
+        return res.data.data;
+      }
+      // Có thể backend trả raw object/list
+      if (Array.isArray(res?.data)) {
+        return res.data;
+      }
+      return null;
+    } catch (err) {
+      const code = err?.response?.status;
+      if (code === 404) return null;
+      const msg = err?.response?.data?.message || err?.message || 'Không lấy được danh sách đổi pin từ lịch';
+      throw new Error(msg);
+    }
+  },
+
+  getExchangesByStation: async (stationId) => {
+    if (!stationId) throw new Error('stationId is required');
+    const safeId = encodeURIComponent(stationId);
+    const res = await api.get(`/api/ExchangeBattery/get_exchange_by_station/${safeId}`);
+    return res.data; // { data: [...] } hoặc mảng
+  },
+
+  updateExchangeStatus: async (payload) => {
+    if (!payload) throw new Error('Missing payload');
+
+    // Normalize keys from possible variants
+    const ExchangeBatteryId =
+      payload.ExchangeBatteryId || payload.exchangeBatteryId || payload.ExchangeId || payload.id;
+    const StaffId =
+      payload.StaffId || payload.staffId || payload.staffID || payload.accountId;
+
+    // Normalize status, e.g., 'completed' => 'Completed', 'CANCELLED' => 'Cancelled'
+    const rawStatus = payload.Status || payload.status;
+    const Status = typeof rawStatus === 'string'
+      ? rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase()
+      : rawStatus;
+
+    if (!ExchangeBatteryId || !Status || !StaffId) {
+      throw new Error('Missing payload fields (ExchangeBatteryId / Status / StaffId)');
+    }
+
+    // Prepare multipart/form-data
+    const formData = new FormData();
+    formData.append('ExchangeBatteryId', ExchangeBatteryId);
+    formData.append('Status', Status);
+    formData.append('StaffId', StaffId);
+
+    const res = await api.put(
+      '/api/ExchangeBattery/update_exchange_battery_status',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      }
+    );
+    return res.data;
   },
 
   // Trong authAPI object, cập nhật hàm uploadToCloudinary:
@@ -901,7 +969,9 @@ export const authAPI = {
     serviceId,      // formId hoặc packageId tùy loại
     batteryId,
     vin,            // chỉ gửi khi serviceType === 'Package'
-    exchangeId,     // chỉ gửi khi serviceType === 'PaidAtStation'
+    exchangeBatteryId, // alias khuyến nghị (mới)
+    ExchangeBatteryId, // alias không chuẩn hoá (đã dùng trước đó)
+    exchangeId,        // alias cũ: ExchangeId
   }) => {
     try {
       const form = new FormData();
@@ -925,8 +995,11 @@ export const authAPI = {
         form.append('Vin', vin);
       }
       if (serviceType === 'PaidAtStation') {
-        if (!exchangeId) throw new Error('ExchangeId là bắt buộc khi thanh toán tại trạm.');
-        form.append('ExchangeId', exchangeId);
+        const effectiveExchangeId = exchangeBatteryId || ExchangeBatteryId || exchangeId;
+        if (!effectiveExchangeId) throw new Error('ExchangeBatteryId/ExchangeId là bắt buộc khi thanh toán tại trạm.');
+        // BE hiện chấp nhận ExchangeId; vẫn gửi kèm ExchangeBatteryId để tương thích
+        form.append('ExchangeId', effectiveExchangeId);
+        form.append('ExchangeBatteryId', effectiveExchangeId);
       }
       // PrePaid / UsePackage: KHÔNG gửi Vin + ExchangeId => không append 2 field này
 
@@ -936,6 +1009,30 @@ export const authAPI = {
       return res.data; // kỳ vọng { isSuccess, data: { orderId, ... } }
     } catch (err) {
       const msg = err?.response?.data?.message || err?.message || 'Tạo Order thất bại';
+      throw new Error(msg);
+    }
+  },
+
+
+  // serviceId = formId
+  getOrdersServiceId: async (formId) => {
+    if (!formId) throw new Error('formId is required');
+    try {
+      const res = await api.get('/api/Order/get_order_by_service_id', {
+        params: { serviceId: formId }
+      });
+      // Đảm bảo luôn trả về data[] để code phía trên xử lý chuẩn
+      if (res?.data?.data && Array.isArray(res.data.data)) {
+        return res.data.data;
+      } else if (res?.data?.data) {
+        // Nếu data là object thì trả về mảng chứa object đó
+        return [res.data.data];
+      } else {
+        // Nếu không có data, trả về mảng rỗng hoặc response gốc nếu cần debug
+        return [];
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Lấy đơn hàng theo formId thất bại';
       throw new Error(msg);
     }
   },
@@ -967,57 +1064,25 @@ export const authAPI = {
   },
 
   // Trong authAPI object
-getAllStationSchedules: async () => {
-  try {
-    const response = await api.get('/api/StationSchedule/get_all_station_schedules');
-    return response.data;
-  } catch (error) {
-    throw new Error(error?.message || JSON.stringify(error) || 'Get all station schedules failed');
-  }
-},
-
-// Thêm vào authAPI object
-getReportsByStationId: async (stationId) => {
-  try {
-    const response = await api.get('/api/Report/get_reports_by_station_id', {
-      params: { stationId }
-    });
-    return response.data;
-  } catch (error) {
-    throw new Error(error?.message || JSON.stringify(error) || 'Get reports by station id failed');
-  }
-},
-
-  //EXCHANGE BATTERY APIs
-  getExchangesByStation: async (stationId) => {
-    if (!stationId) throw new Error('stationId is required');
-    const safeId = encodeURIComponent(stationId);
-    const res = await api.get(`/api/ExchangeBattery/get_exchange_by_station/${safeId}`);
-    return res.data; // { data: [...] } hoặc mảng
+  getAllStationSchedules: async () => {
+    try {
+      const response = await api.get('/api/StationSchedule/get_all_station_schedules');
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Get all station schedules failed');
+    }
   },
-  updateExchangeStatus: async ({ exchangeBatteryId, status, staffId }) => {
-    if (!exchangeBatteryId || !status || !staffId) throw new Error('Missing payload fields');
-    const res = await api.put(`/api/ExchangeBattery/update_exchange_battery_status`, {
-      exchangeBatteryId,
-      status,
-      staffId,
-    });
-    return res.data;
+
+  // Thêm vào authAPI object
+  getReportsByStationId: async (stationId) => {
+    try {
+      const response = await api.get('/api/Report/get_reports_by_station_id', {
+        params: { stationId }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Get reports by station id failed');
+    }
   },
-getExchangesBySchedule: async (stationscheduleId) => {
-  if (!stationscheduleId) throw new Error('stationscheduleId is required');
-  const safeId = encodeURIComponent(stationscheduleId);
-  const res = await api.get(`/api/ExchangeBattery/get_exchanges_by_schedule/${safeId}`);
-  return res.data; // { data: [...] } or an array
-},
-getStationSchedulesByAccountId: async (accountId) => {
-  try {
-    const response = await api.get('/api/StationSchedule/get_station_schedules_by_account_id', {
-      params: { accountId }
-    });
-    return response.data;
-  } catch (error) {
-    throw new Error(error?.message || JSON.stringify(error) || 'Get station schedules by account id failed');
-  }
-},
+
 };

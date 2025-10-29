@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { authAPI } from '../../services/authAPI';
 import './Controller.css';
+import autoprefixer from 'autoprefixer';
 
 const initialState = {
   username: '',
@@ -138,17 +139,74 @@ export default function NewStaffPopup({ open = false, onClose, onSuccess }) {
   };
 
   return (
-    <div className="popup-overlay" style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0,0,0,0.3)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center'
-    }}>
-      <div className="popup-content" style={{
-        background: '#fff', borderRadius: 12, padding: 50, minWidth: 1000, maxWidth: 500, boxShadow: '0 8px 32px rgb(0, 0, 0)'
-      }}>
-        <h2 style={{ marginBottom: 16 }}>Create New Staff</h2>
-        <form onSubmit={handleSubmit} autoComplete="off">
-          <div className="form-group" style={{ marginBottom: 12 }}>
-            <label>Username</label>
+    <div
+      className="popup-overlay"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0,0,0,0.32)',
+        zIndex: 2000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <div
+        className="popup-content"
+        style={{
+          background: '#fff',
+          borderRadius: 14,
+          padding: '28px 30px 22px 30px',
+          minWidth: 360,
+          maxWidth: 500,
+          maxHeight: 1000,
+          width: '100%',
+          boxShadow: '0 8px 32px rgba(27,32,50,.14), 0 2px 8px rgba(140,80,40,.09)',
+          border: '1px solid #eee',
+          position: 'relative'
+        }}
+      >
+        <button
+          onClick={handleClose}
+          type="button"
+          disabled={submitting}
+          style={{
+            position: 'absolute',
+            top: 11,
+            right: 16,
+            background: 'none',
+            border: 'none',
+            fontSize: 22,
+            color: '#8b8e99',
+            cursor: 'pointer',
+            outline: 'none',
+            zIndex: 2,
+            padding: 0,
+            lineHeight: 1,
+            transition: 'color .2s'
+          }}
+          aria-label="Đóng"
+        >
+          ×
+        </button>
+        <h2
+          style={{
+            marginBottom: 20,
+            fontSize: '1.35rem',
+            fontWeight: 700,
+            color: '#ff9800',
+            letterSpacing: 0.3,
+            textAlign: 'center'
+          }}
+        >
+          Tạo tài khoản nhân viên
+        </h2>
+        <form onSubmit={handleSubmit} autoComplete="on">
+          <div className="form-group" style={{ marginBottom: 5 }}>
+            <label style={{ marginBottom: 3 }}>Username</label>
             <input
               name="username"
               value={fields.username}
@@ -156,12 +214,24 @@ export default function NewStaffPopup({ open = false, onClose, onSuccess }) {
               disabled={submitting}
               autoFocus
               autoComplete="off"
-              style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 7,
+                border: '1.5px solid #e0e0e0',
+                background: '#fafbfc',
+                fontSize: '15px',
+                transition: 'border 0.2s'
+              }}
             />
-            {errors.username && <div className="error" style={{ color: 'red', fontSize: 13 }}>{errors.username}</div>}
+            {errors.username && (
+              <div className="error" style={{ color: '#d3331e', fontSize: 12.5, marginTop: 2 }}>
+                {errors.username}
+              </div>
+            )}
           </div>
-          <div className="form-group" style={{ marginBottom: 12 }}>
-            <label>Password</label>
+          <div className="form-group" style={{ marginBottom: 13 }}>
+            <label style={{ marginBottom: 3 }}>Mật khẩu</label>
             <input
               name="password"
               type="password"
@@ -169,12 +239,23 @@ export default function NewStaffPopup({ open = false, onClose, onSuccess }) {
               onChange={handleChange}
               disabled={submitting}
               autoComplete="new-password"
-              style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 7,
+                border: '1.5px solid #e0e0e0',
+                background: '#fafbfc',
+                fontSize: '15px'
+              }}
             />
-            {errors.password && <div className="error" style={{ color: 'red', fontSize: 13 }}>{errors.password}</div>}
+            {errors.password && (
+              <div className="error" style={{ color: '#d3331e', fontSize: 12.5, marginTop: 2 }}>
+                {errors.password}
+              </div>
+            )}
           </div>
-          <div className="form-group" style={{ marginBottom: 12 }}>
-            <label>Confirm Password</label>
+          <div className="form-group" style={{ marginBottom: 13 }}>
+            <label style={{ marginBottom: 3 }}>Xác nhận mật khẩu</label>
             <input
               name="confirmedPassword"
               type="password"
@@ -182,86 +263,157 @@ export default function NewStaffPopup({ open = false, onClose, onSuccess }) {
               onChange={handleChange}
               disabled={submitting}
               autoComplete="new-password"
-              style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 7,
+                border: '1.5px solid #e0e0e0',
+                background: '#fafbfc',
+                fontSize: '15px'
+              }}
             />
-            {errors.confirmedPassword && <div className="error" style={{ color: 'red', fontSize: 13 }}>{errors.confirmedPassword}</div>}
+            {errors.confirmedPassword && (
+              <div className="error" style={{ color: '#d3331e', fontSize: 12.5, marginTop: 2 }}>
+                {errors.confirmedPassword}
+              </div>
+            )}
           </div>
-          <div className="form-group" style={{ marginBottom: 12 }}>
-            <label>Name</label>
+          <div className="form-group" style={{ marginBottom: 13 }}>
+            <label style={{ marginBottom: 3 }}>Tên nhân viên</label>
             <input
               name="name"
               value={fields.name}
               onChange={handleChange}
               disabled={submitting}
-              style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 7,
+                border: '1.5px solid #e0e0e0',
+                background: '#fafbfc',
+                fontSize: '15px'
+              }}
             />
-            {errors.name && <div className="error" style={{ color: 'red', fontSize: 13 }}>{errors.name}</div>}
+            {errors.name && (
+              <div className="error" style={{ color: '#d3331e', fontSize: 12.5, marginTop: 2 }}>
+                {errors.name}
+              </div>
+            )}
           </div>
-          <div className="form-group" style={{ marginBottom: 12 }}>
-            <label>Phone</label>
+          <div className="form-group" style={{ marginBottom: 13 }}>
+            <label style={{ marginBottom: 3 }}>Số điện thoại</label>
             <input
               name="phone"
               value={fields.phone}
               onChange={handleChange}
               disabled={submitting}
-              style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 7,
+                border: '1.5px solid #e0e0e0',
+                background: '#fafbfc',
+                fontSize: '15px'
+              }}
             />
-            {errors.phone && <div className="error" style={{ color: 'red', fontSize: 13 }}>{errors.phone}</div>}
+            {errors.phone && (
+              <div className="error" style={{ color: '#d3331e', fontSize: 12.5, marginTop: 2 }}>
+                {errors.phone}
+              </div>
+            )}
           </div>
-          <div className="form-group" style={{ marginBottom: 12 }}>
-            <label>Address</label>
+          <div className="form-group" style={{ marginBottom: 13 }}>
+            <label style={{ marginBottom: 3 }}>Địa chỉ</label>
             <input
               name="address"
               value={fields.address}
               onChange={handleChange}
               disabled={submitting}
-              style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 7,
+                border: '1.5px solid #e0e0e0',
+                background: '#fafbfc',
+                fontSize: '15px'
+              }}
             />
-            {errors.address && <div className="error" style={{ color: 'red', fontSize: 13 }}>{errors.address}</div>}
+            {errors.address && (
+              <div className="error" style={{ color: '#d3331e', fontSize: 12.5, marginTop: 2 }}>
+                {errors.address}
+              </div>
+            )}
           </div>
-          <div className="form-group" style={{ marginBottom: 12 }}>
-            <label>Email</label>
+          <div className="form-group" style={{ marginBottom: 8 }}>
+            <label style={{ marginBottom: 3 }}>Email</label>
             <input
               name="email"
               value={fields.email}
               onChange={handleChange}
               disabled={submitting}
-              style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ccc' }}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 7,
+                border: '1.5px solid #e0e0e0',
+                background: '#fafbfc',
+                fontSize: '15px'
+              }}
             />
-            {errors.email && <div className="error" style={{ color: 'red', fontSize: 13 }}>{errors.email}</div>}
+            {errors.email && (
+              <div className="error" style={{ color: '#d3331e', fontSize: 12.5, marginTop: 2 }}>
+                {errors.email}
+              </div>
+            )}
           </div>
-          {apiError && <div style={{ color: 'red', marginBottom: 10 }}>{apiError}</div>}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
+          {apiError && (
+            <div style={{ color: '#d3331e', background: '#fff9f2', padding: '6px 10px', borderRadius: 5, fontSize: 13, marginBottom: 10 }}>
+              {apiError}
+            </div>
+          )}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: 10,
+              marginTop: 24
+            }}
+          >
             <button
               type="button"
               onClick={handleClose}
               disabled={submitting}
               style={{
-                padding: '8px 18px',
-                borderRadius: 6,
+                padding: '9px 16px',
+                borderRadius: 7,
                 border: 'none',
-                background: '#eee',
-                color: '#333',
+                background: '#f2f2f4',
+                color: '#5c6275',
                 fontWeight: 500,
-                cursor: 'pointer'
+                fontSize: '15px',
+                cursor: 'pointer',
+                transition: 'background .15s'
               }}
             >
-              Cancel
+              Huỷ
             </button>
             <button
               type="submit"
               disabled={submitting}
               style={{
-                padding: '8px 18px',
-                borderRadius: 6,
+                padding: '9px 22px',
+                borderRadius: 7,
                 border: 'none',
-                background: '#ff9800',
+                background: 'linear-gradient(90deg,#ff9800 0%,#ffa940 100%)',
                 color: '#fff',
                 fontWeight: 600,
-                cursor: 'pointer'
+                fontSize: '15px',
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                boxShadow: '0px 2px 8px rgba(255,184,80,0.22)',
+                transition: 'background .2s, box-shadow .15s'
               }}
             >
-              {submitting ? 'Creating...' : 'Create'}
+              {submitting ? 'Đang tạo...' : 'Tạo mới'}
             </button>
           </div>
         </form>

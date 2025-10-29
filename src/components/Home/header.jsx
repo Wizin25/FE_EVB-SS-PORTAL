@@ -90,7 +90,10 @@ export default function Header({
               <button
                 type="button"
                 onMouseDown={e => e.preventDefault()}
-                onClick={() => { navigate('/profile/paymenthistory'); setOpen(false); }}
+                onClick={() => { 
+                  navigate('/profile', { state: { setActiveSidebar: 'paymentHistory' } }); 
+                  setOpen(false); 
+                }}
               >
                 Lịch sử thanh toán
               </button>
@@ -109,14 +112,6 @@ export default function Header({
           )}
         </div>
       </div>
-
-      {/* Quick booking preview */}
-      {nextBooking && (
-        <div className="booking-preview">
-          Có lịch sắp tới: {nextBooking.stationName} — {nextBooking.time}
-          <a href={`/bookings/${nextBooking.id}`}>Chi tiết</a>
-        </div>
-      )}
     </header>
   );
 }

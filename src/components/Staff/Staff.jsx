@@ -60,7 +60,7 @@ function BatteryReportForm({
     }
 
     setImageFile(file);
-    
+
     // Automatically upload to Cloudinary
     try {
       setUploading(true);
@@ -172,7 +172,7 @@ function BatteryReportForm({
             <div><strong>AccountId:</strong> {defaults?.accountId || 'N/A'}</div>
             <div><strong>StationId:</strong> {defaults?.stationId || 'N/A'}</div>
             <div><strong>BatteryId:</strong> {defaults?.batteryId || 'N/A'}</div>
-          <div><strong>ExchangeBatteryId:</strong> {defaults?.exchangeBatteryId || 'N/A'}</div>
+            <div><strong>ExchangeBatteryId:</strong> {defaults?.exchangeBatteryId || 'N/A'}</div>
           </div>
         </div>
 
@@ -253,7 +253,7 @@ function StaffPage() {
     byStaffId: {},
     byStationId: {},
   });
-  
+
   // Tìm kiếm/sắp xếp
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -274,6 +274,9 @@ function StaffPage() {
   const [loadingSchedules, setLoadingSchedules] = useState(false);
   const [selectedScheduleDate, setSelectedScheduleDate] = useState(null);
   const [schedulesByDate, setSchedulesByDate] = useState({});
+  // THÊM STATE CHO EXCHANGE BATTERIES THEO SCHEDULE
+  const [scheduleExchanges, setScheduleExchanges] = useState({}); // { [scheduleId]: [...exchanges] }
+  const [loadingScheduleExchanges, setLoadingScheduleExchanges] = useState({});
 
   // ✅ THÊM STATE CHO EXCHANGE BATTERY PANEL
   const [activePanel, setActivePanel] = useState('dashboard');
@@ -282,6 +285,9 @@ function StaffPage() {
   const [loadingExchanges, setLoadingExchanges] = useState(false);
   const [filters, setFilters] = useState({ status: 'Pending', keyword: '' });
   const [ordersMap, setOrdersMap] = useState({}); // { [orderId]: { status: 'Paid' | ... } }
+
+  // Cache order details theo orderId
+  const [orderDetails, setOrderDetails] = useState({});
 
   // MOVE stationAssignments UP HERE - before functions that use it
   const stationAssignments = useMemo(() => {
@@ -386,10 +392,10 @@ function StaffPage() {
   // Hàm xử lý khi chọn ngày từ calendar - ĐÃ CẬP NHẬT
   const handleDateSelect = useCallback((date) => {
     setSelectedScheduleDate(date);
-    
+
     // Format date để so sánh (YYYY-MM-DD)
     const dateKey = `${date.year}-${String(date.month + 1).padStart(2, '0')}-${String(date.date).padStart(2, '0')}`;
-    
+
     // Nếu đã có dữ liệu cho ngày này trong cache, không cần xử lý lại
     if (schedulesByDate[dateKey]) {
       return;
@@ -400,13 +406,13 @@ function StaffPage() {
     Object.keys(stationSchedules).forEach(stationId => {
       const schedules = stationSchedules[stationId] || [];
       const assignment = stationAssignments.find(a => a.stationId === stationId);
-      
+
       const filteredSchedules = schedules.filter(schedule => {
         if (!schedule.date && !schedule.startDate) return false;
-        
+
         const scheduleDate = new Date(schedule.date || schedule.startDate);
         const scheduleDateKey = `${scheduleDate.getFullYear()}-${String(scheduleDate.getMonth() + 1).padStart(2, '0')}-${String(scheduleDate.getDate()).padStart(2, '0')}`;
-        
+
         return scheduleDateKey === dateKey;
       });
 
@@ -444,8 +450,8 @@ function StaffPage() {
 
     if (schedules.length === 0) {
       return (
-        <div style={{ 
-          textAlign: 'center', 
+        <div style={{
+          textAlign: 'center',
           padding: '40px',
           color: '#64748b',
           fontStyle: 'italic'
@@ -466,7 +472,7 @@ function StaffPage() {
         padding: '10px'
       }}>
         {schedules.map((schedule, index) => (
-          <div 
+          <div
             key={`${schedule.stationScheduleId}-${index}`}
             style={{
               padding: '16px',
@@ -485,43 +491,43 @@ function StaffPage() {
               e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
             }}
           >
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
               alignItems: 'flex-start',
               marginBottom: '12px'
             }}>
               <div style={{ flex: 1 }}>
-                <h4 style={{ 
-                  margin: '0 0 8px 0', 
+                <h4 style={{
+                  margin: '0 0 8px 0',
                   color: '#0f172a',
                   fontSize: '16px',
                   fontWeight: '600'
                 }}>
                   🏢 {schedule.stationName || `Trạm ${schedule.stationId}`}
                 </h4>
-                <div style={{ 
-                  display: 'flex', 
+                <div style={{
+                  display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
                   flexWrap: 'wrap'
                 }}>
-                  <span style={{ 
+                  <span style={{
                     padding: '4px 12px',
                     borderRadius: '20px',
                     fontSize: '12px',
                     fontWeight: '700',
-                    background: schedule.status === 'Active' 
+                    background: schedule.status === 'Active'
                       ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
                       : schedule.status === 'Pending'
-                      ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
-                      : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                        ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                        : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                     color: 'white'
                   }}>
-                    {schedule.status === 'Active' ? '🟢' : 
-                     schedule.status === 'Pending' ? '🟡' : '🔴'} {schedule.status}
+                    {schedule.status === 'Active' ? '🟢' :
+                      schedule.status === 'Pending' ? '🟡' : '🔴'} {schedule.status}
                   </span>
-                  <span style={{ 
+                  <span style={{
                     fontSize: '12px',
                     color: '#64748b',
                     background: 'rgba(15,23,42,0.05)',
@@ -534,8 +540,8 @@ function StaffPage() {
               </div>
             </div>
 
-            <div style={{ 
-              color: '#475569', 
+            <div style={{
+              color: '#475569',
               fontSize: '14px',
               display: 'flex',
               flexDirection: 'column',
@@ -546,7 +552,7 @@ function StaffPage() {
                   <strong>Mô tả:</strong> {schedule.description}
                 </div>
               )}
-              
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 <div>
                   <strong>Form ID:</strong> {schedule.formId || 'N/A'}
@@ -568,7 +574,7 @@ function StaffPage() {
               {schedule.exchangeBatteries && schedule.exchangeBatteries.length > 0 && (
                 <div style={{ marginTop: '8px' }}>
                   <strong>🔋 Pin trao đổi:</strong>
-                  <div style={{ 
+                  <div style={{
                     marginTop: '4px',
                     padding: '8px',
                     background: 'rgba(15,23,42,0.03)',
@@ -648,6 +654,8 @@ function StaffPage() {
       exchangeBatteryId: exchange?.exchangeBatteryId, // BẮT BUỘC
       accountId: exchange?.accountId || '',
     };
+    console.log('Opening battery report with exchange data:', exchange);
+    console.log('Battery report defaults being set:', defaults); // Add logging to verify
     setBatteryReportDefaults(defaults);
     handleSwitchView('battery-report');
   }, [stationIdSelected, handleSwitchView]);
@@ -709,26 +717,26 @@ function StaffPage() {
   useEffect(() => {
     const preloadStationSchedules = async () => {
       if (stationAssignments.length === 0) return;
-      
+
       setLoadingSchedules(true);
       try {
         const allSchedules = {};
-        
+
         for (const assignment of stationAssignments) {
           try {
             const res = await authAPI.getStationSchedulesByStationId(assignment.stationId);
-            
+
             // Xử lý response - có thể là array trực tiếp hoặc nested trong data
-            const schedules = Array.isArray(res?.data) ? res.data : 
-                             (Array.isArray(res?.data?.data) ? res.data.data : []);
-            
+            const schedules = Array.isArray(res?.data) ? res.data :
+              (Array.isArray(res?.data?.data) ? res.data.data : []);
+
             allSchedules[assignment.stationId] = schedules;
           } catch (err) {
             console.error(`Error fetching schedules for station ${assignment.stationId}:`, err);
             allSchedules[assignment.stationId] = [];
           }
         }
-        
+
         setStationSchedules(allSchedules);
       } catch (error) {
         console.error('Error preloading station schedules:', error);
@@ -748,21 +756,42 @@ function StaffPage() {
         const user = await authAPI.getCurrent();
         setCurrentUser(user);
 
-        // Prefetch station theo staffId để có stationName (Sxxx) -> cache theo stationId
-        const staffIds = Array.isArray(user?.bssStaffs)
-          ? user.bssStaffs.map(s => s?.staffId).filter(Boolean)
-          : [];
+        // Lưu staffId vào localStorage
+        const staffId = user?.staffId || 
+          (Array.isArray(user?.bssStaffs) && user.bssStaffs.length > 0 
+            ? user.bssStaffs[0]?.staffId 
+            : null);
         
-        staffIds.forEach(fetchStationByStaffId);
-
-        // Lấy stationId để load forms
+        // Lấy stationId để lưu vào localStorage
         let stationId = user?.stationId || user?.StationId || user?.stationID;
         if (!stationId && Array.isArray(user?.bssStaffs) && user.bssStaffs.length > 0) {
           stationId = user.bssStaffs[0]?.stationId || user.bssStaffs[0]?.StationId;
         }
 
+        if (staffId) {
+          localStorage.setItem('staffId', staffId);
+          console.log('Saved staffId to localStorage:', staffId);
+        } else {
+          console.warn('No staffId found for current user');
+        }
+
+        // Lưu stationId vào localStorage nếu có
         if (stationId) {
-          
+          localStorage.setItem('stationId', stationId);
+          console.log('Saved stationId to localStorage:', stationId);
+        } else {
+          console.warn('No stationId found for current user');
+        }
+
+        // Prefetch station theo staffId để có stationName (Sxxx) -> cache theo stationId
+        const staffIds = Array.isArray(user?.bssStaffs)
+          ? user.bssStaffs.map(s => s?.staffId).filter(Boolean)
+          : [];
+
+        staffIds.forEach(fetchStationByStaffId);
+
+        // Load forms nếu có stationId
+        if (stationId) {
           await fetchFormsForStation(stationId);
         } else {
           toast.warning('Không tìm thấy station ID cho user hiện tại');
@@ -783,7 +812,7 @@ function StaffPage() {
     try {
       // Gửi staffId lên API, API trả về đối tượng station (hoặc { stationName }), đôi khi lồng trong .station hoặc .data.stationName
       const data = await authAPI.getStationByStaffId(staffId);
-      let stationName = 
+      let stationName =
         data?.data?.stationName // Ưu tiên stationName trong data.data
         || data?.stationName
         || data?.station?.stationName
@@ -791,7 +820,7 @@ function StaffPage() {
         || data?.name; // fallback      
 
       // Lấy stationId từ response
-      let stationId = 
+      let stationId =
         data?.data?.stationId
         || data?.stationId
         || data?.station?.stationId
@@ -819,9 +848,9 @@ function StaffPage() {
           },
           byStationId: stationId
             ? {
-                ...(prev?.byStationId || {}),
-                [stationId]: stationName,
-              }
+              ...(prev?.byStationId || {}),
+              [stationId]: stationName,
+            }
             : (prev?.byStationId || {}),
         }));
       } else {
@@ -847,32 +876,44 @@ function StaffPage() {
       const arr = Array.isArray(data) ? data : [];
       const normalized = arr.map(f => ({ ...f, formId: f.formId ?? f.id ?? f._id ?? null }));
       setForms(normalized);
-      
-      // Fetch customer and battery details for each form
+
+      // Fetch customer, battery, and order details for each form
       const customerPromises = [];
       const batteryPromises = [];
-      
-      normalized.forEach(f => { 
+      const orderPromises = [];
+
+      normalized.forEach(f => {
         if (f.accountId && !customerDetails[f.accountId]) {
           customerPromises.push(fetchAccountByCustomerId(f.accountId));
         }
         if (f.batteryId && !batteryDetails[f.batteryId]) {
           batteryPromises.push(fetchBatteryDetails(f.batteryId));
         }
+        const formIdKey = f.formId;
+        const orderIdKey = f.orderId;
+        const hasOrderCached = (formIdKey && Object.prototype.hasOwnProperty.call(orderDetails, formIdKey)) ||
+          (orderIdKey && Object.prototype.hasOwnProperty.call(orderDetails, orderIdKey));
+        if (formIdKey && !hasOrderCached) {
+          orderPromises.push(fetchOrderDetails(formIdKey, orderIdKey));
+        }
       });
 
-      // Wait for all customer and battery details to load
+      // Wait for all details to load
       if (customerPromises.length > 0) {
         await Promise.allSettled(customerPromises);
       }
-      
+
       if (batteryPromises.length > 0) {
         await Promise.allSettled(batteryPromises);
       }
 
+      if (orderPromises.length > 0) {
+        await Promise.allSettled(orderPromises);
+      }
+
       setStatusChoice({});
       setPage(1);
-      
+
       // Only show success toast when explicitly requested (like manual refresh)
       if (shouldShowToast) {
         toast.success(`Tải thành công ${normalized.length} form từ trạm ${stationId}`);
@@ -896,7 +937,7 @@ function StaffPage() {
       const battery = await authAPI.getBatteryById(batteryId);
       if (battery) {
         setBatteryDetails(prev => ({ ...prev, [batteryId]: battery }));
-        
+
       } else {
         setBatteryDetails(prev => ({ ...prev, [batteryId]: null }));
         toast.warning(`Không tìm thấy thông tin pin ${batteryId}`);
@@ -920,7 +961,7 @@ function StaffPage() {
         // Chỉ lấy các trường cần thiết: name, phone, address, email
         const customerInfo = {
           name: acc.name || acc.Name || '',
-          phone: acc.phone || acc.Phone || '',  
+          phone: acc.phone || acc.Phone || '',
           address: acc.address || acc.Address || '',
           email: acc.email || acc.Email || '',
           // Giữ lại một số trường khác có thể cần thiết cho hiển thị
@@ -929,7 +970,7 @@ function StaffPage() {
           status: acc.status || acc.Status || ''
         };
         setCustomerDetails(prev => ({ ...prev, [accountId]: customerInfo }));
-        
+
       } else {
         toast.warning(`Không tìm thấy thông tin khách hàng cho Account ID: ${accountId}`);
       }
@@ -940,6 +981,76 @@ function StaffPage() {
       setDetailLoading(prev => ({ ...prev, [accountId]: false }));
     }
   }, [customerDetails]);
+
+  /** Lấy thông tin order theo formId - ĐÃ FIX function lấy order, handle các trường hợp trả về mảng hoặc object */
+  const fetchOrderDetails = useCallback(async (formId, orderId) => {
+    if (!formId) return;
+    const hasFormCache = Object.prototype.hasOwnProperty.call(orderDetails, formId);
+    const hasOrderCache = orderId ? Object.prototype.hasOwnProperty.call(orderDetails, orderId) : false;
+    if (hasFormCache || hasOrderCache) return;
+
+    try {
+      const orderRaw = await authAPI.getOrdersServiceId(formId);
+
+      // Response structure: { isSuccess: true, data: [...], ... }
+      // Lấy order đầu tiên từ mảng data
+      let orderInfo = null;
+
+      if (orderRaw?.isSuccess && Array.isArray(orderRaw.data) && orderRaw.data.length > 0) {
+        orderInfo = orderRaw.data[0]; // Lấy order đầu tiên
+      } else if (Array.isArray(orderRaw)) {
+        orderInfo = orderRaw[0];
+      } else if (orderRaw?.data && Array.isArray(orderRaw.data)) {
+        orderInfo = orderRaw.data[0];
+      } else if (orderRaw?.data) {
+        orderInfo = orderRaw.data;
+      } else if (orderRaw) {
+        orderInfo = orderRaw;
+      }
+
+      if (!orderInfo) {
+        setOrderDetails(prev => {
+          const next = { ...prev, [formId]: null };
+          if (orderId) next[orderId] = null;
+          return next;
+        });
+        return;
+      }
+
+      // Chuẩn hóa order fields theo cấu trúc response mới
+      const processedOrder = {
+        orderId: orderInfo.orderId || orderInfo.OrderId || orderInfo.order_id || orderInfo.id,
+        serviceType: orderInfo.serviceType || orderInfo.ServiceType || orderInfo.service_type || 'N/A',
+        status: orderInfo.status || orderInfo.orderStatus || orderInfo.Status || orderInfo.order_status || 'Unknown',
+        totalAmount: orderInfo.total || orderInfo.totalAmount || orderInfo.TotalAmount || orderInfo.total_amount || orderInfo.Total || 0,
+        accountId: orderInfo.accountId || orderInfo.AccountId || orderInfo.account_id || '',
+        batteryId: orderInfo.batteryId || orderInfo.BatteryId || orderInfo.battery_id || '',
+        serviceId: orderInfo.serviceId || orderInfo.ServiceId || orderInfo.service_id || '',
+        date: orderInfo.date || orderInfo.createdDate || orderInfo.CreatedDate || orderInfo.createDate || orderInfo.created_date || '',
+        startDate: orderInfo.startDate || orderInfo.StartDate || orderInfo.start_date || '',
+        updateDate: orderInfo.updateDate || orderInfo.UpdateDate || orderInfo.update_date || '',
+        // Giữ lại toàn bộ dữ liệu gốc
+        ...orderInfo,
+      };
+
+      setOrderDetails(prev => {
+        const next = { ...prev, [formId]: processedOrder };
+        const resolvedOrderId = processedOrder.orderId || orderId;
+        if (resolvedOrderId) {
+          next[resolvedOrderId] = processedOrder;
+        }
+        return next;
+      });
+    } catch (error) {
+      console.error('Error fetching order details:', error);
+      setOrderDetails(prev => {
+        const next = { ...prev, [formId]: null };
+        if (orderId) next[orderId] = null;
+        return next;
+      });
+      // Có thể thêm thông báo lỗi nếu cần
+    }
+  }, [orderDetails]);
 
   /* ======== Filters / Sort ======== */
   const handleSort = (field) => {
@@ -959,23 +1070,23 @@ function StaffPage() {
       const term = searchTerm.toLowerCase();
       results = results.filter(form => {
         const customer = customerDetails[form.accountId];
-        const station  = stationDetails[form.stationId];
+        const station = stationDetails[form.stationId];
 
-        const customerNameMatch  = customer?.name?.toLowerCase().includes(term);
-        const customerUserMatch  = customer?.username?.toLowerCase().includes(term);
+        const customerNameMatch = customer?.name?.toLowerCase().includes(term);
+        const customerUserMatch = customer?.username?.toLowerCase().includes(term);
         const customerPhoneMatch = customer?.phone?.toLowerCase().includes(term);
         const customerEmailMatch = customer?.email?.toLowerCase().includes(term);
 
-        const stationNameMatch   = station?.stationName?.toLowerCase().includes(term);
-        const titleMatch         = form.title?.toLowerCase().includes(term);
-        const descriptionMatch   = form.description?.toLowerCase().includes(term);
+        const stationNameMatch = station?.stationName?.toLowerCase().includes(term);
+        const titleMatch = form.title?.toLowerCase().includes(term);
+        const descriptionMatch = form.description?.toLowerCase().includes(term);
 
         const idMatch =
           (form.customerId && String(form.customerId).toLowerCase().includes(term)) ||
           (form.accountId && String(form.accountId).toLowerCase().includes(term));
 
         return idMatch || stationNameMatch || titleMatch || descriptionMatch ||
-               customerNameMatch || customerUserMatch || customerPhoneMatch || customerEmailMatch;
+          customerNameMatch || customerUserMatch || customerPhoneMatch || customerEmailMatch;
       });
     }
 
@@ -1019,27 +1130,27 @@ function StaffPage() {
 
   /* ======== Status / Actions ======== */
   const handleUpdateStatus = async (formId, status) => {
-    if (!formId) { 
-      toast.error('Không xác định được Form ID'); 
-      return; 
+    if (!formId) {
+      toast.error('Không xác định được Form ID');
+      return;
     }
-    if (!status) { 
-      toast.info('Hãy chọn trạng thái trước khi cập nhật'); 
-      return; 
+    if (!status) {
+      toast.info('Hãy chọn trạng thái trước khi cập nhật');
+      return;
     }
-    
+
     const loadingMessage = toast.loading('Đang cập nhật trạng thái form...', 0);
     try {
       setLoading(true);
       const response = await formAPI.updateFormStatusStaff({ formId, status });
       loadingMessage();
-      
+
       // Check if response indicates success
       if (response?.isSuccess !== false && !response?.error) {
-        const successMsg = status?.toLowerCase() === 'approved' 
-          ? `✅ Đã duyệt form ${formId} thành công!` 
+        const successMsg = status?.toLowerCase() === 'approved'
+          ? `✅ Đã duyệt form ${formId} thành công!`
           : `✅ Đã từ chối form ${formId} thành công!`;
-        
+
         toast.success({
           content: successMsg,
           duration: 3,
@@ -1073,7 +1184,7 @@ function StaffPage() {
     } catch (e) {
       loadingMessage();
       console.error('Error updating form status:', e);
-      
+
       // Detailed error message
       let errorDetail = 'Lỗi không xác định';
       if (e?.response?.data?.message) {
@@ -1085,30 +1196,30 @@ function StaffPage() {
       } else if (e?.response?.status) {
         errorDetail = `HTTP ${e.response.status}: ${e.response.statusText || 'Lỗi server'}`;
       }
-      
+
       toast.error({
         content: `❌ Cập nhật trạng thái thất bại: ${errorDetail}`,
         duration: 5,
         style: { fontSize: 16 }
       });
-    } finally { 
-      setLoading(false); 
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDeleteForm = async (formId) => {
-    if (!formId) { 
-      toast.error('Không xác định được Form ID'); 
-      return; 
+    if (!formId) {
+      toast.error('Không xác định được Form ID');
+      return;
     }
     if (!window.confirm('Bạn có chắc muốn xóa form này? Hành động này không thể hoàn tác.')) return;
-    
+
     const loadingMessage = toast.loading('Đang xóa form...', 0);
     try {
       setLoading(true);
       const resp = await formAPI.deleteForm(formId);
       loadingMessage();
-      
+
       if (resp?.isSuccess) {
         toast.success({
           content: `✅ Xóa form ${formId} thành công!`,
@@ -1116,7 +1227,7 @@ function StaffPage() {
           style: { fontSize: 16 }
         });
         setSelectedForm(null);
-        
+
         // Refresh forms
         const stationId =
           (Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs.length > 0)
@@ -1137,7 +1248,7 @@ function StaffPage() {
     } catch (e) {
       loadingMessage();
       console.error('Error deleting form:', e);
-      
+
       // Detailed error message
       let errorDetail = 'Lỗi không xác định';
       if (e?.response?.data?.message) {
@@ -1151,7 +1262,7 @@ function StaffPage() {
       } else if (e?.code) {
         errorDetail = `Mã lỗi: ${e.code}`;
       }
-      
+
       toast.error({
         content: `❌ Xóa form thất bại: ${errorDetail}`,
         duration: 5,
@@ -1176,7 +1287,7 @@ function StaffPage() {
       (Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs.length > 0)
         ? (currentUser.bssStaffs[0]?.stationId || currentUser.bssStaffs[0]?.StationId)
         : (currentUser?.stationId || currentUser?.StationId || currentUser?.stationID);
-    
+
     if (stationId) {
       toast.loading('Đang làm mới dữ liệu...', 1);
       await fetchFormsForStation(stationId, true); // Pass true to show success toast
@@ -1191,10 +1302,10 @@ function StaffPage() {
       // Gỡ mọi token/token staff khỏi localStorage/sessionStorage và cookies nếu có
       sessionStorage.setItem('authToken', '');
       sessionStorage.removeItem('authToken');
-      
-      document.cookie = 'authToken=; Max-Age=0; path=/;'; 
+
+      document.cookie = 'authToken=; Max-Age=0; path=/;';
       toast.success('Đăng xuất thành công!');
-      
+
       setTimeout(() => {
         window.location.replace('/signin');
       }, 500);
@@ -1327,10 +1438,9 @@ function StaffPage() {
                   <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6, color: 'white' }}>Filter by Status</div>
                   <select className="select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                     <option value="All">All Status</option>
-                    <option value="pending">Pending</option>
+                    <option value="Submitted">Submitted</option>
                     <option value="approved">Approved</option>
                     <option value="rejected">Rejected</option>
-                    <option value="completed">Completed</option>
                   </select>
                 </div>
 
@@ -1338,9 +1448,8 @@ function StaffPage() {
                   <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6, color: 'white' }}>Sort by</div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <select className="select" value={sortBy} onChange={(e) => handleSort(e.target.value)}>
-                      <option value="startDate">Date</option>
-                      <option value="title">Title</option>
-                      <option value="status">Status</option>
+                      <option value="startDate">Ngày tạo</option>
+                      <option value="date">Ngày đặt lịch</option>
                     </select>
                     <button
                       className="btn-sortdir"
@@ -1361,8 +1470,8 @@ function StaffPage() {
 
             {/* Duyệt Form (bên ngoài phần Form đã gửi) */}
             <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
-              <h3 style={{ 
-                margin: '0 0 16px 0', 
+              <h3 style={{
+                margin: '0 0 16px 0',
                 color: '#0f172a',
                 display: 'flex',
                 alignItems: 'center',
@@ -1389,9 +1498,21 @@ function StaffPage() {
                     const accountId = form.accountId;
                     const customer = customerDetails[accountId];
                     const battery = batteryDetails[form.batteryId];
+                    const orderInfo = orderDetails[fid] || orderDetails[form.orderId] || null;
+                    // Determine if we have an OrderId (i.e. orderInfo && (orderId || id))
+                    const orderIdPresent = orderInfo && (orderInfo.orderId || orderInfo.id);
+                    // Always provide an effective order info so Order Detail always shows
+                    const effectiveOrderInfo = orderInfo || {
+                      orderId: null,
+                      status: 'Chưa tạo Order',
+                      serviceType: 'PaidAtStation',
+                      totalAmount: 0,
+                      date: form?.createdAt || form?.date || form?.startDate || null,
+                    };
+                    const hasOrderId = !!(effectiveOrderInfo.orderId || effectiveOrderInfo.id);
 
                     return (
-                      <div 
+                      <div
                         key={fid ?? Math.random()}
                         style={{
                           padding: '16px',
@@ -1405,14 +1526,15 @@ function StaffPage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                           <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                              <h4 style={{ 
-                                margin: 0, 
+                              <h4 style={{
+                                margin: 0,
                                 color: '#0f172a',
                                 fontSize: '16px',
                                 fontWeight: '600'
                               }}>
                                 📋 {form.title || 'Form đổi pin'}
                               </h4>
+                              
                               <span style={{
                                 padding: '4px 12px',
                                 borderRadius: '20px',
@@ -1424,10 +1546,15 @@ function StaffPage() {
                                 📤 Đang chờ duyệt
                               </span>
                             </div>
-                            <div style={{ 
-                              display: 'grid', 
-                              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
-                              gap: '12px',
+                            {form.description && (
+                              <div style={{ marginBottom: '12px' }}>
+                                <strong>📝 Mô tả:</strong> {form.description}
+                              </div>
+                            )}
+                            <div style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+                              gap: '15px',
                               marginBottom: '12px'
                             }}>
                               <div>
@@ -1436,18 +1563,38 @@ function StaffPage() {
                               <div>
                                 <strong>🔋 Battery ID:</strong> {form.batteryId || 'N/A'}
                               </div>
-                              <div>
+                              {/* <div>
                                 <strong>🏢 Trạm:</strong> {stationDetails.byStationId?.[form.stationId] || form.stationId || 'N/A'}
-                              </div>
+                              </div> */}
                               <div>
                                 <strong>👤 Khách hàng:</strong> {customer?.name || 'Đang tải...'}
                               </div>
-                            </div>
-                            {form.description && (
-                              <div style={{ marginBottom: '12px' }}>
-                                <strong>📝 Mô tả:</strong> {form.description}
+                              {/* === Show order detail on each form START (always visible) === */}
+                              <div style={{ marginTop: '8px', gridColumn: '1 / -1' }}>
+                                <div style={{ fontWeight: 600, color: '#2563eb', marginBottom: '6px' }}>🧾 Order Detail</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '6px', fontSize: '12px' }}>
+                                  <div>
+                                    <strong>Order ID:</strong>{" "}
+                                    {hasOrderId
+                                      ? (effectiveOrderInfo.orderId || effectiveOrderInfo.id)
+                                      : <span style={{ color: '#059669', fontWeight: 600 }}>PaidAtStation</span>
+                                    }
+                                  </div>
+                                  <div><strong>Trạng thái:</strong> {effectiveOrderInfo.status || 'N/A'}</div>
+                                  <div>
+                                    <strong>Loại dịch vụ:</strong>{" "}
+                                    {hasOrderId
+                                      ? (effectiveOrderInfo.serviceType || 'N/A')
+                                      : 'PaidAtStation'
+                                    }
+                                  </div>
+                                  <div><strong>Tổng tiền:</strong> {effectiveOrderInfo.totalAmount ? `${effectiveOrderInfo.totalAmount}₫` : 'N/A'}</div>
+                                  <div><strong>Ngày tạo:</strong> {formatDate(effectiveOrderInfo.date || effectiveOrderInfo.startDate)}</div>
+                                </div>
                               </div>
-                            )}
+                              {/* === Show order detail on each form END === */}
+                            </div>
+
                             {/* Thông tin pin chi tiết */}
                             {battery && (
                               <div style={{
@@ -1512,7 +1659,7 @@ function StaffPage() {
                               disabled={!statusChoice[fid] || loading}
                               onClick={() => handleUpdateStatus(fid, statusChoice[fid])}
                             >
-                              Xác nhận giao dịch đổi pin
+                              Duyệt
                             </button>
                             <button
                               className="status-apply-btn"
@@ -1618,6 +1765,63 @@ function StaffPage() {
                         </div>
                       );
                     })()}
+                    {/* === ORDER DETAIL SECTION IN MODAL === */}
+                    {(() => {
+                      const fid = getFormId(selectedForm);
+                      let orderInfo = orderDetails[fid] || orderDetails[selectedForm.orderId] || null;
+
+                      // Nếu không có orderInfo (orderId), mặc định là PaidAtStation
+                      if (!orderInfo) {
+                        orderInfo = {
+                          orderId: null,
+                          status: "Chưa tạo Order",
+                          serviceType: "PaidAtStation",
+                          totalAmount: 0,
+                          date: selectedForm?.createdAt || selectedForm?.date || selectedForm?.startDate || null,
+                        };
+                      }
+
+                      if (orderInfo) {
+                        const hasOrderId = !!(orderInfo.orderId || orderInfo.id);
+                        const effectiveServiceType = hasOrderId
+                          ? orderInfo.serviceType || "N/A"
+                          : "PaidAtStation";
+                        return (
+                          <div style={{ marginTop: 18, background: "#e0ecfa", padding: 12, borderRadius: 8 }}>
+                            <h4 style={{ color: "#2563eb", margin: 0, marginBottom: 7 }}>🧾 Thông tin Order</h4>
+                            <table style={{ width: "100%", fontSize: "13px" }}>
+                              <tbody>
+                                <tr>
+                                  <td><strong>Order ID</strong>:</td>
+                                  <td>{orderInfo.orderId || orderInfo.id || 'N/A'}</td>
+                                </tr>
+                                <tr>
+                                  <td><strong>Trạng thái</strong>:</td>
+                                  <td>{orderInfo.status || 'N/A'}</td>
+                                </tr>
+                                <tr>
+                                  <td><strong>Loại dịch vụ</strong>:</td>
+                                  <td>{effectiveServiceType}</td>
+                                </tr>
+                                <tr>
+                                  <td><strong>Tổng tiền</strong>:</td>
+                                  <td>
+                                    {orderInfo.totalAmount !== undefined && orderInfo.totalAmount !== null
+                                      ? `${orderInfo.totalAmount}₫`
+                                      : 'N/A'}
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td><strong>Ngày tạo</strong>:</td>
+                                  <td>{formatDate(orderInfo.date || orderInfo.startDate)}</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                     <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
                       <button
                         className="btn-danger"
@@ -1633,8 +1837,8 @@ function StaffPage() {
 
             {/* Lịch sử giao dịch đã xử lý */}
             <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
-              <h3 style={{ 
-                margin: '0 0 16px 0', 
+              <h3 style={{
+                margin: '0 0 16px 0',
                 color: '#0f172a',
                 display: 'flex',
                 alignItems: 'center',
@@ -1660,15 +1864,16 @@ function StaffPage() {
                   {processedForms.map((form) => {
                     const fid = getFormId(form);
                     const customer = customerDetails[form.accountId];
-                    const statusColor = 
+                    const statusColor =
                       form.status?.toLowerCase() === 'approved' ? '#10b981' :
-                      form.status?.toLowerCase() === 'rejected' ? '#ef4444' : '#3b82f6';
-                    const statusIcon = 
+                        form.status?.toLowerCase() === 'rejected' ? '#ef4444' : '#3b82f6';
+                    const statusIcon =
                       form.status?.toLowerCase() === 'approved' ? '✅' :
-                      form.status?.toLowerCase() === 'rejected' ? '❌' : '🔄';
+                        form.status?.toLowerCase() === 'rejected' ? '❌' : '🔄';
+                    const orderInfo = orderDetails[fid] || orderDetails[form.orderId] || null;
 
                     return (
-                      <div 
+                      <div
                         key={fid ?? Math.random()}
                         style={{
                           padding: '12px 16px',
@@ -1690,9 +1895,9 @@ function StaffPage() {
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
                             <span style={{ fontSize: '16px' }}>{statusIcon}</span>
-                            <h4 style={{ 
-                              margin: 0, 
-                              fontSize: '14px', 
+                            <h4 style={{
+                              margin: 0,
+                              fontSize: '14px',
                               fontWeight: '600',
                               color: '#0f172a'
                             }}>
@@ -1709,9 +1914,9 @@ function StaffPage() {
                               {form.status?.toUpperCase()}
                             </span>
                           </div>
-                          <div style={{ 
-                            display: 'grid', 
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
                             gap: '8px',
                             fontSize: '12px',
                             color: '#64748b'
@@ -1731,9 +1936,31 @@ function StaffPage() {
                             <div>
                               <strong>📞 Sđt khách hàng:</strong> {customer?.phone || 'N/A'}
                             </div>
-                            <div>
+                            {/* <div>
                               <strong>🏢 Trạm:</strong> {stationDetails.byStationId?.[form.stationId] || form.stationId || 'N/A'}
-                            </div>
+                            </div> */}
+                            {/* === Order detail for processed forms START === */}
+                            {orderInfo && (
+                              <div style={{ gridColumn: '1 / -1', marginTop: 6 }}>
+                                <div style={{ color: "#2563eb", fontWeight: 600, marginBottom: 1 }}>🧾 Order</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 5 }}>
+                                  <div>
+                                    Order ID: {(orderInfo.orderId || orderInfo.id)
+                                      ? (orderInfo.orderId || orderInfo.id)
+                                      : <span style={{ color: '#64748b', fontStyle: 'italic' }}>Thanh toán tại trạm</span>}
+                                  </div>
+                                  <div>Trạng thái: {orderInfo.status || 'N/A'}</div>
+                                  <div>
+                                    Loại dịch vụ: {orderInfo.orderId || orderInfo.id
+                                      ? (orderInfo.serviceType || 'N/A')
+                                      : 'PaidAtStation'}
+                                  </div>
+                                  <div>Tổng tiền: {orderInfo.totalAmount ? `${orderInfo.totalAmount}₫` : 'N/A'}</div>
+                                  <div>Ngày tạo: {formatDate(orderInfo.date || orderInfo.startDate)}</div>
+                                </div>
+                              </div>
+                            )}
+                            {/* === Order detail for processed forms END === */}
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -1754,7 +1981,7 @@ function StaffPage() {
                           {form.status?.toLowerCase() === 'approved' && (
                             <button
                               className="status-apply-btn"
-                              onClick={() =>  handleSwitchView('exchange-battery')}
+                              onClick={() => handleSwitchView('exchange-battery')}
                               style={{
                                 padding: '6px 12px',
                                 borderRadius: '6px',
@@ -1786,35 +2013,35 @@ function StaffPage() {
             </p>
 
             {/* Calendar Component */}
-            <div style={{ 
-              background: 'rgba(255,255,255,0.8)', 
-              borderRadius: '16px', 
+            <div style={{
+              background: 'rgba(255,255,255,0.8)',
+              borderRadius: '16px',
               padding: '20px',
               marginBottom: '20px'
             }}>
-              <Calendar 
+              <Calendar
                 onDateSelect={(selectedDate) => {
                   console.log('Date selected in Staff:', selectedDate);
                   setSelectedScheduleDate(selectedDate);
-                  
+
                   // Format selected date để so sánh (YYYY-MM-DD)
                   const selectedDateStr = `${selectedDate.year}-${String(selectedDate.month + 1).padStart(2, '0')}-${String(selectedDate.date).padStart(2, '0')}`;
-                  
+
                   console.log('Looking for schedules on:', selectedDateStr);
-                  
+
                   // Lọc lịch trình từ stationSchedules đã preload
                   const allSchedulesForDate = [];
                   Object.keys(stationSchedules).forEach(stationId => {
                     const schedules = stationSchedules[stationId] || [];
                     const assignment = stationAssignments.find(a => a.stationId === stationId);
-                    
+
                     const filteredSchedules = schedules.filter(schedule => {
                       if (!schedule.date) return false;
-                      
+
                       // Sử dụng UTC để tránh vấn đề timezone
                       const scheduleDate = new Date(schedule.date);
                       const scheduleDateStr = `${scheduleDate.getUTCFullYear()}-${String(scheduleDate.getUTCMonth() + 1).padStart(2, '0')}-${String(scheduleDate.getUTCDate()).padStart(2, '0')}`;
-                      
+
                       return scheduleDateStr === selectedDateStr;
                     });
 
@@ -1828,7 +2055,7 @@ function StaffPage() {
                   });
 
                   console.log('Found schedules:', allSchedulesForDate.length);
-                  
+
                   // Cập nhật cache
                   setSchedulesByDate(prev => ({
                     ...prev,
@@ -1836,7 +2063,7 @@ function StaffPage() {
                   }));
                 }}
               />
-            </div>            
+            </div>
           </section>
         )}
 
@@ -1846,7 +2073,7 @@ function StaffPage() {
             <p style={{ marginTop: 4, color: 'rgba(15,23,42,0.7)' }}>
               Báo cáo dựa trên các form đã tải về. Chọn một form ở chế độ quản lý để cập nhật dữ liệu.
             </p>
-            
+
             {/* Add Battery Report Form */}
             <BatteryReportForm
               defaults={{
@@ -1855,7 +2082,8 @@ function StaffPage() {
                   ? (currentUser.bssStaffs[0]?.stationId || currentUser.bssStaffs[0]?.StationId)
                   : (currentUser?.stationId || currentUser?.StationId || currentUser?.stationID || ''),
                 batteryId: batteryReportDefaults.batteryId || '',
-                staffName: batteryReportDefaults.staffName || currentUser?.name || currentUser?.Name || 'Staff'
+                staffName: batteryReportDefaults.staffName || currentUser?.name || currentUser?.Name || 'Staff',
+                exchangeBatteryId: batteryReportDefaults.exchangeBatteryId || ''
               }}
               onCreated={(result) => {
                 setBatteryReportDefaults({});
@@ -1864,7 +2092,7 @@ function StaffPage() {
                   toast.success({
                     content: (
                       <div>
-                        <span role="img" aria-label="success" style={{fontSize: 22, marginRight: 8}}>✅</span>
+                        <span role="img" aria-label="success" style={{ fontSize: 22, marginRight: 8 }}>✅</span>
                         <b>Battery Report đã được tạo thành công!</b>
                       </div>
                     ),
@@ -1877,7 +2105,7 @@ function StaffPage() {
                   toast.error({
                     content: (
                       <div>
-                        <span role="img" aria-label="error" style={{fontSize: 22, marginRight: 8}}>❌</span>
+                        <span role="img" aria-label="error" style={{ fontSize: 22, marginRight: 8 }}>❌</span>
                         <b>Tạo Battery Report thất bại!</b>
                         <div style={{ marginTop: 4, fontWeight: 400, fontSize: 15 }}>{errorMsg}</div>
                       </div>
@@ -1901,11 +2129,11 @@ function StaffPage() {
             </p>
 
             {/* Thống kê tổng quan */}
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-              gap: '16px', 
-              marginBottom: '24px' 
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '16px',
+              marginBottom: '24px'
             }}>
               <div style={{
                 background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
@@ -1957,8 +2185,8 @@ function StaffPage() {
               padding: '20px',
               marginBottom: '20px'
             }}>
-              <h3 style={{ 
-                margin: '0 0 16px 0', 
+              <h3 style={{
+                margin: '0 0 16px 0',
                 color: '#0f172a',
                 display: 'flex',
                 alignItems: 'center',
@@ -1967,7 +2195,7 @@ function StaffPage() {
                 <span>🏢</span>
                 Chọn trạm để xem giao dịch đổi pin
               </h3>
-              
+
               <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
                 {stationAssignments.map((assignment) => (
                   <button
@@ -2014,14 +2242,14 @@ function StaffPage() {
                 padding: '20px',
                 marginBottom: '20px'
               }}>
-                <header style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                <header style={{
+                  display: 'flex',
+                  alignItems: 'center',
                   justifyContent: 'space-between',
                   marginBottom: '16px'
                 }}>
-                  <h2 style={{ 
-                    fontSize: '20px', 
+                  <h2 style={{
+                    fontSize: '20px',
                     fontWeight: '600',
                     margin: 0,
                     color: '#0f172a'
@@ -2068,9 +2296,9 @@ function StaffPage() {
                     <p>Đang tải yêu cầu…</p>
                   </div>
                 ) : (
-                  <div style={{ 
-                    border: '1px solid rgba(15,23,42,0.1)', 
-                    borderRadius: '12px', 
+                  <div style={{
+                    border: '1px solid rgba(15,23,42,0.1)',
+                    borderRadius: '12px',
                     overflow: 'hidden',
                     background: 'rgba(255,255,255,0.95)'
                   }}>
@@ -2091,7 +2319,9 @@ function StaffPage() {
                           .filter(x => {
                             const kw = filters.keyword?.trim()?.toLowerCase();
                             if (!kw) return true;
-                            return (x.vin?.toLowerCase()?.includes(kw)) || (String(x.orderId || '').includes(kw));
+                            return (x.vin?.toLowerCase()?.includes(kw)) || 
+                                   (String(x.orderId || '').includes(kw)) ||
+                                   (String(x.exchangeBatteryId || '').toLowerCase().includes(kw));
                           })
                           .map((x) => {
                             const order = ordersMap?.[x.orderId];
@@ -2121,16 +2351,16 @@ function StaffPage() {
                                     borderRadius: '12px',
                                     fontSize: '12px',
                                     fontWeight: '600',
-                                    background: x.status === 'Pending' 
-                                      ? 'rgba(251, 191, 36, 0.2)' 
+                                    background: x.status === 'Pending'
+                                      ? 'rgba(251, 191, 36, 0.2)'
                                       : x.status === 'Completed'
-                                      ? 'rgba(16, 185, 129, 0.2)'
-                                      : 'rgba(239, 68, 68, 0.2)',
-                                    color: x.status === 'Pending' 
-                                      ? '#d97706' 
+                                        ? 'rgba(16, 185, 129, 0.2)'
+                                        : 'rgba(239, 68, 68, 0.2)',
+                                    color: x.status === 'Pending'
+                                      ? '#d97706'
                                       : x.status === 'Completed'
-                                      ? '#059669'
-                                      : '#dc2626'
+                                        ? '#059669'
+                                        : '#dc2626'
                                   }}>
                                     {x.status}
                                   </span>
@@ -2192,9 +2422,9 @@ function StaffPage() {
                       </tbody>
                     </table>
                     {(!exchanges || exchanges.length === 0) && (
-                      <div style={{ 
-                        padding: '40px', 
-                        textAlign: 'center', 
+                      <div style={{
+                        padding: '40px',
+                        textAlign: 'center',
                         color: '#64748b',
                         fontStyle: 'italic'
                       }}>
