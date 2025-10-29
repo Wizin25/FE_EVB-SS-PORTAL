@@ -379,6 +379,12 @@ function Profile({ theme = "light" }) {
       // Cập nhật state user với avatar mới
       setUser(prev => ({ ...prev, avatar: avatarUrl }));
       setEditData(prev => ({ ...prev, avatar: avatarUrl }));
+      try {
+        localStorage.setItem('avatarUrl', avatarUrl);
+      } catch {}
+      try {
+        window.dispatchEvent(new CustomEvent('avatar-updated', { detail: avatarUrl }));
+      } catch {}
       
       console.log('Cập nhật avatar thành công');
     } else {

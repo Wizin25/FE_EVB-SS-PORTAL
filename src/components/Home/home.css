@@ -4,21 +4,29 @@
   justify-content: space-between;
   align-items: center;
   padding: 18px 36px;
-  background: linear-gradient(90deg, #fff 0%, #f3f4f6 100%);
-  border-bottom: 1.5px solid rgba(180, 220, 255, 0);
+  /* dùng gradient có alpha để thấy backdrop-filter */
+  background: linear-gradient(90deg, rgba(255,255,255,0.68) 0%, rgba(243,244,246,0.45) 100%);
+  border-bottom: 1.5px solid rgba(180, 220, 255, 0.18);
   border-radius: 0 0 24px 24px;
-  box-shadow: 0 4px 32px 0 rgba(0, 0, 0, 0.415), 0 1.5px 8px 0 rgba(0, 0, 0, 0.396) inset;
+  box-shadow: 0 4px 32px 0 rgba(0, 0, 0, 0.18), 0 1.5px 8px 0 rgba(0, 0, 0, 0.12) inset;
   backdrop-filter: blur(16px) saturate(1.2);
   -webkit-backdrop-filter: blur(16px) saturate(1.2);
   transition: background 0.3s, box-shadow 0.2s;
 }
 
+/* thêm LiquidGlass displacement cho header */
+.app-header.liquid {
+  backdrop-filter: url(#liquidGlass) blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: url(#liquidGlass) blur(16px) saturate(1.2);
+}
+
 .app-header.dark {
-  background: rgba(30,41,59,0.72);
+  background: rgba(30,41,59,0.65);
   color: #f1f1f1;
   border-bottom: 1.5px solid #334155;
   box-shadow: 0 4px 32px 0 rgba(30,41,59,0.22), 0 1.5px 8px 0 rgba(56,189,248,0.10) inset;
-  backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: url(#liquidGlass) blur(18px) saturate(1.1);
+  -webkit-backdrop-filter: url(#liquidGlass) blur(18px) saturate(1.1);
 }
 
 .app-header .left {
@@ -43,7 +51,7 @@
   filter: drop-shadow(0 4px 24px rgba(56,189,248,0.18));
 }
 
- .main-nav {
+.main-nav {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -58,14 +66,46 @@
   padding: 0;
   background: none;
 }
-.LiquidGlass {
-  background: rgba(251, 251, 251, 0);
-  border: 1px solid rgba(255,255,255,.35);
-  padding: 10px 14px;
-  border-radius: 12px;
-  backdrop-filter: blur(1px);
-  box-shadow: inset 0 2px 10px 0 rgba(255,255,255,0.45), inset 0 1.5px 6px 0 rgba(255,255,255,0.18);
+
+:root {
+  /* LiquidGlass tunables (áp cho card/nav) */
+  --liquid-blur: 6px;            /* tăng blur một chút cho nav pills */
+  --liquid-saturate: 1.25;
+  --liquid-overlay: rgba(255, 255, 255, 0.22); /* overlay */
+  --liquid-border: rgba(255, 255, 255, 0.35);
+  --liquid-radius: 14px;
 }
+
+/* ========== LIQUID GLASS (áp cho các card/pill) ========== */
+/* gom selector để dùng được cả 'liquid' và 'LiquidGlass' nếu lẫn lộn */
+.liquid, .LiquidGlass {
+  position: relative;
+  border-radius: var(--liquid-radius);
+  background: var(--liquid-overlay);
+  border: 1px solid var(--liquid-border);
+  /* Fallback blur + saturate */
+  backdrop-filter: blur(var(--liquid-blur)) saturate(var(--liquid-saturate));
+  -webkit-backdrop-filter: blur(var(--liquid-blur)) saturate(var(--liquid-saturate));
+  /* Distortion (Chromium/Edge): */
+  backdrop-filter: url(#liquidGlass) blur(var(--liquid-blur)) saturate(var(--liquid-saturate));
+  -webkit-backdrop-filter: url(#liquidGlass) blur(var(--liquid-blur)) saturate(var(--liquid-saturate));
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(0,0,0,.12);
+}
+
+/* highlight cạnh kính cho elements dùng liquid */
+.liquid::before, .LiquidGlass::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(255,255,255,.35), transparent 40%),
+    radial-gradient(120% 60% at 0% -10%, rgba(255,255,255,.28), transparent 60%),
+    radial-gradient(90% 70% at 100% -20%, rgba(255,255,255,.18), transparent 60%);
+  mix-blend-mode: overlay;
+}
+
 .app-header .main-nav a,
 .app-header .main-nav button {
   display: flex;
@@ -83,10 +123,10 @@
   border-radius: 16px;
   font-size: 1.08rem;
   box-shadow: 0 2px 12px 0 rgba(56,189,248,0.08) inset;
-  transition: 
-    background 0.22s cubic-bezier(.4,0,.2,1), 
-    color 0.18s cubic-bezier(.4,0,.2,1), 
-    box-shadow 0.18s cubic-bezier(.4,0,.2,1), 
+  transition:
+    background 0.22s cubic-bezier(.4,0,.2,1),
+    color 0.18s cubic-bezier(.4,0,.2,1),
+    box-shadow 0.18s cubic-bezier(.4,0,.2,1),
     transform 0.13s cubic-bezier(.4,0,.2,1);
   backdrop-filter: blur(4px) saturate(1.1);
   -webkit-backdrop-filter: blur(4px) saturate(1.1);
@@ -99,6 +139,7 @@
   transform: translateY(-2px) scale(1.07);
   box-shadow: 0 4px 24px 0 rgba(56,189,248,0.13), 0 2px 12px 0 rgba(56,189,248,0.10) inset;
 }
+
 .app-header.dark .main-nav a,
 .app-header.dark .main-nav button {
   background: rgba(30,41,59,0.82);
@@ -123,9 +164,9 @@
   box-shadow: 0 6px 24px 0 rgba(56,189,248,0.18), 0 2px 12px 0 rgba(56,189,248,0.10) inset;
   letter-spacing: 0.02em;
   border: none;
-  transition: 
-    background 0.18s cubic-bezier(.4,0,.2,1), 
-    box-shadow 0.18s cubic-bezier(.4,0,.2,1), 
+  transition:
+    background 0.18s cubic-bezier(.4,0,.2,1),
+    box-shadow 0.18s cubic-bezier(.4,0,.2,1),
     transform 0.13s cubic-bezier(.4,0,.2,1);
 }
 .app-header .main-nav .cta:hover {
@@ -186,7 +227,7 @@
   background: rgba(56,189,248,0.10);
 }
 
-/* Dropdown menu: controlled by .open class, not hover */
+/* Dropdown menu */
 .app-header .account-dropdown .dropdown {
   display: none;
   position: absolute;
@@ -209,12 +250,7 @@
   from { opacity: 0; transform: translateY(-8px);}
   to { opacity: 1; transform: translateY(0);}
 }
-
-/* Show dropdown when .open class is present */
-.app-header .account-dropdown.open .dropdown {
-  display: block;
-  opacity: 1;
-}
+.app-header .account-dropdown.open .dropdown { display: block; opacity: 1; }
 
 .app-header .account-dropdown .dropdown a,
 .app-header .account-dropdown .dropdown button {
@@ -232,21 +268,19 @@
   border-radius: 0;
   transition: background 0.15s, color 0.15s;
 }
-
 .app-header .account-dropdown .dropdown a:hover,
 .app-header .account-dropdown .dropdown button:hover {
   background: rgba(186,230,253,0.32);
   color: #0ea5e9;
 }
+
 .app-header.dark .account-dropdown .dropdown {
   background: rgba(30,41,59,0.92);
   border-color: #334155;
   box-shadow: 0 8px 32px 0 rgba(56,189,248,0.18), 0 2px 12px 0 rgba(56,189,248,0.10) inset;
 }
 .app-header.dark .account-dropdown .dropdown a,
-.app-header.dark .account-dropdown .dropdown button {
-  color: #e0e7ef;
-}
+.app-header.dark .account-dropdown .dropdown button { color: #e0e7ef; }
 .app-header.dark .account-dropdown .dropdown a:hover,
 .app-header.dark .account-dropdown .dropdown button:hover {
   background: rgba(51,65,85,0.92);

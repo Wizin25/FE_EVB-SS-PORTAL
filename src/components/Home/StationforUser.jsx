@@ -251,7 +251,7 @@ export default function StationForUser() {
           user={user}
           unreadCount={unreadCount}
           nextBooking={nextBooking}
-          onOpenBooking={() => {}}
+          onOpenBooking={handleOpenBooking}
         />
       </div>
       {/* Main illustration with subtle border and shadow */}

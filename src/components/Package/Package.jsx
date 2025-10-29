@@ -35,6 +35,11 @@ const Package = () => {
     return "light";
   });
 
+  // Ensure header booking works from Packages page
+  const handleOpenBooking = () => {
+    navigate('/booking');
+  };
+
   // 🔧 HELPER FUNCTIONS
   const getVehicleProperty = (vehicle, property) => {
     if (!vehicle) return 'N/A';
@@ -976,7 +981,7 @@ const Package = () => {
           user={user}
           unreadCount={unreadCount}
           nextBooking={nextBooking}
-          onOpenBooking={() => {}}
+          onOpenBooking={handleOpenBooking}
         />
       </div>
 
