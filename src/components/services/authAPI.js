@@ -1084,5 +1084,14 @@ export const authAPI = {
       throw new Error(error?.message || JSON.stringify(error) || 'Get reports by station id failed');
     }
   },
-
+getStationSchedulesByAccountId: async (accountId) => {
+  try {
+    const response = await api.get('/api/StationSchedule/get_station_schedules_by_account_id', {
+      params: { accountId }
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error?.message || JSON.stringify(error) || 'Get station schedules by account id failed');
+  }
+},
 };
