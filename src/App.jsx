@@ -24,6 +24,7 @@ import Report from './components/Report/Report.jsx';
 import ReportManager from './components/Admin/pages/ReportManager.jsx';
 import PaymentSuccess from './components/Payment/PaymentSuccess.jsx';
 import PaymentFailure from './components/Payment/PaymentFailure.jsx';
+import StationScheduleHistory from './components/Home/StationScheHistory.jsx';
 function App() {
   return (
     <Router>
@@ -56,6 +57,7 @@ function App() {
           <Route path="/report" element={<Report />} />
           <Route path="/payment/success" element={<PaymentSuccess />} />
           <Route path="/payment/failure" element={<PaymentFailure />} />
+          <Route path="/stationschehistory" element={<StationScheduleHistory />} />
         </Routes>
       </div>
     </Router>

@@ -245,16 +245,6 @@ const SupportCenter = () => {
               <div className="hero-badge">🎯 Trung tâm hỗ trợ</div>
               <h1>Chúng tôi luôn sẵn sàng hỗ trợ bạn</h1>
               <p>Giải đáp mọi thắc mắc về dịch vụ SwapX. Tìm câu trả lời nhanh hoặc liên hệ trực tiếp với đội ngũ hỗ trợ 24/7.</p>
-              
-              <div className="search-container">
-                <input
-                  type="text"
-                  placeholder="🔍 Tìm kiếm câu hỏi thường gặp..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="search-input"
-                />
-              </div>
             </div>
             <div className="hero-graphics">
               <div className="floating-icon">🔋</div>

@@ -83,7 +83,7 @@ export default function Header({
               <button
                 type="button"
                 onMouseDown={e => e.preventDefault()}
-                onClick={() => { navigate('/my-bookings'); setOpen(false); }}
+                onClick={() => { navigate('/stationschehistory'); setOpen(false); }}
               >
                 Lịch của tôi
               </button>
