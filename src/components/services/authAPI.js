@@ -812,6 +812,27 @@ export const authAPI = {
     }
   },
 
+  getBatteryReportsByStation: async (stationId) => {
+    if (!stationId) return [];
+    try {
+      const res = await api.get('/api/BatteryReport/get_battery_reports_by_station', {
+        params: { stationId }
+      });
+      if (res?.data?.isSuccess && Array.isArray(res.data.data)) {
+        return res.data.data;
+      }
+      if (Array.isArray(res?.data)) return res.data;
+      return [];
+    } catch (err) {
+      const code = err?.response?.status;
+      if (code === 404) {
+        throw new Error('Chưa có báo cáo pin nào cho trạm này');
+      }
+      const msg = err?.response?.data?.message || err?.message || 'Không thể lấy danh sách báo cáo pin của trạm';
+      throw new Error(msg);
+    }
+  },
+
 
 
   //EXCHANGE BATTERY APIs

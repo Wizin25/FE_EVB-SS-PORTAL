@@ -72,8 +72,8 @@ body {
   align-items: center;
   width: 80%;
   max-width: 500px;
-  height: 80vh;
-  min-height: 400px;
+  height: auto;
+  min-height: 650px;
   background: rgba(236, 236, 236, 0);
   border-radius: 16px;
   border: 2px solid #ffffffcc;
@@ -229,14 +229,13 @@ body {
 
 /* White Panel - Right Side - 60% */
 .sign-container {
-  width: 60%;
-  height: 150%;
+  width: 100%;
+  height: 100%;
   max-height: fit-content;
   background: rgba(255, 255, 255, 0);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  
   align-items: center;
   padding: 30px 40px; /* Giảm padding để có thêm không gian */
   position: relative;
@@ -491,6 +490,42 @@ body {
 .input-group input:focus + ::after,
 .input-group:focus-within::after {
   width: 100%;
+}
+.input-error {
+  color: #ff1a1a; /* Đỏ tươi cực nổi bật */
+  background: linear-gradient(90deg, #fff6f6a3 80%, #ffcecec0 100%);
+  font-size: 14px;
+  margin-top: 5px;
+  margin-bottom: 4px;
+  padding: 5px 10px 5px 6px;
+  border-left: 4px solid #ff6b35;
+  border-radius: 4px 8px 8px 4px;
+  font-weight: 700;
+  box-shadow: 0 1.5px 8px -3px #ff6b35a6;
+  letter-spacing: 0.02em;
+  animation: error-pop 0.22s cubic-bezier(0.7,0.1,0.3,1.4);
+  transition: color 0.15s, background 0.25s, box-shadow 0.2s;
+  text-align: center;
+}
+
+@keyframes error-pop {
+  0% { transform: scale(0.95) translateY(8px); opacity: 0; }
+  80% { transform: scale(1.04) translateY(-2px);}
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+.forgot-description{
+  color: #ffffff; /* Đỏ tươi cực nổi bật */
+  font-size: 14px;
+  margin-top: 5px;
+  margin-bottom: 4px;
+  padding: 5px 10px 5px 6px;
+  border-radius: 4px 8px 8px 4px;
+  font-weight: 700;
+  box-shadow: 0 1.5px 8px -3px #ff6b35a6;
+  letter-spacing: 0.02em;
+  animation: error-pop 0.22s cubic-bezier(0.7,0.1,0.3,1.4);
+  transition: color 0.15s, background 0.25s, box-shadow 0.2s;
+  text-align: center;
 }
 
 /* Submit Button */

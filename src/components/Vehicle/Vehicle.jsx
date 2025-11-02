@@ -950,7 +950,7 @@ const Vehicle = () => {
                               </span>
                             </div>
                             <div className="detail-row">
-                              <span className="detail-label">📊 Dung lượng</span>
+                              <span className="detail-label">🔋 Dung lượng</span>
                               <span className="detail-value battery-quality">
                                 {batteryInfo.quality}
                               </span>
