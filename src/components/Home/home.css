@@ -71,11 +71,11 @@
 
 :root {
   /* LiquidGlass tunables (áp cho card/nav) */
-  --liquid-blur: 0px;            /* tăng blur một chút cho nav pills */
+  --liquid-blur: 2px;            /* tăng blur một chút cho nav pills */
   --liquid-saturate: 1.25;
   --liquid-overlay: rgba(255, 255, 255, 0.05); /* overlay */
   --liquid-border: rgba(255, 255, 255, 0.35);
-  --liquid-radius: 10px;
+  --liquid-radius: 100px;
 }
 
 /* ========== LIQUID GLASS (áp cho các card/pill) ========== */

@@ -596,15 +596,13 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-
-
           {/* Secondary loop video subtle strip */}
           <div className="liquid booking-hero mb-12 rounded-3xl overflow-hidden shadow-2xl" style={{ height: 400 }}>
             <video autoPlay loop muted playsInline preload="metadata" className="w-full h-full object-cover">
               <source src="https://cdn.gogoro.com/resources/pages/home/kv/video-home-kv.mp4" type="video/mp4" />
             </video>
             <div className="booking-hero-content" style={{ alignItems: 'flex-end' }}>
-              <div className={`hero-text liquid ${getTextColor()} bg-black/30 backdrop-blur-sm rounded-2xl p-6`}>
+              <div className={`hero-text liquid ${getTextColor()} rounded-2xl p-6`}>
                 <p className="text-2xl md:text-3xl font-bold">Trạm phủ rộng, thao tác nhanh chóng, trải nghiệm mượt mà.</p>
               </div>
             </div>
