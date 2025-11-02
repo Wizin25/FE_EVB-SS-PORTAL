@@ -2,16 +2,39 @@
 
 /* Base container */
 .station-container {
-    padding: 28px;
-    font-family: "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    color: #0f172a;
-    max-width: 2000px;
-    margin: 0 auto;
-    background: linear-gradient(180deg, #f6fbff 0%, #f0f6fb 100%);
-    border-radius: 16px;
-    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
-    overflow: hidden;
-  }
+  padding: 40px 32px;
+  font-family: "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #112142;
+  max-width: 1600px;
+  margin: 30px auto 0 auto;
+  background: linear-gradient(120deg, #f9fcff01 0%, #e8f3ff00 65%, #e9fbfa01 100%);
+  border-radius: 24px;
+  box-shadow:
+    0 8px 32px rgba(16, 52, 120, 0.13),
+    0 1.5px 8px rgba(0,0,0,0.04);
+  overflow: hidden;
+  position: relative;
+}
+.station-container::before {
+  content: '';
+  position: absolute;
+  top: -30px; left: -30px;
+  width: 150px; height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(80,178,235,0.13) 50%, transparent 80%);
+  z-index: 0;
+  pointer-events: none;
+}
+.station-container::after {
+  content: '';
+  position: absolute;
+  bottom: -40px; right: -60px;
+  width: 210px; height: 210px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(34,197,94,0.11) 50%, transparent 85%);
+  z-index: 0;
+  pointer-events: none;
+}
   
   /* Header */
   .station-title {
@@ -89,12 +112,12 @@
   }
   .station-summary .total-count {
     font-size: 15px;
-    color: #334155;
+    color: #eef0f3;
     font-weight: 500;
   }
   .station-summary .page-info {
     font-size: 13px;
-    color: #64748b;
+    color: #ffffff;
     margin-left: 6px;
   }
   .create-row {
@@ -214,7 +237,7 @@
   
   /* Controls row */
 .station-controls {
-  background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.9) 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.106) 0%, rgba(248, 250, 252, 0.206) 100%);
   padding: 20px;
   border-radius: 16px;
   box-shadow: 
@@ -347,7 +370,7 @@
   /* Grid layout with staggered fade-in */
   .station-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(1, 1fr);
     gap: 22px 20px;
     align-items: start;
     margin-top: 6px;

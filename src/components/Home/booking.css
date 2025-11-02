@@ -38,9 +38,9 @@
   height: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 20px;
-  padding: 20px 24px;
+  padding: 40px 50px;
   color: #fff;
   width: 100%;
   /* Đảm bảo vùng chạm ở hai bên */
