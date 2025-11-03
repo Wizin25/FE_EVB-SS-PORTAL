@@ -1094,4 +1094,14 @@ getStationSchedulesByAccountId: async (accountId) => {
     throw new Error(error?.message || JSON.stringify(error) || 'Get station schedules by account id failed');
   }
 },
+getOrdersByAccountId: async (accountId) => {
+  try {
+    const response = await api.get('/api/Order/get_orders_by_account_id', {
+      params: { accountId }
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error?.message || JSON.stringify(error) || 'Get orders by account id failed');
+  }
+},
 };

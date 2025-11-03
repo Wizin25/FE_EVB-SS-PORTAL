@@ -1,8 +1,9 @@
 // Calendar.jsx
 import React, { useState, useEffect } from "react";
 import { authAPI } from '../../../components/services/authAPI';
-import { formAPI } from '../../../components/services/formAPI';
+import { formAPI } from '../../../components/services/formAPI'; // Thêm import formAPI
 import "../../../components/Staff/Staff.jsx";
+
 
 const daysOfWeek = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const monthNames = [
@@ -10,7 +11,7 @@ const monthNames = [
   "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
 ];
 
-// Helper functions
+// Helper functions (giữ nguyên)
 function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();
 }
@@ -24,7 +25,7 @@ function todayDateObj() {
   return { year: now.getFullYear(), month: now.getMonth(), date: now.getDate() };
 }
 
-// Calendar cell component
+// Calendar cell component (giữ nguyên)
 function CalendarCell({ day, isToday, isSelected, onDateSelect, year, month }) {
   const cellStyle = {
     padding: 12,
@@ -68,7 +69,7 @@ function CalendarCell({ day, isToday, isSelected, onDateSelect, year, month }) {
   );
 }
 
-// Component for single month calendar
+// Component for single month calendar (giữ nguyên)
 function MonthCalendar({ year, month, today, selectedDate, onDateSelect }) {
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfWeek(year, month);
@@ -168,7 +169,7 @@ function MonthCalendar({ year, month, today, selectedDate, onDateSelect }) {
   );
 }
 
-// Form Detail Modal Component
+// Form Detail Modal Component - ĐÃ CẬP NHẬT HOÀN TOÀN
 function FormDetailModal({ form, onClose }) {
   if (!form) return null;
 
@@ -615,6 +616,8 @@ function FormDetailModal({ form, onClose }) {
           </div>
         )}
 
+
+
         {/* Close Button */}
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
@@ -647,7 +650,7 @@ function FormDetailModal({ form, onClose }) {
   );
 }
 
-// Schedule item component
+// Schedule item component - CẬP NHẬT để thêm nút chi tiết Form và hiển thị exchange batteries
 function ScheduleItem({ schedule, onViewFormDetail }) {
   const [exchangeBatteries, setExchangeBatteries] = useState([]);
   const [loadingExchanges, setLoadingExchanges] = useState(false);
@@ -1004,7 +1007,7 @@ function ScheduleItem({ schedule, onViewFormDetail }) {
             fontSize: '16px',
             fontWeight: '600'
           }}>
-            🏢 {schedule.stationName || schedule.station?.stationName || `Trạm ${schedule.stationId}`}
+            🏢 {schedule.stationName || `Trạm ${schedule.stationId}`}
           </h4>
           <div style={{
             display: 'flex',
@@ -1542,7 +1545,7 @@ function ScheduleItem({ schedule, onViewFormDetail }) {
   );
 }
 
-// Main Calendar component - ĐÃ CẬP NHẬT
+// Main Calendar component - CẬP NHẬT
 export default function Calendar({ onDateSelect }) {
   const today = todayDateObj();
   const [currentMonth, setCurrentMonth] = useState(today.month);
@@ -1561,23 +1564,29 @@ export default function Calendar({ onDateSelect }) {
   const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
   const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
 
-  // Fetch ALL station schedules - ĐÃ SỬA
+  // Fetch all station schedules
   useEffect(() => {
     const fetchAllSchedules = async () => {
+      // Get stationId from localStorage
+      const stationId = localStorage.getItem('stationId');
+      
+      if (!stationId) {
+        console.error('No stationId found in localStorage');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        console.log('Fetching ALL station schedules');
+        console.log('Fetching schedules for station ID:', stationId);
         
-        // SỬA: Dùng getAllStationSchedules thay vì getStationSchedulesByStationId
-        const response = await authAPI.getAllStationSchedules();
-        console.log('ALL station schedules response:', response);
+        const response = await authAPI.getStationSchedulesByStationId(stationId);
+        console.log('Station schedules response:', response);
         
-        // Xử lý response - có thể là array trực tiếp hoặc nested trong data
-        const schedules = Array.isArray(response?.data) ? response.data : 
-                         (Array.isArray(response) ? response : []);
+        const schedules = Array.isArray(response?.data) ? response.data : [];
         setAllSchedules(schedules);
       } catch (error) {
-        console.error('Error fetching ALL station schedules:', error);
+        console.error('Error fetching station schedules:', error);
         setAllSchedules([]);
       } finally {
         setLoading(false);
@@ -1613,9 +1622,8 @@ export default function Calendar({ onDateSelect }) {
     const selectedDateStr = `${date.year}-${String(date.month + 1).padStart(2, '0')}-${String(date.date).padStart(2, '0')}`;
 
     console.log('Looking for schedules on:', selectedDateStr);
-    console.log('Total schedules available:', allSchedules.length);
 
-    // Filter ALL schedules for the selected date - ĐÃ SỬA để xử lý tất cả lịch trình
+    // Filter schedules for the selected date
     const filtered = allSchedules.filter(schedule => {
       if (!schedule.date) return false;
 
@@ -1711,7 +1719,7 @@ export default function Calendar({ onDateSelect }) {
         📅 Lịch Chọn Ngày
       </h1>
 
-      {/* Date/Month/Year selectors */}
+      {/* Date/Month/Year selectors (giữ nguyên) */}
       <div
         style={{
           display: "flex",
@@ -1763,7 +1771,7 @@ export default function Calendar({ onDateSelect }) {
         />
       </div>
 
-      {/* Navigation buttons */}
+      {/* Navigation buttons (giữ nguyên) */}
       <div
         style={{
           display: "flex",
@@ -1804,7 +1812,7 @@ export default function Calendar({ onDateSelect }) {
         </button>
       </div>
 
-      {/* Selected date display */}
+      {/* Selected date display (giữ nguyên) */}
       {selectedDate && (
         <div
           style={{
@@ -1823,7 +1831,7 @@ export default function Calendar({ onDateSelect }) {
         </div>
       )}
 
-      {/* Two month calendars */}
+      {/* Two month calendars (giữ nguyên) */}
       <div
         style={{
           display: "flex",

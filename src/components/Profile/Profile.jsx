@@ -1,4 +1,4 @@
-// src/components/Profile.jsx - Final Optimized Version with Enhanced Form Details Popup
+// src/components/Profile.jsx - Final Optimized Version with HistoryOrder Integration
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { authAPI } from '../services/authAPI';
@@ -7,6 +7,7 @@ import { vehicleAPI } from '../services/vehicleAPI';
 import { isInRole, getUserRoles } from '../services/jwt';
 import Header from '../Home/header';
 import Footer from '../Home/footer';
+import HistoryOrder from './HistoryOrder';
 import './ProfileStyle.css';
 
 function Profile({ theme = "light" }) {
@@ -721,8 +722,6 @@ function Profile({ theme = "light" }) {
                     </p>
                     <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: localTheme === 'dark' ? '#9ca3af' : '#6b7280', flexWrap: 'wrap', marginTop: 8 }}>
                       <span>📅 {form.date ? formatDateTime(form.date) : 'Chưa có ngày'}</span>
-                      {/* ĐÃ THAY ĐỔI: Hiển thị tên trạm thay vì ID */}
-                      <span>🏢 Trạm: {form.stationName || form.stationId || 'Chưa xác định'}</span>
                     </div>
                   </div>
                   <div className="profile-badge" style={{ 
@@ -767,21 +766,21 @@ function Profile({ theme = "light" }) {
                         </div>
                         
                         <div style={{ display: 'grid', gap: '12px', fontSize: '14px' }}>
-                          <div><strong>📝 Tiêu đề:</strong> {formDetail.title || 'N/A'}</div>
-                          <div><strong>📋 Mô tả:</strong> {formDetail.description || 'N/A'}</div>
-                          <div><strong>📅 Ngày đặt lịch:</strong> {formatDateTime(formDetail.date)}</div>
-                          
                           {/* Thông tin mới - Ngày bắt đầu và cập nhật */}
                           <div><strong>🕐 Ngày tạo:</strong> {formatDateTime(formDetail.startDate)}</div>
                           <div><strong>🔄 Cập nhật lần cuối:</strong> {formatDateTime(formDetail.updateDate)}</div>
-                          
+                          <div><strong>📅 Ngày đặt lịch:</strong> {formatDateTime(formDetail.date)}</div>
+
                           {/* Thông tin VIN */}
                           <div><strong>🚗 VIN:</strong> {formDetail.vin || 'N/A'}</div>
                           
                           {/* Thông tin trạm - ĐÃ THÊM */}
                           <div><strong>🏢 Trạm:</strong> {formDetail.stationName || 'N/A'}</div>
                           <div><strong>📍 Địa chỉ trạm:</strong> {formDetail.stationLocation || 'N/A'}</div>
-                          
+
+                          <div><strong>📝 Tiêu đề:</strong> {formDetail.title || 'N/A'}</div>
+                          <div><strong>📋 Mô tả:</strong> {formDetail.description || 'N/A'}</div>
+                                                    
                           <div>
   <strong>🔋 Thông tin Pin:</strong>
   {formDetail.batteryId ? (
@@ -791,7 +790,6 @@ function Profile({ theme = "light" }) {
           <div><strong>Tên Pin:</strong> {formDetail.batteryDetail.batteryName || 'N/A'}</div>
           <div><strong>Loại Pin:</strong> {formDetail.batteryDetail.batteryType || 'N/A'}</div>
           <div><strong>Dung lượng:</strong> {formDetail.batteryDetail.capacity || 'N/A'}</div>
-          <div><strong>Trạng thái:</strong> {formDetail.batteryDetail.status || 'N/A'}</div>
           <div><strong>Thông số kỹ thuật:</strong> {formDetail.batteryDetail.specification || 'N/A'}</div>
           <div><strong>Chất lượng Pin:</strong> {formDetail.batteryDetail.batteryQuality || 'N/A'}%</div>
         </>
@@ -819,29 +817,6 @@ function Profile({ theme = "light" }) {
       </div>
     );
   };
-
-  const renderPaymentHistory = () => (
-  <div style={{ padding: isMobile ? 16 : 24 }}>
-    <div className="liquid-glass" style={{ padding: 20, marginBottom: 20 }}>
-      <h3 style={{ fontWeight: 700, fontSize: 20, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-        💳 Lịch sử thanh toán
-      </h3>
-    </div>
-    {Array.isArray(orders) && orders.length > 0 ? (
-      <div style={{ display: 'grid', gap: 16 }}>
-        {orders.map((order, idx) => (
-          <div key={order.orderId || `order-${idx}`} className="profile-card">
-            {/* ... nội dung ... */}
-          </div>
-        ))}
-      </div>
-    ) : (
-      <div className="profile-empty liquid-glass">
-        <p>📭 Không có lịch sử thanh toán.</p>
-      </div>
-    )}
-  </div>
-);
 
   const renderVehiclesModal = () => {
   if (!showVehiclesModal) return null;
@@ -1205,7 +1180,9 @@ function Profile({ theme = "light" }) {
           )}
 
           {activeSidebar === "bookingHistory" && renderBookingHistory()}
-          {activeSidebar === "paymentHistory" && renderPaymentHistory()}
+          
+          {/* INTEGRATED HistoryOrder Component */}
+          {activeSidebar === "paymentHistory" && <HistoryOrder user={user} theme={localTheme} />}
           
           {activeSidebar === "changePassword" && (
             <div style={{ padding: isMobile ? 16 : 24 }}>

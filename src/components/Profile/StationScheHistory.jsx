@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/authAPI';
 import { formAPI } from '../services/formAPI';
-import Header from './header';
-import Footer from './footer';
+import Header from '../Home/header';
+import Footer from '../Home/footer';
 import './StationScheH.css';
 
 export default function StationScheduleHistory() {
@@ -113,7 +113,9 @@ export default function StationScheduleHistory() {
             const allSchedules = allSchedulesResponse.data || [];
             schedulesData = allSchedules.filter(schedule => 
               schedule.accountId === accountId || 
-              schedule.AccountId === accountId
+              schedule.AccountId === accountId ||
+              schedule.batteryId === batteryId ||
+              schedule.BatteryId === batteryId
             );
             console.log('Filtered schedules:', schedulesData);
           }
@@ -262,12 +264,15 @@ export default function StationScheduleHistory() {
               </button>
             </div>
           </div>
-        ) : (
-          <div className="schedules-list">
-            <div className="schedule-count">
-              Hiển thị {schedules.length} lịch đặt đã hoàn thành
-            </div>
-            {schedules.map((schedule, index) => (
+       ) : (
+  <>
+    <div className="schedule-count">
+      Hiển thị {schedules.length} lịch đặt đã hoàn thành
+    </div>
+
+    <div className="schedules-list">
+      {schedules.map((schedule, index) => (
+
               <div key={getScheduleId(schedule) || `schedule-${index}`} className="schedule-card">
                 <div className="schedule-header">
                   {getStatusBadge(schedule.status)}
@@ -275,7 +280,7 @@ export default function StationScheduleHistory() {
                 
                 <div className="schedule-details">
                   <div className="detail-row">
-                    <span className="label">📅 Thời gian:</span>
+                    <span className="label">📅 Thời gian đặt lịch:</span>
                     <span className="value">
                       {formatDate(getDateTime(schedule))}
                     </span>
@@ -290,18 +295,11 @@ export default function StationScheduleHistory() {
                     <span className="label">📝 Mô tả:</span>
                     <span className="value">{getDescription(schedule)}</span>
                   </div>
-                  
-                  {schedule.exchangeBatteries && schedule.exchangeBatteries.length > 0 && (
-                    <div className="detail-row">
-                      <span className="label">🔋 Số lần đổi pin:</span>
-                      <span className="value">{schedule.exchangeBatteries.length}</span>
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
           </div>
-        )}
+        </>)}
       </div>
       
       <Footer />

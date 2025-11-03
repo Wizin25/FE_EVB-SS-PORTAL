@@ -24,7 +24,7 @@ import Report from './components/Report/Report.jsx';
 import ReportManager from './components/Admin/pages/ReportManager.jsx';
 import PaymentSuccess from './components/Payment/PaymentSuccess.jsx';
 import PaymentFailure from './components/Payment/PaymentFailure.jsx';
-import StationScheduleHistory from './components/Home/StationScheHistory.jsx';
+import StationScheduleHistory from './components/Profile/StationScheHistory.jsx';
 function App() {
   return (
     <Router>

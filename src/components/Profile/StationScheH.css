@@ -68,7 +68,6 @@ body > div:first-child {
 .schedules-list {
   display: grid;
   gap: 28px;
-  width: 100%;
   animation: fadeIn 0.6s ease-in-out;
 }
 
@@ -91,11 +90,12 @@ body > div:first-child {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  width: 100%;
-  max-width: 100%;
+  width: 35%;
+  max-width: 35%;
   overflow: hidden;
   animation: slideIn 0.5s ease-out;
 }
+
 
 @keyframes slideIn {
   from {
@@ -218,7 +218,6 @@ body > div:first-child {
 
 .schedule-details {
   padding: 24px 32px;
-  width: 100%;
   position: relative;
   z-index: 2;
   background: white;
@@ -339,7 +338,6 @@ body > div:first-child {
   text-align: center;
   padding: 80px 40px;
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(16px);
   border-radius: 24px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   width: 100%;
@@ -374,7 +372,6 @@ body > div:first-child {
   justify-content: center;
   gap: 8px;
   white-space: nowrap;
-  min-width: fit-content;
   box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
   font-size: 15px;
 }
@@ -405,8 +402,6 @@ body > div:first-child {
   justify-content: center;
   gap: 8px;
   white-space: nowrap;
-  min-width: fit-content;
-  backdrop-filter: blur(10px);
   font-size: 15px;
 }
 
@@ -483,7 +478,6 @@ body > div:first-child {
   font-weight: 600;
   width: 100%;
   word-break: break-word;
-  backdrop-filter: blur(10px);
   box-shadow: 0 4px 20px rgba(245, 158, 11, 0.2);
   display: flex;
   align-items: center;
@@ -493,7 +487,6 @@ body > div:first-child {
 
 .schedule-count {
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(16px);
   padding: 20px 28px;
   border-radius: 20px;
   margin-bottom: 28px;
@@ -664,4 +657,14 @@ body > div:first-child {
     border-color: #f59e0b;
     color: #fbbf24;
   }
+}
+.schedules-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.schedule-card {
+  width: 100%;
+  max-width: 100%;
 }
