@@ -42,15 +42,15 @@
   width: auto;
   max-height: 72px;
   cursor: pointer;
-  filter: drop-shadow(0 2px 12px rgba(56,189,248,0.10));
+  filter: drop-shadow(0 2px 12px rgba(56, 191, 248, 0));
   transition: transform 0.18s cubic-bezier(.4,0,.2,1), filter 0.18s;
   display: block;
   transform: scale(2.1);
-  box-shadow: 0 2px 12px 0 rgba(56,189,248,0.10) inset;
+  box-shadow: 0 2px 12px 0 rgba(56, 191, 248, 0) inset;
 }
 .app-header .logo img:hover {
   transform: scale(2.5) rotate(-2deg);
-  filter: drop-shadow(0 4px 24px rgba(56,189,248,0.18));
+  filter: drop-shadow(0 4px 24px rgba(56, 191, 248, 0));
 }
 
 .main-nav {
@@ -71,11 +71,11 @@
 
 :root {
   /* LiquidGlass tunables (áp cho card/nav) */
-  --liquid-blur: 0px;            /* tăng blur một chút cho nav pills */
+  --liquid-blur: 2px;            /* tăng blur một chút cho nav pills */
   --liquid-saturate: 1.25;
   --liquid-overlay: rgba(255, 255, 255, 0.05); /* overlay */
   --liquid-border: rgba(255, 255, 255, 0.35);
-  --liquid-radius: 10px;
+  --liquid-radius: 100px;
 }
 
 /* ========== LIQUID GLASS (áp cho các card/pill) ========== */

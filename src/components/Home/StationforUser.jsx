@@ -304,96 +304,27 @@ export default function StationForUser() {
               }}
             />
           </div>
-      <div className="station-container">
+      <div className="liquid station-container">
         <div
           style={{
             textAlign: "center",
             marginBottom: "2.5rem",
-            background:
-              theme === "dark"
-                ? "linear-gradient(135deg, #232946 0%, #1f2937 100%)"
-                : "linear-gradient(135deg, #e0ffe7 0%, #b2f5ea 100%)",
+            background: "transparent",
             padding: "2.5rem 1.5rem 2rem 1.5rem",
             borderRadius: "24px",
-            color: theme === "dark" ? "#f1f5f9" : "#1e293b",
-            position: "relative",
-            overflow: "hidden",
-            boxShadow:
-              theme === "dark"
-                ? "0 8px 32px rgba(0,0,0,0.45)"
-                : "0 8px 32px rgba(29,216,132,0.10)",
-            border: theme === "dark"
-              ? "1.5px solid #334155"
-              : "1.5px solid #bbf7d0"
+            color: "#fff",
+            position: "relative"
           }}
         >
-          {/* Decorative floating shapes */}
-          <div
-            style={{
-              position: "absolute",
-              top: "-60px",
-              left: "-60px",
-              width: "160px",
-              height: "160px",
-              background:
-                theme === "dark"
-                  ? "radial-gradient(circle, #38bdf8 0%, #232946 80%)"
-                  : "radial-gradient(circle, #bbf7d0 0%, #e0ffe7 80%)",
-              opacity: 0.25,
-              borderRadius: "50%",
-              zIndex: 1,
-              filter: "blur(2px)"
-            }}
-          ></div>
-          <div
-            style={{
-              position: "absolute",
-              bottom: "-40px",
-              right: "-40px",
-              width: "120px",
-              height: "120px",
-              background:
-                theme === "dark"
-                  ? "radial-gradient(circle, #fbbf24 0%, #232946 80%)"
-                  : "radial-gradient(circle, #fbbf24 0%, #b2f5ea 80%)",
-              opacity: 0.18,
-              borderRadius: "50%",
-              zIndex: 1,
-              filter: "blur(1.5px)"
-            }}
-          ></div>
-          <div
-            style={{
-              position: "absolute",
-              top: "30px",
-              right: "40px",
-              width: "60px",
-              height: "60px",
-              background:
-                theme === "dark"
-                  ? "radial-gradient(circle, #10b981 0%, #232946 80%)"
-                  : "radial-gradient(circle, #10b981 0%,rgb(49, 220, 89) 80%)",
-              opacity: 0.22,
-              borderRadius: "50%",
-              zIndex: 1,
-              filter: "blur(1.5px)"
-            }}
-          ></div>
-        
           <h2
             className="station-title"
             style={{
-              color: theme === "dark" ? "#f1f5f9" : "#059669",
-              fontSize: "2.7rem",
+              color: "#fff",
+              fontSize: "2.5rem",
               fontWeight: 800,
               marginBottom: "0.7rem",
               letterSpacing: "-1px",
-              position: "relative",
-              zIndex: 3,
-              textShadow:
-                theme === "dark"
-                  ? "0 2px 12px #232946"
-                  : "0 2px 12px #bbf7d0"
+              position: "relative"
             }}
           >
             <span style={{ fontSize: "2.2rem", marginRight: 8 }}>🔋</span>
@@ -404,74 +335,13 @@ export default function StationForUser() {
               fontSize: "1.18rem",
               opacity: 0.93,
               position: "relative",
-              zIndex: 3,
               marginBottom: 0,
-              color: theme === "dark" ? "#cbd5e1" : "#334155",
+              color: "#fff",
               fontWeight: 500
             }}
           >
             Tìm kiếm và đặt lịch tại các trạm đổi pin gần bạn
           </p>
-          {/* Decorative animated icon strip */}
-          <div
-            style={{
-              marginTop: "1.5rem",
-              display: "flex",
-              justifyContent: "center",
-              gap: "1.5rem",
-              zIndex: 4,
-              position: "relative"
-            }}
-          >
-            <span
-              style={{
-                fontSize: "1.7rem",
-                animation: "bounce 1.6s infinite alternate"
-              }}
-              role="img"
-              aria-label="battery"
-            >
-              🔋
-            </span>
-            <span
-              style={{
-                fontSize: "1.7rem",
-                animation: "bounce 1.6s 0.3s infinite alternate"
-              }}
-              role="img"
-              aria-label="charging"
-            >
-              ⚡
-            </span>
-            <span
-              style={{
-                fontSize: "1.7rem",
-                animation: "bounce 1.6s 0.6s infinite alternate"
-              }}
-              role="img"
-              aria-label="location"
-            >
-              📍
-            </span>
-            <span
-              style={{
-                fontSize: "1.7rem",
-                animation: "bounce 1.6s 0.9s infinite alternate"
-              }}
-              role="img"
-              aria-label="calendar"
-            >
-              📅
-            </span>
-          </div>
-          <style>
-            {`
-              @keyframes bounce {
-                0% { transform: translateY(0);}
-                100% { transform: translateY(-12px);}
-              }
-            `}
-          </style>
         </div>
 
         <div className="station-controls">
@@ -533,7 +403,7 @@ export default function StationForUser() {
                     animationDelay: `${idx * 40}ms`,
                     background: theme === 'dark' 
                       ? 'linear-gradient(145deg, #374151 0%, #1f2937 100%)'
-                      : 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
+                      : 'linear-gradient(145deg,rgba(255, 255, 255, 0.08) 0%,rgba(248, 250, 252, 0.26) 100%)',
                     border: theme === 'dark' 
                       ? '1px solid #4b5563'
                       : '1px solid #e2e8f0',
@@ -560,7 +430,7 @@ export default function StationForUser() {
                 >
                   {/* Station Image */}
                   <div style={{
-                    height: '200px',
+                    height: '400px',
                     background: `url(${stationImages[idx % stationImages.length]}) center/cover`,
                     position: 'relative'
                   }}>
@@ -601,7 +471,7 @@ export default function StationForUser() {
                         <h3 className="station-id" style={{
                           fontSize: '1.4rem',
                           fontWeight: 'bold',
-                          color: theme === 'dark' ? '#f1f5f9' : '#1e293b',
+                          color: theme === 'dark' ? '#f1f5f9' : '#ffffff',
                           marginBottom: '8px'
                         }}>
                           🏢 {st.stationName ?? "Tên trạm chưa có"}
@@ -613,7 +483,7 @@ export default function StationForUser() {
                           marginBottom: '12px'
                         }}>
                           <span className="sub-location" style={{
-                            color: theme === 'dark' ? '#94a3b8' : '#64748b',
+                            color: theme === 'dark' ? '#94a3b8' : '#ffffff',
                             fontSize: '0.9rem'
                           }}>
                             📍 {st.location ?? "-"}

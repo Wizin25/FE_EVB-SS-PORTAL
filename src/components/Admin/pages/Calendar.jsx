@@ -701,7 +701,7 @@ function ScheduleItem({ schedule, onViewFormDetail }) {
     }
 
     // Get staff ID from localStorage
-    const currentStaffId = localStorage.getItem('staffId') || localStorage.getItem('userId');
+    const currentStaffId = localStorage.getItem('accountId') || localStorage.getItem('accountID');
     if (!currentStaffId) {
       alert('Không tìm thấy thông tin staff. Vui lòng đăng nhập lại.');
       return;

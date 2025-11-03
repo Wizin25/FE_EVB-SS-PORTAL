@@ -4,6 +4,7 @@ import { authAPI } from '../services/authAPI';
 import { formAPI } from '../services/formAPI';
 import Calendar from '../Admin/pages/Calendar'; // Import Calendar component đã sửa
 import './Staff.css';
+import { decodeJwt, extractRolesFromPayload } from '../services/jwt';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -160,10 +161,9 @@ function BatteryReportForm({
             className="select"
             style={{ padding: 10 }}
           >
-            <option value="General">General</option>
-            <option value="Damage">Damage</option>
-            <option value="Maintenance">Maintenance</option>
             <option value="Exchange">Exchange</option>
+            <option value="NoExchange">Nochange</option>
+            <option value="Orther">Orther</option>
           </select>
         </div>
 
@@ -226,6 +226,7 @@ function BatteryReportForm({
 function StaffPage() {
   const [messageApi, contextHolder] = message.useMessage();
   const toast = messageApi;
+  const [isStaff, setIsStaff] = useState(null);
   const [forms, setForms] = useState([]);
   const [selectedForm, setSelectedForm] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -268,6 +269,33 @@ function StaffPage() {
 
   // Flag to control when to show success toast
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+
+  // Battery reports history by station
+  const [batteryReports, setBatteryReports] = useState([]);
+  const [loadingBatteryReports, setLoadingBatteryReports] = useState(false);
+  const [batteryReportSearch, setBatteryReportSearch] = useState('');
+  const [batteryReportSortDir, setBatteryReportSortDir] = useState('desc'); // 'asc' | 'desc'
+
+  const filteredSortedBatteryReports = useMemo(() => {
+    let list = Array.isArray(batteryReports) ? [...batteryReports] : [];
+    const term = batteryReportSearch?.trim()?.toLowerCase();
+    if (term) {
+      list = list.filter((r) => {
+        const rid = String(r?.batteryReportId || r?.id || '').toLowerCase();
+        const acc = String(r?.accountId || '').toLowerCase();
+        const bat = String(r?.batteryId || '').toLowerCase();
+        const exch = String(r?.exchangeBatteryId || '').toLowerCase();
+        return rid.includes(term) || acc.includes(term) || bat.includes(term) || exch.includes(term);
+      });
+    }
+    list.sort((a, b) => {
+      const ad = a?.startDate ? new Date(a.startDate).getTime() : 0;
+      const bd = b?.startDate ? new Date(b.startDate).getTime() : 0;
+      if (ad === bd) return 0;
+      return batteryReportSortDir === 'asc' ? ad - bd : bd - ad;
+    });
+    return list;
+  }, [batteryReports, batteryReportSearch, batteryReportSortDir]);
 
   // THÊM CÁC STATE CHO LỊCH TRÌNH VỚI CALENDAR
   const [stationSchedules, setStationSchedules] = useState({});
@@ -660,6 +688,22 @@ function StaffPage() {
     handleSwitchView('battery-report');
   }, [stationIdSelected, handleSwitchView]);
 
+  // Fetch battery reports by station
+  const fetchBatteryReportsByStation = useCallback(async (stationId) => {
+    if (!stationId) return;
+    setLoadingBatteryReports(true);
+    try {
+      const res = await authAPI.getBatteryReportsByStation(stationId);
+      const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+      setBatteryReports(list);
+    } catch (e) {
+      console.error('Error fetching battery reports:', e);
+      toast.error('Lỗi khi tải lịch sử báo cáo pin: ' + (e?.message || 'Lỗi không xác định'));
+    } finally {
+      setLoadingBatteryReports(false);
+    }
+  }, [toast]);
+
   // ✅ ĐIỀU KIỆN ENABLE "HOÀN TẤT"
   const canComplete = useCallback((exchange) => {
     const orderStatus = ordersMap?.[exchange?.orderId]?.status;
@@ -756,10 +800,10 @@ function StaffPage() {
         const user = await authAPI.getCurrent();
         setCurrentUser(user);
 
-        // Lưu staffId vào localStorage
-        const staffId = user?.staffId || 
+        // Lưu accountId vào localStorage
+        const accountIdLocal = user?.accountId || 
           (Array.isArray(user?.bssStaffs) && user.bssStaffs.length > 0 
-            ? user.bssStaffs[0]?.staffId 
+            ? user.bssStaffs[0]?.accountId 
             : null);
         
         // Lấy stationId để lưu vào localStorage
@@ -768,11 +812,11 @@ function StaffPage() {
           stationId = user.bssStaffs[0]?.stationId || user.bssStaffs[0]?.StationId;
         }
 
-        if (staffId) {
-          localStorage.setItem('staffId', staffId);
-          console.log('Saved staffId to localStorage:', staffId);
+        if (accountIdLocal) {
+          localStorage.setItem('accountId', accountIdLocal);
+          console.log('Saved accountId to localStorage:', accountIdLocal);
         } else {
-          console.warn('No staffId found for current user');
+          console.warn('No accountId found for current user');
         }
 
         // Lưu stationId vào localStorage nếu có
@@ -802,6 +846,48 @@ function StaffPage() {
       }
     };
     fetchCurrentUser();
+  }, []);
+
+  // Auto load battery reports when entering Battery Report view
+  useEffect(() => {
+    if (!isBatteryReportView) return;
+    const stationId = batteryReportDefaults?.stationId ||
+      ((Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs.length > 0)
+        ? (currentUser.bssStaffs[0]?.stationId || currentUser.bssStaffs[0]?.StationId)
+        : (currentUser?.stationId || currentUser?.StationId || currentUser?.stationID));
+    if (stationId) {
+      fetchBatteryReportsByStation(stationId);
+    }
+  }, [isBatteryReportView, batteryReportDefaults, currentUser, fetchBatteryReportsByStation]);
+
+  // Role guard: only allow BssStaff
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setIsStaff(false);
+        window.location.replace('/signin');
+        return;
+      }
+      if (typeof decodeJwt === 'function' && typeof extractRolesFromPayload === 'function') {
+        const payload = decodeJwt(token);
+        const roles = extractRolesFromPayload(payload) || [];
+        const lower = roles.map(r => String(r).toLowerCase());
+        const allowed = lower.includes('bsstaff') || lower.includes('bssstaff') || lower.includes('staff');
+        if (!allowed) {
+          setIsStaff(false);
+          window.location.replace('/signin');
+        } else {
+          setIsStaff(true);
+        }
+      } else {
+        setIsStaff(false);
+        window.location.replace('/signin');
+      }
+    } catch (e) {
+      setIsStaff(false);
+      window.location.replace('/signin');
+    }
   }, []);
 
   /* ======== API calls ======== */
@@ -1300,8 +1386,11 @@ function StaffPage() {
     try {
       toast.loading('Đang đăng xuất...', 1);
       // Gỡ mọi token/token staff khỏi localStorage/sessionStorage và cookies nếu có
-      sessionStorage.setItem('authToken', '');
-      sessionStorage.removeItem('authToken');
+      localStorage.setItem('authToken', '');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('accountId');
+      localStorage.removeItem('stationId');
+      localStorage.removeItem('staffId');
 
       document.cookie = 'authToken=; Max-Age=0; path=/;';
       toast.success('Đăng xuất thành công!');
@@ -1328,6 +1417,7 @@ function StaffPage() {
   /* =================== RENDER =================== */
   return (
     <>
+      {isStaff === null && null}
       {contextHolder}
       {/* SVG filter LiquidGlass (ẩn) – dùng cho card */}
       <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
@@ -1467,12 +1557,74 @@ function StaffPage() {
               </div>
             </section>
 
+            {/* Thống kê tổng quan */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '16px',
+              marginBottom: '24px'
+            }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                padding: '20px',
+                borderRadius: '16px',
+                color: 'white',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🔋</div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
+                  {forms.filter(f => f.status?.toLowerCase() === 'approved').length}
+                </div>
+                <div style={{ fontSize: '14px', opacity: 0.9 }}>Giao dịch đã duyệt</div>
+              </div>
 
+              <div style={{
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                padding: '20px',
+                borderRadius: '16px',
+                color: 'white',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>⏳</div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
+                  {forms.filter(f => f.status?.toLowerCase() === 'pending').length}
+                </div>
+                <div style={{ fontSize: '14px', opacity: 0.9 }}>Chờ xác nhận</div>
+              </div>
+
+              <div style={{
+                background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                padding: '20px',
+                borderRadius: '16px',
+                color: 'white',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>❌</div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
+                  {forms.filter(f => f.status?.toLowerCase() === 'rejected' || f.status?.toLowerCase() === 'rejected').length}
+                </div>
+                <div style={{ fontSize: '14px', opacity: 0.9 }}>Giao dịch đã hủy</div>
+              </div>
+
+              <div style={{
+                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                padding: '20px',
+                borderRadius: '16px',
+                color: 'white',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📊</div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
+                  {forms.filter(f => f.status?.toLowerCase() !== 'deleted').length}
+                </div>
+                <div style={{ fontSize: '14px', opacity: 0.9 }}>Tổng giao dịch</div>
+              </div>
+            </div>
             {/* Duyệt Form (bên ngoài phần Form đã gửi) */}
             <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
               <h3 style={{
                 margin: '0 0 16px 0',
-                color: '#0f172a',
+                color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
@@ -1488,8 +1640,7 @@ function StaffPage() {
                   fontStyle: 'italic'
                 }}>
                   <div style={{ fontSize: '2.2rem', marginBottom: '16px' }}>🎉</div>
-                  <h4 style={{ color: '#475569', marginBottom: '8px' }}>Không có form nào đang chờ duyệt</h4>
-                  <p>Tất cả form đã được duyệt hoặc chuyển trạng thái khác.</p>
+                  <h4 style={{ color: '#ffffff', marginBottom: '8px' }}>Không có form nào đang chờ duyệt</h4>
                 </div>
               ) : (
                 <div style={{ display: 'grid', gap: '12px' }}>
@@ -1839,7 +1990,7 @@ function StaffPage() {
             <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
               <h3 style={{
                 margin: '0 0 16px 0',
-                color: '#0f172a',
+                color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
@@ -1916,8 +2067,8 @@ function StaffPage() {
                           </div>
                           <div style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                            gap: '8px',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '10px',
                             fontSize: '12px',
                             color: '#64748b'
                           }}>
@@ -1940,7 +2091,7 @@ function StaffPage() {
                               <strong>🏢 Trạm:</strong> {stationDetails.byStationId?.[form.stationId] || form.stationId || 'N/A'}
                             </div> */}
                             {/* === Order detail for processed forms START === */}
-                            {orderInfo && (
+                            {orderInfo ? (
                               <div style={{ gridColumn: '1 / -1', marginTop: 6 }}>
                                 <div style={{ color: "#2563eb", fontWeight: 600, marginBottom: 1 }}>🧾 Order</div>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 5 }}>
@@ -1957,6 +2108,19 @@ function StaffPage() {
                                   </div>
                                   <div>Tổng tiền: {orderInfo.totalAmount ? `${orderInfo.totalAmount}₫` : 'N/A'}</div>
                                   <div>Ngày tạo: {formatDate(orderInfo.date || orderInfo.startDate)}</div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{ gridColumn: '1 / -1', marginTop: 6 }}>
+                                <div style={{ color: "#64748b", fontWeight: 600, marginBottom: 1 }}>🧾 Order</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 5 }}>
+                                  <div>
+                                    Order ID: <span style={{ color: '#64748b', fontStyle: 'italic' }}>Thanh toán tại trạm</span>
+                                  </div>
+                                  <div>Trạng thái: PaidAtStation</div>
+                                  <div>Loại dịch vụ: PaidAtStation</div>
+                                  <div>Tổng tiền: N/A</div>
+                                  <div>Ngày tạo: N/A</div>
                                 </div>
                               </div>
                             )}
@@ -2070,9 +2234,7 @@ function StaffPage() {
         {isBatteryReportView && (
           <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
             <h2 className="filters-title">Battery Report</h2>
-            <p style={{ marginTop: 4, color: 'rgba(15,23,42,0.7)' }}>
-              Báo cáo dựa trên các form đã tải về. Chọn một form ở chế độ quản lý để cập nhật dữ liệu.
-            </p>
+            
 
             {/* Add Battery Report Form */}
             <BatteryReportForm
@@ -2117,6 +2279,111 @@ function StaffPage() {
               }}
               messageApi={toast}
             />
+
+            {/* Battery Reports History */}
+            <div style={{ marginTop: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
+                <h3 style={{ margin: 0, color: 'white' }}>Lịch sử báo cáo pin</h3>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 'auto' }}>
+                  <input
+                    className="select"
+                    placeholder="Tìm Report ID / Account ID / Battery ID / Exchange ID"
+                    value={batteryReportSearch}
+                    onChange={(e) => setBatteryReportSearch(e.target.value)}
+                    style={{ padding: '8px 10px', borderRadius: 8, minWidth: 280 }}
+                  />
+                  <button
+                    className="btn-sortdir"
+                    onClick={() => setBatteryReportSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+                  >
+                    {batteryReportSortDir === 'asc' ? '↑ Ngày tạo' : '↓ Ngày tạo'}
+                  </button>
+                  <button
+                    className="status-apply-btn"
+                    onClick={() => {
+                      const stationId = batteryReportDefaults?.stationId ||
+                        ((Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs.length > 0)
+                          ? (currentUser.bssStaffs[0]?.stationId || currentUser.bssStaffs[0]?.StationId)
+                          : (currentUser?.stationId || currentUser?.StationId || currentUser?.stationID));
+                      if (stationId) fetchBatteryReportsByStation(stationId);
+                    }}
+                    disabled={loadingBatteryReports}
+                  >
+                    {loadingBatteryReports ? 'Đang tải...' : 'Làm mới'}
+                  </button>
+                </div>
+              </div>
+
+              {loadingBatteryReports ? (
+                <div style={{ textAlign: 'center', padding: '24px' }}>⏳ Đang tải lịch sử...</div>
+              ) : (filteredSortedBatteryReports && filteredSortedBatteryReports.length > 0) ? (
+                <div style={{ display: 'grid', gap: 12 }}>
+                  {filteredSortedBatteryReports.map((r) => (
+                    <div
+                      key={r.batteryReportId || r.id}
+                      style={{
+                        padding: '16px',
+                        background: 'rgba(255,255,255,0.95)',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(15,23,42,0.1)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', gap: 12 }}>
+                        {r.image && (
+                          <img
+                            src={r.image}
+                            alt={r.name || 'report'}
+                            style={{ width: 120, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid rgba(15,23,42,0.08)' }}
+                          />
+                        )}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <h4 style={{ margin: 0, color: '#0f172a' }}>🧾 {r.name || 'Battery Report'}</h4>
+                            <span style={{
+                              padding: '2px 8px',
+                              borderRadius: 12,
+                              fontSize: 12,
+                              fontWeight: 600,
+                              background: 'rgba(16,185,129,0.15)',
+                              color: '#059669'
+                            }}>{r.status || 'N/A'}</span>
+                          </div>
+                          {r.description && (
+                            <div style={{ marginTop: 6, color: '#475569' }}>{r.description}</div>
+                          )}
+                          <div style={{
+                            marginTop: 8,
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                            gap: 8,
+                            fontSize: 12,
+                            color: '#64748b'
+                          }}>
+                            <div><strong>Report ID:</strong> {r.batteryReportId || 'N/A'}</div>
+                            <div><strong>Account ID:</strong> {r.accountId || 'N/A'}</div>
+                            <div><strong>Station ID:</strong> {r.stationId || 'N/A'}</div>
+                            <div><strong>Battery ID:</strong> {r.batteryId || 'N/A'}</div>
+                            <div><strong>Exchange ID:</strong> {r.exchangeBatteryId || 'N/A'}</div>
+                            <div><strong>Ngày tạo:</strong> {formatDate(r.startDate)}</div>
+                            <div><strong>Cập nhật:</strong> {formatDate(r.updateDate)}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{
+                  padding: '32px',
+                  textAlign: 'center',
+                  color: '#64748b',
+                  fontStyle: 'italic'
+                }}>
+                  <div style={{ fontSize: '2rem', marginBottom: 8 }}>📭</div>
+                  Chưa có báo cáo nào tại trạm này
+                </div>
+              )}
+            </div>
           </section>
         )}
 
@@ -2124,60 +2391,9 @@ function StaffPage() {
         {isExchangeBatteryView && (
           <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
             <h2 className="filters-title">Xác nhận giao dịch đổi pin</h2>
-            <p style={{ marginTop: 4, color: 'rgba(15,23,42,0.7)' }}>
+            {/* <p style={{ marginTop: 4, color: 'rgba(15,23,42,0.7)' }}>
               Quản lý và xác nhận các giao dịch đổi pin tại trạm của bạn
-            </p>
-
-            {/* Thống kê tổng quan */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '16px',
-              marginBottom: '24px'
-            }}>
-              <div style={{
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                padding: '20px',
-                borderRadius: '16px',
-                color: 'white',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🔋</div>
-                <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
-                  {forms.filter(f => f.status?.toLowerCase() === 'approved').length}
-                </div>
-                <div style={{ fontSize: '14px', opacity: 0.9 }}>Giao dịch đã duyệt</div>
-              </div>
-
-              <div style={{
-                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                padding: '20px',
-                borderRadius: '16px',
-                color: 'white',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>⏳</div>
-                <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
-                  {forms.filter(f => f.status?.toLowerCase() === 'pending').length}
-                </div>
-                <div style={{ fontSize: '14px', opacity: 0.9 }}>Chờ xác nhận</div>
-              </div>
-
-              <div style={{
-                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                padding: '20px',
-                borderRadius: '16px',
-                color: 'white',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📊</div>
-                <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
-                  {forms.filter(f => f.status?.toLowerCase() !== 'deleted').length}
-                </div>
-                <div style={{ fontSize: '14px', opacity: 0.9 }}>Tổng giao dịch</div>
-              </div>
-            </div>
-
+            </p>   */}
             {/* Station Selection for Exchange Panel */}
             <div style={{
               background: 'rgba(255,255,255,0.9)',
@@ -2263,6 +2479,7 @@ function StaffPage() {
                       className="select"
                       style={{ padding: '8px 12px', borderRadius: '8px' }}
                     >
+                      <option value="">All Status</option>
                       <option value="Pending">Pending</option>
                       <option value="Completed">Completed</option>
                       <option value="Cancelled">Cancelled</option>
