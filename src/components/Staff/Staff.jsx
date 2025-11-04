@@ -101,7 +101,6 @@ function BatteryReportForm({
       console.log('Battery Report Payload:', payload); // Add logging to verify payload
       const res = await authAPI.addBatteryReport(payload);
       if (res?.isSuccess) {
-        toast.success('Tạo Battery Report thành công!');
         onCreated?.(res);
         setName('');
         setDescription('');
@@ -109,10 +108,10 @@ function BatteryReportForm({
         setImageFile(null);
         setImageUrl('');
       } else {
-        toast.error(res?.responseCode || 'Tạo Battery Report thất bại');
+        error(res?.responseCode || 'Tạo Battery Report thất bại');
       }
     } catch (e) {
-      toast.error(e?.message || 'Tạo Battery Report thất bại');
+      error(e?.message || 'Tạo Battery Report thất bại');
     } finally {
       setSubmitting(false);
     }
@@ -859,14 +858,13 @@ function StaffPage() {
       fetchBatteryReportsByStation(stationId);
     }
   }, [isBatteryReportView, batteryReportDefaults, currentUser, fetchBatteryReportsByStation]);
-
   // Role guard: only allow BssStaff
   useEffect(() => {
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
         setIsStaff(false);
-        window.location.replace('/signin');
+        window.location.href = '/signin';
         return;
       }
       if (typeof decodeJwt === 'function' && typeof extractRolesFromPayload === 'function') {
@@ -876,19 +874,20 @@ function StaffPage() {
         const allowed = lower.includes('bsstaff') || lower.includes('bssstaff') || lower.includes('staff');
         if (!allowed) {
           setIsStaff(false);
-          window.location.replace('/signin');
+          window.location.href = '/signin';
         } else {
           setIsStaff(true);
         }
       } else {
         setIsStaff(false);
-        window.location.replace('/signin');
+        window.location.href = '/signin';
       }
     } catch (e) {
       setIsStaff(false);
-      window.location.replace('/signin');
+      window.location.href = '/signin';
     }
   }, []);
+  
 
   /* ======== API calls ======== */
   // Gửi staffId và lưu về stationName
@@ -1413,11 +1412,9 @@ function StaffPage() {
     const last = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : '';
     return (first + last).toUpperCase() || 'ST';
   };
-
   /* =================== RENDER =================== */
   return (
     <>
-      {isStaff === null && null}
       {contextHolder}
       {/* SVG filter LiquidGlass (ẩn) – dùng cho card */}
       <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">

@@ -1,6 +1,6 @@
 // HomePage.jsx
 import React, { useState, useEffect } from "react";
-import HeaderDriver from "./header";
+import Header from "./header";
 import api from "../services/api";
 import Footer from "./footer";
 import { authAPI } from "../services/authAPI"; // Thêm import cho authAPI
@@ -171,12 +171,10 @@ export default function HomePage() {
         </svg>
         {/* HeaderDriver là lớp trên cùng của màn hình */}
         <div style={{ position: 'sticky', top: 0, zIndex: 1000 }}>
-          <HeaderDriver
+          <Header
             onToggleTheme={handleToggleTheme}
             theme={theme}
             user={user}
-            unreadCount={unreadCount}
-            nextBooking={nextBooking}
             onOpenBooking={handleOpenBooking}
           />
         </div>

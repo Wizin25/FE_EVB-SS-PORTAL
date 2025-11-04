@@ -12,8 +12,6 @@ const Report = () => {
   });
 
   const [user, setUser] = useState(null);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [nextBooking, setNextBooking] = useState(null);
   const [stations, setStations] = useState([]);
   const [imagePreview, setImagePreview] = useState(null);
 
@@ -106,12 +104,6 @@ const Report = () => {
       } catch (error) {
         console.error("Error fetching stations:", error);
       }
-
-      try {
-        setUnreadCount(3); // Giá trị mẫu
-      } catch (error) {
-        setUnreadCount(0);
-      }
     };
 
     fetchData();
@@ -126,9 +118,7 @@ const Report = () => {
     };
   }, [imagePreview]);
 
-  const handleOpenBooking = () => {
-    window.location.href = "/booking";
-  };
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -283,18 +273,6 @@ const Report = () => {
       className="report-page-container"
       style={{ overflowY: 'auto', overflowX: 'hidden', height: '100vh' }}
     >
-      {/* Header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
-        <Header
-          onToggleTheme={handleToggleTheme}
-          theme={theme}
-          user={user}
-          unreadCount={unreadCount}
-          nextBooking={nextBooking}
-          onOpenBooking={handleOpenBooking}
-        />
-      </div>
-
       <div className="report-container">
         <div className="report-wrapper">
           {/* Hero Section */}

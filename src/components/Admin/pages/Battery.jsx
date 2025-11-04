@@ -875,6 +875,7 @@ export default function BatteryManagementPage() {
                             <option value="Charging">Charging</option>
                             <option value="Maintenance">Maintenance</option>
                             <option value="InUse">InUse</option>
+                            <option value="Booked">Booked</option>
                             <option value="Decommissioned">Decommissioned</option>
                           </select>
                         </div>
