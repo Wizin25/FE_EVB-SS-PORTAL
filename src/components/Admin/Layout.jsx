@@ -133,7 +133,7 @@ export default function AdminLayout() {
       >
         {/* Sidebar */}
         <aside
-          className={`admin-sidebar ${sidebarOpen ? 'open' : 'closed'} bg-white/20 dark:bg-gray-900/30 border-r border-orange-200 dark:border-gray-700 flex flex-col fixed md:relative z-40 overflow-y-auto`}
+          className={`liquid admin-sidebar ${sidebarOpen ? 'open' : 'closed'}  dark:bg-gray-900/30 border-r border-orange-200 dark:border-gray-700 flex flex-col fixed md:relative z-40 overflow-y-auto`}
           style={{
             boxShadow: "inset 0 0 22px 0 rgba(255, 255, 255, 0.08)"
           }}
@@ -178,12 +178,12 @@ export default function AdminLayout() {
             ))}
           </nav>
 
-          <div className={`mt-auto px-6 py-4 transition-all duration-300 ${sidebarOpen ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}>
+          <div className={`px-6 pt-2 pb-2 transition-all duration-300 ${sidebarOpen ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}>
             <button
               onClick={handleLogout}
-              className="flex items-center justify-center w-full gap-3 py-3 font-semibold text-white transition-all duration-300 transform shadow-lg rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2"
+              className="flex items-center justify-center w-full gap-2 py-2 text-sm font-semibold text-white transition-all duration-300 transform shadow rounded-lg bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1" />
               </svg>
               <span>Đăng xuất</span>
@@ -205,8 +205,7 @@ export default function AdminLayout() {
 
           {/* Header */}
           <header
-            className="flex items-center justify-between h-16 px-4 border-b border-orange-100 bg-white/20 backdrop-blur admin-header dark:bg-gray-900/70 dark:backdrop-blur dark:border-gray-800"
-            style={{ boxShadow: "inset 0 0 10px white" }}
+            className="liquid flex items-center justify-between h-16 px-4 border-b border-orange-100  admin-header dark:bg-gray-900/70  dark:border-gray-800"
           >
             <div className="flex items-center gap-2">
               {/* Hamburger/Menu button */}
@@ -243,14 +242,10 @@ export default function AdminLayout() {
               className="p-8"
               style={{
                 background: "rgba(255, 255, 255, 0)",
-                boxShadow: "inset 0 0 20px 0 rgba(255,255,255,0.8)",
+                boxShadow: "inset 0 0 20px 0 rgba(255, 255, 255, 0.18)",
                 borderRadius: "16px"
-              }}
-            >
-              <div className="pb-2 mb-6 border-b border-orange-200 dark:border-gray-800" />
-              <div className="admin-content-card rounded-xl bg-white dark:bg-gray-800 shadow-lg p-6 min-h-[60vh] transition-colors overflow-y-auto">
+              }}>
                 <Outlet />
-              </div>
             </div>
           </main>
         </div>

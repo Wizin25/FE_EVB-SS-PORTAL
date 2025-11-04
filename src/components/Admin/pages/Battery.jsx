@@ -32,7 +32,7 @@ export default function BatteryManagementPage() {
 
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 12;
   // dropdown options (fetched)
   const [batteryTypeOptions, setBatteryTypeOptions] = useState([]);
   const [specificationOptions, setSpecificationOptions] = useState([]);
@@ -288,7 +288,7 @@ export default function BatteryManagementPage() {
       alert("Không thể gán trạm cho pin đang có trạng thái 'Booked'.");
       return;
     }
-    
+
     setSelectedBatteryForAssign(battery);
     try {
       const list = await authAPI.getAllStations();
@@ -314,6 +314,7 @@ export default function BatteryManagementPage() {
         setSelectedBattery(prev => prev ? { ...prev, station: stationUpdate } : prev);
       }
       setShowAssignModal(false);
+      alert("Gán trạm thành công!");
     } catch (err) {
       alert("Gán trạm thất bại: " + (err?.message || err));
     }
@@ -325,24 +326,24 @@ export default function BatteryManagementPage() {
       alert("Pin này chưa được gán vào trạm nào.");
       return;
     }
-    
+
     if (!window.confirm(`Bạn có chắc chắn muốn gỡ pin ${battery.batteryName || battery.batteryId} khỏi trạm ${battery.station.stationName || battery.station.stationId}?`)) {
       return;
     }
 
     try {
       await authAPI.deleteBatteryInStation(battery.batteryId);
-      
+
       // update local list: remove station info
-      setBatteries(prev => prev.map(b => 
+      setBatteries(prev => prev.map(b =>
         b.batteryId === battery.batteryId ? { ...b, station: null } : b
       ));
-      
+
       // update selected battery if it's the same one
       if (selectedBattery?.batteryId === battery.batteryId) {
         setSelectedBattery(prev => prev ? { ...prev, station: null } : prev);
       }
-      
+
       alert("Đã gỡ pin khỏi trạm thành công!");
     } catch (err) {
       alert("Gỡ pin khỏi trạm thất bại: " + (err?.message || err));
@@ -476,7 +477,7 @@ export default function BatteryManagementPage() {
   const loadExchangeDetailForReport = async (report) => {
     if (!report?.exchangeBatteryId) return;
     const repId = report.batteryReportId || report.id || report.exchangeBatteryId;
-  
+
     // If exchange detail is already loaded, toggle it (collapse)
     if (exchangeByReportId[repId]) {
       setExchangeByReportId(prev => ({ ...prev, [repId]: null }));
@@ -494,16 +495,25 @@ export default function BatteryManagementPage() {
     } finally {
       setExchangeLoadingByReportId(prev => ({ ...prev, [repId]: false }));
     }
-  };  
+  };
 
   // ---------- RENDER ----------
   return (
     <div className="station-container">
+           <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+        <defs>
+          <filter id="liquidGlass" x="-20%" y="-20%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+            <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="2" seed="8" result="noise" />
+            <feGaussianBlur in="noise" stdDeviation="2" result="map" />
+            <feDisplacementMap in="SourceGraphic" in2="map" scale="80" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </defs>
+      </svg>
       <h1 className="station-title">Quản lý danh sách pin</h1>
 
       {/* Create form */}
       <form className="station-create" onSubmit={handleCreate} style={{ marginBottom: 12 }}>
-        <div className="create-row" style={{ alignItems: "center" }}>
+        <div className="liquid create-row" style={{ alignItems: "center", borderRadius: 5 }}>
           <div style={{ display: "flex", gap: 18 }}>
             <div className="form-group">
               <label className="form-label" htmlFor="batteryName" style={{
@@ -702,7 +712,7 @@ export default function BatteryManagementPage() {
             <option value="InUse">InUse</option>
             <option value="Charging">Charging</option>
             <option value="Maintenance">Maintenance</option>
-            <option value="Decommissioned">Decommissioned</option>
+            <option value="Decommissioned">Delete</option>
             <option value="Booked">Booked</option>
           </select>
         </div>
@@ -821,39 +831,49 @@ export default function BatteryManagementPage() {
             <div className="batt-list">
               {currentBatteries.length === 0 ? <div className="empty-note">Không có pin.</div> :
                 currentBatteries.map(b => (
-                  <div className="batt-item" key={b.batteryId}>
+                  <div className="liquid batt-item" key={b.batteryId} style={{ borderRadius: "35px" }}>
                     <div className="batt-top">
-                      <div className="batt-left">
-                        {/* Battery Image */}
-                        {b.image && (
-                          <div className="batt-image" style={{
+                      {/* Battery Image */}
+                      {b.image && (
+                        <div
+                          className="batt-image"
+                          style={{
                             marginBottom: 8,
-                            width: 60,
-                            height: 60,
+                            width: 50,
+                            height: 50,
                             borderRadius: 8,
                             overflow: 'hidden',
                             border: '2px solid #e2e8f0',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            background: '#f8fafc'
-                          }}>
-                            <img
-                              src={b.image}
-                              alt={`Pin ${b.batteryName || b.batteryId}`}
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover'
-                              }}
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                e.target.parentElement.innerHTML = '<div style="font-size: 12px; color: #64748b; text-align: center;">No Image</div>';
-                              }}
-                            />
-                          </div>
-                        )}
-                        <div className="batt-id">{b.batteryName ? b.batteryName : b.batteryId}</div>
+                            marginLeft: 'auto',
+                            marginRight: 'auto'
+                          }}
+                        >
+                          <img
+                            src={b.image}
+                            alt={`Pin ${b.batteryName || b.batteryId}`}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              display: 'block'
+                            }}
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              const parent = e.target.parentElement;
+                              if (parent) parent.innerHTML = '<div style="font-size:12px;color:#64748b;line-height:40px;text-align:center;">No Image</div>';
+                            }}
+                          />
+                        </div>
+                      )}
+                      <div className="batt-left">
+                         <div className="batt-id">
+                          {b.batteryName === "Graphene_TTFAR_Accumulator"
+                            ? "GTA"
+                            : (b.batteryName ? b.batteryName : b.batteryId)}
+                        </div>
                         <div className="batt-meta">{b.batteryType} • {b.capacity}% • {b.specification}</div>
                         <div className="batt-submeta">Trạm: {b.station?.stationName || b.station?.stationId || "Chưa gán"}</div>
                       </div>
@@ -876,32 +896,33 @@ export default function BatteryManagementPage() {
                             <option value="Maintenance">Maintenance</option>
                             <option value="InUse">InUse</option>
                             <option value="Booked">Booked</option>
-                            <option value="Decommissioned">Decommissioned</option>
+                            <option value="Decommissioned">Delete</option>
                           </select>
                         </div>
 
                         <div className="batt-quality">SoH: <strong>{b.batteryQuality ?? "-"}%</strong></div>
-                        <div className="batt-actions">
-                          <button
-                            className="btn small"
-                            onClick={async () => {
-                              await openDetailModal(b.batteryId);
-                              setTimeout(() => {
-                                const modal = document.querySelector('.modal');
-                                if (modal) {
-                                  modal.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                }
-                              }, 50);
-                            }}
-                          >
-                            Chi tiết
-                          </button>
-                          <button className="btn danger small" onClick={() => handleDelete(b.batteryId)}>Xóa</button>
-                          <button className="btn small" onClick={() => openAssignModal(b)} disabled={b.status === 'Booked'}>Gán trạm</button>
-                          {b.station?.stationId && (
-                            <button className="btn small" onClick={() => handleRemoveFromStation(b)}>Gỡ khỏi trạm</button>
-                          )}
-                        </div>
+
+                      </div>
+                      <div className="batt-actions">
+                        <button
+                          className="btn small"
+                          onClick={async () => {
+                            await openDetailModal(b.batteryId);
+                            setTimeout(() => {
+                              const modal = document.querySelector('.modal');
+                              if (modal) {
+                                modal.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              }
+                            }, 50);
+                          }}
+                        >
+                          Chi tiết
+                        </button>
+                        <button className="btn danger small" onClick={() => handleDelete(b.batteryId)}>Xóa</button>
+                        <button className="btn small" onClick={() => openAssignModal(b)} disabled={b.status === 'Booked'}>Gán trạm</button>
+                        {b.station?.stationId && (
+                          <button className="btn small" onClick={() => handleRemoveFromStation(b)}>Gỡ khỏi trạm</button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1047,7 +1068,7 @@ export default function BatteryManagementPage() {
                         <option value="InUse">InUse</option>
                         <option value="Charging">Charging</option>
                         <option value="Maintenance">Maintenance</option>
-                        <option value="Decommissioned">Decommissioned</option>
+                        <option value="Decommissioned">Delete</option>
                         <option value="Booked">Booked</option>
                       </select>
                     </div>
@@ -1103,7 +1124,7 @@ export default function BatteryManagementPage() {
                                 ) : null}
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                  
+
                                 </div>
 
 
@@ -1203,8 +1224,8 @@ export default function BatteryManagementPage() {
                                         onClick={() => loadExchangeDetailForReport(r)}
                                         disabled={exchangeLoadingByReportId[r.batteryReportId || r.id || r.exchangeBatteryId]}
                                       >
-                                        {exchangeLoadingByReportId[r.batteryReportId || r.id || r.exchangeBatteryId] ? "Đang mở..." : 
-                                         exchangeByReportId[r.batteryReportId || r.id || r.exchangeBatteryId] ? "Thu gọn" : "Xem trao đổi"}
+                                        {exchangeLoadingByReportId[r.batteryReportId || r.id || r.exchangeBatteryId] ? "Đang mở..." :
+                                          exchangeByReportId[r.batteryReportId || r.id || r.exchangeBatteryId] ? "Thu gọn" : "Xem trao đổi"}
                                       </button>
                                     </div>
                                   ) : null}
