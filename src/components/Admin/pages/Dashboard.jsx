@@ -1,7 +1,7 @@
 // Dashboard.jsx
 import { ChartContainer } from "../../lightswind/chart";
-
-import { useState } from "react";
+import { authAPI } from "../../services/authAPI";
+import { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -21,73 +21,20 @@ import {
   ComposedChart,
 } from "recharts";
 
-// Dữ liệu doanh thu và lượt đổi pin
-const revenueSwapData = [
-  { name: 'T1', revenue: 45000000, swaps: 1240, growth: 12 },
-  { name: 'T2', revenue: 52000000, swaps: 1390, growth: 15 },
-  { name: 'T3', revenue: 48000000, swaps: 1180, growth: -8 },
-  { name: 'T4', revenue: 61000000, swaps: 1650, growth: 27 },
-  { name: 'T5', revenue: 58000000, swaps: 1520, growth: 18 },
-  { name: 'T6', revenue: 67000000, swaps: 1820, growth: 22 },
-  { name: 'T7', revenue: 71000000, swaps: 1950, growth: 25 },
-];
-
-// Dữ liệu tần suất đổi pin theo ngày trong tuần
-const weeklyFrequencyData = [
-  { day: 'T2', frequency: 180, avgTime: 3.2 },
-  { day: 'T3', frequency: 165, avgTime: 3.5 },
-  { day: 'T4', frequency: 190, avgTime: 3.1 },
-  { day: 'T5', frequency: 220, avgTime: 2.8 },
-  { day: 'T6', frequency: 280, avgTime: 2.5 },
-  { day: 'T7', frequency: 310, avgTime: 2.3 },
-  { day: 'CN', frequency: 250, avgTime: 2.7 },
-];
-
-// Dữ liệu giờ cao điểm
-const peakHoursData = [
-  { hour: '6h', swaps: 45, stations: 12 },
-  { hour: '7h', swaps: 120, stations: 18 },
-  { hour: '8h', swaps: 180, stations: 22 },
-  { hour: '9h', swaps: 95, stations: 15 },
-  { hour: '10h', swaps: 70, stations: 12 },
-  { hour: '11h', swaps: 85, stations: 14 },
-  { hour: '12h', swaps: 140, stations: 20 },
-  { hour: '13h', swaps: 110, stations: 16 },
-  { hour: '14h', swaps: 90, stations: 13 },
-  { hour: '15h', swaps: 75, stations: 12 },
-  { hour: '16h', swaps: 85, stations: 14 },
-  { hour: '17h', swaps: 160, stations: 21 },
-  { hour: '18h', swaps: 200, stations: 25 },
-  { hour: '19h', swaps: 185, stations: 23 },
-  { hour: '20h', swaps: 135, stations: 18 },
-  { hour: '21h', swaps: 95, stations: 14 },
-  { hour: '22h', swaps: 60, stations: 10 },
-  { hour: '23h', swaps: 35, stations: 8 },
-];
-
-// Dữ liệu phân bố người dùng
-const userDistributionData = [
-  { name: 'Người dùng thường xuyên', value: 45, count: 2340 },
-  { name: 'Người dùng thỉnh thoảng', value: 30, count: 1560 },
-  { name: 'Người dùng mới', value: 15, count: 780 },
-  { name: 'Người dùng VIP', value: 8, count: 416 },
-  { name: 'Tài khoản doanh nghiệp', value: 2, count: 104 },
-];
-
-// Dữ liệu hiệu suất trạm
-const stationPerformanceData = [
-  { station: 'Trạm A', efficiency: 95, downtime: 2.1, swaps: 450 },
-  { station: 'Trạm B', efficiency: 88, downtime: 4.2, swaps: 380 },
-  { station: 'Trạm C', efficiency: 92, downtime: 3.1, swaps: 420 },
-  { station: 'Trạm D', efficiency: 97, downtime: 1.5, swaps: 480 },
-  { station: 'Trạm E', efficiency: 85, downtime: 5.8, swaps: 340 },
-  { station: 'Trạm F', efficiency: 91, downtime: 3.8, swaps: 410 },
-];
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
 
 export default function DashboardPage() {
-  // Remove dark mode state and toggle function
+  const [dashboardData, setDashboardData] = useState(null);
+  const [stationData, setStationData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [filters, setFilters] = useState({
+    StationId: '',
+    StartDate: '',
+    EndDate: ''
+  });
+  const [stations, setStations] = useState([]);
+
   const theme = {
     background: '#f8fafc',
     cardBackground: 'white',
@@ -98,6 +45,176 @@ export default function DashboardPage() {
     tooltipBg: 'white',
     tooltipBorder: '#e2e8f0',
   };
+
+  // Fetch stations for dropdown
+  useEffect(() => {
+    const fetchStations = async () => {
+      try {
+        const stationsData = await authAPI.getAllStations();
+        setStations(stationsData || []);
+      } catch (err) {
+        console.error('Error fetching stations:', err);
+      }
+    };
+    fetchStations();
+  }, []);
+
+  // Fetch dashboard summary data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const summary = await authAPI.getDashboardSummary();
+        setDashboardData(summary);
+      } catch (err) {
+        setError(err.message);
+        console.error('Error fetching dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  // Fetch station-specific data when filters change
+  const fetchStationData = async () => {
+    try {
+      setLoading(true);
+      
+      const formData = new FormData();
+      if (filters.StationId) formData.append('StationId', filters.StationId);
+      if (filters.StartDate) formData.append('StartDate', filters.StartDate);
+      if (filters.EndDate) formData.append('EndDate', filters.EndDate);
+
+      // Call show_dashboard endpoint
+      const dashboardResponse = await authAPI.showDashboard(formData);
+      
+      // Call total_user and total_revenue endpoints
+      const [userResponse, revenueResponse] = await Promise.all([
+        authAPI.getTotalUsers(formData),
+        authAPI.getTotalRevenue(formData)
+      ]);
+
+      setStationData({
+        dashboard: dashboardResponse,
+        totalUsers: userResponse,
+        totalRevenue: revenueResponse
+      });
+    } catch (err) {
+      setError(err.message);
+      console.error('Error fetching station data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const handleApplyFilters = () => {
+    fetchStationData();
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      StationId: '',
+      StartDate: '',
+      EndDate: ''
+    });
+    setStationData(null);
+  };
+
+  // Generate station performance data from API response
+  const generateStationPerformanceData = () => {
+    if (!stationData?.dashboard) return [];
+    
+    // This is a sample structure - adjust based on your actual API response
+    return stations.map(station => ({
+      station: station.name || `Trạm ${station.stationId}`,
+      efficiency: Math.floor(Math.random() * 20) + 80, // Sample data
+      users: Math.floor(Math.random() * 500) + 100, // Sample data
+      revenue: Math.floor(Math.random() * 100000000) + 50000000, // Sample data
+      swaps: Math.floor(Math.random() * 1000) + 200 // Sample data
+    }));
+  };
+
+  // Generate time series data from API response
+  const generateTimeSeriesData = () => {
+    if (!stationData?.dashboard) return [];
+    
+    // Sample time series data - replace with actual data structure from API
+    const months = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
+    return months.map((month, index) => ({
+      name: month,
+      revenue: Math.floor(Math.random() * 50000000) + 30000000,
+      users: Math.floor(Math.random() * 1000) + 500,
+      growth: Math.floor(Math.random() * 40) - 10
+    }));
+  };
+
+  // Statistics cards configuration
+  const statsCards = [
+    { key: 'totalAccounts', label: 'Tổng người dùng', description: 'Tổng số tài khoản hệ thống', color: '#10b981' },
+    { key: 'totalOrders', label: 'Tổng đơn hàng', description: 'Tổng số đơn hàng', color: '#3b82f6' },
+    { key: 'totalBatteries', label: 'Tổng pin', description: 'Tổng số pin trong hệ thống', color: '#f59e0b' },
+    { key: 'totalExchangeBatteries', label: 'Tổng lượt đổi pin', description: 'Tổng số lượt đổi pin', color: '#ef4444' },
+    { key: 'totalStations', label: 'Tổng trạm', description: 'Tổng số trạm đổi pin', color: '#8b5cf6' },
+  ];
+
+  // Station-specific stats
+  const stationStatsCards = stationData ? [
+    { 
+      key: 'totalUsers', 
+      label: 'Tổng người dùng (Lọc)', 
+      value: stationData.totalUsers?.data || 0, 
+      description: `Số người dùng từ ${filters.StartDate || 'đầu'} đến ${filters.EndDate || 'nay'}${filters.StationId ? ` tại trạm ${filters.StationId}` : ''}`, 
+      color: '#10b981' 
+    },
+    { 
+      key: 'totalRevenue', 
+      label: 'Tổng doanh thu (Lọc)', 
+      value: stationData.totalRevenue?.data ? `${(stationData.totalRevenue.data / 1000000).toFixed(1)}M VNĐ` : '0 VNĐ', 
+      description: `Doanh thu từ ${filters.StartDate || 'đầu'} đến ${filters.EndDate || 'nay'}${filters.StationId ? ` tại trạm ${filters.StationId}` : ''}`, 
+      color: '#3b82f6' 
+    },
+  ] : [];
+
+  if (loading && !stationData) {
+    return (
+      <div style={{ 
+        padding: '24px', 
+        backgroundColor: theme.background, 
+        minHeight: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        color: theme.textPrimary 
+      }}>
+        <div>Đang tải dữ liệu...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ 
+        padding: '24px', 
+        backgroundColor: theme.background, 
+        minHeight: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        color: theme.textPrimary 
+      }}>
+        <div>Lỗi khi tải dữ liệu: {error}</div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -118,64 +235,208 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Thống kê tổng quan */}
-      <div style={{ marginTop: '32px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-        <div style={{ 
-          backgroundColor: theme.cardBackground, 
-          borderRadius: '12px', 
-          padding: '20px', 
-          textAlign: 'center', 
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)', 
-          border: `1px solid ${theme.border}`,
-          transition: 'all 0.3s ease'
-        }}>
-          <h3 style={{ fontSize: 14, fontWeight: 500, color: theme.textSecondary, marginBottom: 8 }}>Tổng doanh thu tháng</h3>
-          <p style={{ fontSize: 24, fontWeight: 700, color: theme.textPrimary }}>71M VNĐ</p>
-          <p style={{ fontSize: 12, color: '#10b981' }}>↗ +25% so với tháng trước</p>
-        </div>
-        <div style={{ 
-          backgroundColor: theme.cardBackground, 
-          borderRadius: '12px', 
-          padding: '20px', 
-          textAlign: 'center', 
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)', 
-          border: `1px solid ${theme.border}`,
-          transition: 'all 0.3s ease'
-        }}>
-          <h3 style={{ fontSize: 14, fontWeight: 500, color: theme.textSecondary, marginBottom: 8 }}>Tổng lượt đổi pin</h3>
-          <p style={{ fontSize: 24, fontWeight: 700, color: theme.textPrimary }}>1,950</p>
-          <p style={{ fontSize: 12, color: '#10b981' }}>↗ +7.2% so với tháng trước</p>
-        </div>
-        <div style={{ 
-          backgroundColor: theme.cardBackground, 
-          borderRadius: '12px', 
-          padding: '20px', 
-          textAlign: 'center', 
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)', 
-          border: `1px solid ${theme.border}`,
-          transition: 'all 0.3s ease'
-        }}>
-          <h3 style={{ fontSize: 14, fontWeight: 500, color: theme.textSecondary, marginBottom: 8 }}>Tổng người dùng</h3>
-          <p style={{ fontSize: 24, fontWeight: 700, color: theme.textPrimary }}>5,200</p>
-          <p style={{ fontSize: 12, color: '#10b981' }}>↗ +12.3% người dùng mới</p>
-        </div>
-        <div style={{ 
-          backgroundColor: theme.cardBackground, 
-          borderRadius: '12px', 
-          padding: '20px', 
-          textAlign: 'center', 
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)', 
-          border: `1px solid ${theme.border}`,
-          transition: 'all 0.3s ease'
-        }}>
-          <h3 style={{ fontSize: 14, fontWeight: 500, color: theme.textSecondary, marginBottom: 8 }}>Hiệu suất TB</h3>
-          <p style={{ fontSize: 24, fontWeight: 700, color: theme.textPrimary }}>91.3%</p>
-          <p style={{ fontSize: 12, color: '#f59e0b' }}>↗ +2.1% cải thiện</p>
+      {/* Filter Section */}
+      <div style={{ 
+        backgroundColor: theme.cardBackground, 
+        borderRadius: '12px', 
+        padding: '24px', 
+        marginBottom: '24px',
+        boxShadow: '0 4px 6px rgba(0,0,0,0.1)', 
+        border: `1px solid ${theme.border}`
+      }}>
+        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16, color: theme.textPrimary }}>
+          Lọc dữ liệu theo trạm và thời gian
+        </h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, color: theme.textSecondary }}>
+              Chọn trạm
+            </label>
+            <select
+              value={filters.StationId}
+              onChange={(e) => handleFilterChange('StationId', e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: `1px solid ${theme.border}`,
+                borderRadius: '6px',
+                backgroundColor: theme.cardBackground,
+                color: theme.textPrimary
+              }}
+            >
+              <option value="">Tất cả trạm</option>
+              {stations.map(station => (
+                <option key={station.stationId} value={station.stationId}>
+                  {station.name || `Trạm ${station.stationId}`}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, color: theme.textSecondary }}>
+              Từ ngày
+            </label>
+            <input
+              type="date"
+              value={filters.StartDate}
+              onChange={(e) => handleFilterChange('StartDate', e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: `1px solid ${theme.border}`,
+                borderRadius: '6px',
+                backgroundColor: theme.cardBackground,
+                color: theme.textPrimary
+              }}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500, color: theme.textSecondary }}>
+              Đến ngày
+            </label>
+            <input
+              type="date"
+              value={filters.EndDate}
+              onChange={(e) => handleFilterChange('EndDate', e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: `1px solid ${theme.border}`,
+                borderRadius: '6px',
+                backgroundColor: theme.cardBackground,
+                color: theme.textPrimary
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
+            <button
+              onClick={handleApplyFilters}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 500
+              }}
+            >
+              Áp dụng
+            </button>
+            <button
+              onClick={handleResetFilters}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: theme.textSecondary,
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 500
+              }}
+            >
+              Đặt lại
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Thống kê tổng quan */}
+      <div style={{ 
+        marginTop: '32px', 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+        gap: '16px' 
+      }}>
+        {statsCards.map((stat, index) => (
+          <div 
+            key={stat.key}
+            style={{ 
+              backgroundColor: theme.cardBackground, 
+              borderRadius: '12px', 
+              padding: '20px', 
+              textAlign: 'center', 
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)', 
+              border: `1px solid ${theme.border}`,
+              transition: 'all 0.3s ease',
+              animation: `fadeInUp 0.5s ease-out ${index * 0.1}s both`
+            }}
+          >
+            <h3 style={{ 
+              fontSize: 14, 
+              fontWeight: 500, 
+              color: theme.textSecondary, 
+              marginBottom: 8 
+            }}>
+              {stat.label}
+            </h3>
+            <p style={{ 
+              fontSize: 24, 
+              fontWeight: 700, 
+              color: stat.color,
+              marginBottom: 4
+            }}>
+              {dashboardData?.[stat.key] || 0}
+            </p>
+            <p style={{ 
+              fontSize: 12, 
+              color: theme.textSecondary 
+            }}>
+              {stat.description}
+            </p>
+          </div>
+        ))}
+        
+        {/* Station-specific stats */}
+        {stationStatsCards.map((stat, index) => (
+          <div 
+            key={stat.key}
+            style={{ 
+              backgroundColor: theme.cardBackground, 
+              borderRadius: '12px', 
+              padding: '20px', 
+              textAlign: 'center', 
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)', 
+              border: `1px solid ${theme.border}`,
+              transition: 'all 0.3s ease',
+              animation: `fadeInUp 0.5s ease-out ${index * 0.1}s both`
+            }}
+          >
+            <h3 style={{ 
+              fontSize: 14, 
+              fontWeight: 500, 
+              color: theme.textSecondary, 
+              marginBottom: 8 
+            }}>
+              {stat.label}
+            </h3>
+            <p style={{ 
+              fontSize: 24, 
+              fontWeight: 700, 
+              color: stat.color,
+              marginBottom: 4
+            }}>
+              {stat.value}
+            </p>
+            <p style={{ 
+              fontSize: 12, 
+              color: theme.textSecondary 
+            }}>
+              {stat.description}
+            </p>
+          </div>
+        ))}
+      </div>
+
       {/* Grid Layout cho các chart */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', gap: '24px', marginTop: '20px' }}>
-        {/* Doanh thu và Số lượt đổi pin - Liên kết chặt chẽ */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', 
+        gap: '24px', 
+        marginTop: '32px' 
+      }}>
+        
+        {/* Doanh thu và Người dùng theo thời gian */}
         <div style={{ 
           gridColumn: 'span 2', 
           backgroundColor: theme.cardBackground, 
@@ -186,11 +447,11 @@ export default function DashboardPage() {
           transition: 'all 0.3s ease'
         }}>
           <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16, color: theme.textPrimary }}>
-            Doanh thu & Lượt đổi pin theo tháng
+            Doanh thu & Người dùng theo thời gian
           </h2>
           <ChartContainer config={{}}>
             <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={revenueSwapData}>
+              <ComposedChart data={generateTimeSeriesData()}>
                 <CartesianGrid strokeDasharray="3 3" stroke={theme.gridStroke} />
                 <XAxis dataKey="name" stroke={theme.textSecondary} />
                 <YAxis yAxisId="left" stroke={theme.textSecondary} />
@@ -205,137 +466,14 @@ export default function DashboardPage() {
                   }}
                   formatter={(value, name) => [
                     name === 'revenue' ? `${(value / 1000000).toFixed(1)}M VNĐ` : value,
-                    name === 'revenue' ? 'Doanh thu' : name === 'swaps' ? 'Lượt đổi pin' : 'Tăng trưởng'
+                    name === 'revenue' ? 'Doanh thu' : name === 'users' ? 'Người dùng' : 'Tăng trưởng'
                   ]}
                 />
                 <Legend />
                 <Bar yAxisId="left" dataKey="revenue" name="Doanh thu" fill="#3b82f6" />
-                <Line yAxisId="right" type="monotone" dataKey="swaps" name="Lượt đổi pin" stroke="#ef4444" strokeWidth={3} />
+                <Line yAxisId="right" type="monotone" dataKey="users" name="Người dùng" stroke="#ef4444" strokeWidth={3} />
                 <Line yAxisId="right" type="monotone" dataKey="growth" name="Tăng trưởng (%)" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" />
               </ComposedChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </div>
-
-        {/* Tần suất đổi pin theo ngày */}
-        <div style={{ 
-          backgroundColor: theme.cardBackground, 
-          borderRadius: '12px', 
-          padding: '24px', 
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)', 
-          border: `1px solid ${theme.border}`,
-          transition: 'all 0.3s ease'
-        }}>
-          <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16, color: theme.textPrimary }}>
-            Tần suất đổi pin theo ngày
-          </h2>
-          <ChartContainer config={{}}>
-            <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={weeklyFrequencyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={theme.gridStroke} />
-                <XAxis dataKey="day" stroke={theme.textSecondary} />
-                <YAxis stroke={theme.textSecondary} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: theme.tooltipBg,
-                    border: `1px solid ${theme.tooltipBorder}`,
-                    borderRadius: '8px',
-                    color: theme.textPrimary
-                  }}
-                  formatter={(value, name) => [
-                    value,
-                    name === 'frequency' ? 'Số lượt đổi' : 'Thời gian TB (phút)'
-                  ]}
-                />
-                <Legend />
-                <Area type="monotone" dataKey="frequency" name="Số lượt đổi" stackId="1" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.6} />
-                <Line type="monotone" dataKey="avgTime" name="Thời gian TB" stroke="#f59e0b" strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </div>
-
-        {/* Giờ cao điểm */}
-        <div style={{ 
-          backgroundColor: theme.cardBackground, 
-          borderRadius: '12px', 
-          padding: '24px', 
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)', 
-          border: `1px solid ${theme.border}`,
-          transition: 'all 0.3s ease'
-        }}>
-          <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16, color: theme.textPrimary }}>
-            Phân tích giờ cao điểm
-          </h2>
-          <ChartContainer config={{}}>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={peakHoursData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={theme.gridStroke} />
-                <XAxis dataKey="hour" stroke={theme.textSecondary} />
-                <YAxis stroke={theme.textSecondary} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: theme.tooltipBg,
-                    border: `1px solid ${theme.tooltipBorder}`,
-                    borderRadius: '8px',
-                    color: theme.textPrimary
-                  }}
-                  formatter={(value, name) => [
-                    value,
-                    name === 'swaps' ? 'Lượt đổi pin' : 'Trạm hoạt động'
-                  ]}
-                />
-                <Legend />
-                <Bar dataKey="swaps" name="Lượt đổi pin" fill="#06b6d4" />
-                <Bar dataKey="stations" name="Trạm hoạt động" fill="#84cc16" />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </div>
-
-        {/* Pie Chart - Phân bố người dùng */}
-        <div style={{ 
-          backgroundColor: theme.cardBackground, 
-          borderRadius: '12px', 
-          padding: '24px', 
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)', 
-          border: `1px solid ${theme.border}`,
-          transition: 'all 0.3s ease'
-        }}>
-          <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16, color: theme.textPrimary }}>
-            Phân bố loại người dùng
-          </h2>
-          <ChartContainer config={{}}>
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={userDistributionData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent, count }) => `${name}: ${(percent * 100).toFixed(0)}% (${count})`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {userDistributionData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: theme.tooltipBg,
-                    border: `1px solid ${theme.tooltipBorder}`,
-                    borderRadius: '8px',
-                    color: theme.textPrimary
-                  }}
-                  formatter={(value, name, props) => [
-                    `${value}% (${props.payload.count} người)`,
-                    'Tỷ lệ'
-                  ]}
-                />
-                <Legend />
-              </PieChart>
             </ResponsiveContainer>
           </ChartContainer>
         </div>
@@ -353,8 +491,8 @@ export default function DashboardPage() {
             Hiệu suất trạm đổi pin
           </h2>
           <ChartContainer config={{}}>
-            <ResponsiveContainer width="100%" height={280}>
-              <ComposedChart data={stationPerformanceData}>
+            <ResponsiveContainer width="100%" height={300}>
+              <ComposedChart data={generateStationPerformanceData()}>
                 <CartesianGrid strokeDasharray="3 3" stroke={theme.gridStroke} />
                 <XAxis dataKey="station" stroke={theme.textSecondary} />
                 <YAxis yAxisId="left" stroke={theme.textSecondary} />
@@ -367,23 +505,82 @@ export default function DashboardPage() {
                     color: theme.textPrimary
                   }}
                   formatter={(value, name) => [
-                    name === 'efficiency' ? `${value}%` :
-                      name === 'downtime' ? `${value}h` : value,
+                    name === 'revenue' ? `${(value / 1000000).toFixed(1)}M VNĐ` :
+                    name === 'efficiency' ? `${value}%` : value,
                     name === 'efficiency' ? 'Hiệu suất' :
-                      name === 'downtime' ? 'Thời gian ngừng' : 'Lượt đổi'
+                    name === 'users' ? 'Người dùng' :
+                    name === 'revenue' ? 'Doanh thu' : 'Lượt đổi'
                   ]}
                 />
                 <Legend />
                 <Bar yAxisId="left" dataKey="efficiency" name="Hiệu suất (%)" fill="#22c55e" />
+                <Bar yAxisId="left" dataKey="users" name="Người dùng" fill="#3b82f6" />
                 <Line yAxisId="right" type="monotone" dataKey="swaps" name="Lượt đổi" stroke="#f97316" strokeWidth={2} />
-                <Bar yAxisId="right" dataKey="downtime" name="Thời gian ngừng (h)" fill="#ef4444" opacity={0.7} />
               </ComposedChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        </div>
+
+        {/* Phân bố người dùng theo trạm */}
+        <div style={{ 
+          backgroundColor: theme.cardBackground, 
+          borderRadius: '12px', 
+          padding: '24px', 
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)', 
+          border: `1px solid ${theme.border}`,
+          transition: 'all 0.3s ease'
+        }}>
+          <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16, color: theme.textPrimary }}>
+            Phân bố người dùng theo trạm
+          </h2>
+          <ChartContainer config={{}}>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={generateStationPerformanceData().slice(0, 6)}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ station, users }) => `${station}: ${users}`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="users"
+                >
+                  {generateStationPerformanceData().slice(0, 6).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: theme.tooltipBg,
+                    border: `1px solid ${theme.tooltipBorder}`,
+                    borderRadius: '8px',
+                    color: theme.textPrimary
+                  }}
+                  formatter={(value, name, props) => [
+                    `${value} người dùng`,
+                    props.payload.station
+                  ]}
+                />
+                <Legend />
+              </PieChart>
             </ResponsiveContainer>
           </ChartContainer>
         </div>
       </div>
 
-
+      <style jsx>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }
