@@ -127,7 +127,7 @@ export default function Header({
           </button>
 
           <div className="notif" title={`${unreadCount} thông báo`}>
-            <a href="/notifications">' '{unreadCount>0 && <span className="badge">{unreadCount}</span>}</a>
+            <a>' '</a>
           </div>
         </div>
       </header>

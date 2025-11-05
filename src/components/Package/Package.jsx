@@ -1191,7 +1191,7 @@ const Package = () => {
                           )}
                           
                           <h3>{packageDisplayName}</h3>
-                          <p className="package-price">{getPackageProperty(pkg, 'price')?.toLocaleString('vi-VN')} VND</p>
+                          <p className="package-price">{getPackageProperty(pkg,'price')?.toLocaleString('vi-VN')} VND</p>
                           {/* 🆕 THAY THẾ DÒNG NÀY: Sử dụng getPackageDurationText */}
                           <p className="package-duration">⏱️ {getPackageDurationText(pkg)}</p>
                           <p className="package-description">{getPackageProperty(pkg, 'description') || 'Không có mô tả'}</p>

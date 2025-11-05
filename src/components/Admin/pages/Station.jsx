@@ -22,6 +22,8 @@ export default function Station() {
 
   const [createName, setCreateName] = useState("");
   const [createLocation, setCreateLocation] = useState("");
+  const [createImage, setCreateImage] = useState("");
+
 
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
@@ -58,15 +60,15 @@ export default function Station() {
   // Hàm fetch và đếm exchange history cho một trạm
   const fetchAndCountExchangeHistory = async (stationId) => {
     if (!stationId) return 0;
-    
+
     try {
       const data = await authAPI.getExchangesByStation(stationId);
       const list = Array.isArray(data?.data)
         ? data.data
         : Array.isArray(data)
-        ? data
-        : [];
-      
+          ? data
+          : [];
+
       const count = list.length;
       setStationExchangeCounts(prev => ({ ...prev, [stationId]: count }));
       return count;
@@ -113,7 +115,7 @@ export default function Station() {
    */
   const normalizeStationStaffForDisplay = (rawList, stationId, accountIdToStaffMeta, stationStaffIds) => {
     if (!Array.isArray(rawList)) return [];
-    
+
     console.log('normalizeStationStaffForDisplay:', {
       rawListLength: rawList.length,
       stationId,
@@ -181,16 +183,16 @@ export default function Station() {
   // Hàm cập nhật station status
   const handleUpdateStationStatus = async (stationId, newStatus) => {
     if (!stationId) return;
-    
+
     setStatusUpdateLoading(true);
     try {
       await authAPI.updateStationStatus(stationId, newStatus);
-      
+
       // Cập nhật local state
-      setStations(prev => prev.map(st => 
+      setStations(prev => prev.map(st =>
         st.stationId === stationId ? { ...st, status: newStatus } : st
       ));
-      
+
       alert(`Đã cập nhật trạng thái thành ${newStatus}`);
     } catch (error) {
       alert("Cập nhật trạng thái thất bại: " + error.message);
@@ -211,8 +213,8 @@ export default function Station() {
         ...st,
         bssStaffs: Array.isArray(st?.bssStaffs)
           ? st.bssStaffs
-              .filter((x) => x && typeof x === "object" && x.staffId)
-              .map((x) => ({ staffId: x.staffId }))
+            .filter((x) => x && typeof x === "object" && x.staffId)
+            .map((x) => ({ staffId: x.staffId }))
           : [],
       }));
       setStations(normalizedStations);
@@ -337,11 +339,12 @@ export default function Station() {
     e.preventDefault();
     if (!createName) { alert("Vui lòng nhập Tên trạm."); return; }
     if (!createLocation) { alert("Vui lòng nhập Location."); return; }
+    if (!createImage) { alert("Vui lòng nhập link google map"); return; }
     setOpLoading(true);
     try {
-      await authAPI.createStation({ stationName: createName, location: createLocation });
+      await authAPI.createStation({ stationName: createName, location: createLocation, image: createImage });
       alert("Tạo trạm thành công");
-      setCreateName(""); setCreateLocation("");
+      setCreateName(""); setCreateLocation(""); setCreateImage("");
       await fetchStations();
     } catch (err) {
       console.error("createStation error:", err);
@@ -448,8 +451,8 @@ export default function Station() {
         const list = Array.isArray(data?.data)
           ? data.data
           : Array.isArray(data)
-          ? data
-          : [];
+            ? data
+            : [];
 
         setStationHistoryData((prev) => ({ ...prev, [stationId]: list }));
       } catch (err) {
@@ -488,16 +491,108 @@ export default function Station() {
     ? stationHistoryData[historyStationId]
     : [];
 
+  // NEW: modal cho slot/battery
+  const [showSlotModal, setShowSlotModal] = useState(false);
+  const [activeSlot, setActiveSlot] = useState(null);
+  const [slotBattery, setSlotBattery] = useState(null);
+  const [slotLoading, setSlotLoading] = useState(false);
+  const [slotError, setSlotError] = useState(null);
+
+  // NEW: build grid 5 hàng x 6 cột từ slots
+  const buildSlotGrid = (slots = []) => {
+    const rows = Array.from({ length: 5 }, (_, i) => i + 1); // y: 1..5
+    const cols = Array.from({ length: 6 }, (_, i) => i + 1); // x: 1..6
+    return rows.map((y) =>
+      cols.map((x) => slots.find(s => s.cordinateX === x && s.cordinateY === y) || null)
+    );
+  };
+
+  // NEW: đếm pin theo slots (occupied/battery != null)
+  const getBatteryCountFromSlots = (station) => {
+    if (!Array.isArray(station?.slots)) return 0;
+    return station.slots.filter(s => !!s?.battery).length;
+  };
+
+  // NEW: mở modal – ưu tiên dùng battery embed; fallback gọi get-battery-by-id nếu cần
+  const openSlotModal = async (slot) => {
+    if (!slot) return;
+
+    setActiveSlot(slot);
+    setShowSlotModal(true);
+    setSlotError(null);
+
+    // Dùng dữ liệu đã có sẵn
+    if (slot.battery) {
+      setSlotBattery(slot.battery);
+      return;
+    }
+
+    // Fallback (tuỳ bạn có cần làm "refresh" hay không)
+    const batteryId =
+      slot?.battery?.batteryId || // nếu BE gửi cả batteryId bên trong
+      slot?.batteryId ||          // nếu có field cũ
+      null;
+
+    if (!batteryId) {
+      setSlotBattery(null);
+      return;
+    }
+
+    setSlotLoading(true);
+    try {
+      const b = await authAPI.getBatteryById(batteryId);
+      setSlotBattery(b);
+    } catch (err) {
+      setSlotError(err?.message || "Không lấy được thông tin pin");
+    } finally {
+      setSlotLoading(false);
+    }
+  };
+
+  const closeSlotModal = () => {
+    setShowSlotModal(false);
+    setActiveSlot(null);
+    setSlotBattery(null);
+    setSlotError(null);
+  };
+
   return (
+
     <div className="station-container">
+      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+        <defs>
+          <filter id="liquidGlass" x="-20%" y="-20%" width="150%" height="150%" colorInterpolationFilters="sRGB">
+            <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="2" seed="8" result="noise" />
+            <feGaussianBlur in="noise" stdDeviation="2" result="map" />
+            <feDisplacementMap in="SourceGraphic" in2="map" scale="80" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </defs>
+      </svg>
       <h2 className="station-title">Quản lý danh sách trạm đổi pin</h2>
 
       <form className="station-create" onSubmit={handleCreate}>
         <div className="create-row">
-          <input className="input" type="text" placeholder="Tên trạm"
-                 value={createName} onChange={(e)=>setCreateName(e.target.value)} />
-          <input className="input" type="text" placeholder="Location"
-                 value={createLocation} onChange={(e)=>setCreateLocation(e.target.value)} />
+          <input
+            className="input"
+            type="text"
+            placeholder="Tên trạm"
+            value={createName}
+            onChange={(e) => setCreateName(e.target.value)}
+          />
+          <input
+            className="input"
+            type="text"
+            placeholder="Location"
+            value={createLocation}
+            onChange={(e) => setCreateLocation(e.target.value)}
+          />
+          <input
+            className="input"
+            type="text"
+            placeholder="Link google map"
+            value={createImage}
+            onChange={(e) => setCreateImage(e.target.value)}
+          />
           <button className="btn primary" type="submit" disabled={opLoading}>
             {opLoading ? "Đang xử lý..." : "Tạo trạm"}
           </button>
@@ -506,15 +601,15 @@ export default function Station() {
 
       <div className="station-controls">
         <input className="station-search" placeholder="Tìm tên trạm hoặc location..."
-               value={q} onChange={(e)=>setQ(e.target.value)} />
-        <select className="station-select" value={statusFilter} onChange={(e)=>setStatusFilter(e.target.value)}>
+          value={q} onChange={(e) => setQ(e.target.value)} />
+        <select className="station-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="All">Tất cả trạng thái</option>
           <option value="Active">Active</option>
           <option value="Inactive">Inactive</option>
         </select>
         <input className="station-search" placeholder="Lọc theo Location..."
-               value={locationFilter} onChange={(e)=>setLocationFilter(e.target.value)} />
-        <select className="station-select" value={sortBy} onChange={(e)=>setSortBy(e.target.value)}>
+          value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} />
+        <select className="station-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
           <option value="">-- Không sắp xếp --</option>
           <option value="stationName">Tên trạm</option>
           <option value="batteryNumber">BatteryNumber</option>
@@ -522,7 +617,7 @@ export default function Station() {
           <option value="startDate">Ngày tạo</option>
           <option value="updateDate">Ngày cập nhật</option>
         </select>
-        <select className="station-select" value={sortOrder} onChange={(e)=>setSortOrder(e.target.value)}>
+        <select className="station-select" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
           <option value="asc">Tăng dần</option>
           <option value="desc">Giảm dần</option>
         </select>
@@ -551,26 +646,37 @@ export default function Station() {
             <>
               <div className="station-grid">
                 {currentItems.map((station, idx) => {
-                  const batteryCount = safeLen(station.batteries);
+                  const batteryCount = getBatteryCountFromSlots(station);
                   const isExpanded = expandedId === station.stationId;
                   const staffCount = getStaffCountForStation(station);
                   const exchangeCount = getExchangeCountForStation(station.stationId);
 
                   return (
-                    <article key={station.stationId}
-                             className={`station-card ${isExpanded ? "expanded" : ""}`}
-                             style={{ animationDelay: `${idx * 40}ms` }}>
+                    <article
+                      key={station.stationId}
+                      className={`station-card ${isExpanded ? "expanded" : ""}`}
+                      style={{
+                        animationDelay: `${idx * 40}ms`,
+                        height: "auto",
+                        maxHeight: "none",
+                        minHeight: 0,
+                        borderRadius: "10px", // giảm bo tròn border, hơi vuông
+                        borderWidth: "2px",
+                        borderStyle: "solid",
+                        borderColor: "rgba(15,23,42,0.10)"
+                      }}
+                    >
                       <div className="station-head">
                         <div className="head-left">
                           <h3 className="station-id">{station.stationName ?? "Tên trạm chưa có"}</h3>
                           <div className="station-subinfo">
                             <span className="sub-location">{station.location ?? "-"}</span>
                             <span className="sub-sep">•</span>
-                            
+
                             {/* Status Select */}
                             <div className="status-select-container">
-                              <select 
-                                value={station.status || ''} 
+                              <select
+                                value={station.status || ''}
                                 onChange={(e) => handleUpdateStationStatus(station.stationId, e.target.value)}
                                 disabled={statusUpdateLoading}
                                 className={`status-select ${station.status === 'Active' ? 'status-active' : station.status === 'Inactive' ? 'status-inactive' : ''}`}
@@ -580,7 +686,7 @@ export default function Station() {
                               </select>
                             </div>
                           </div>
-                          <div className={`station-status ${ (station.status ?? "").toLowerCase() === "active" ? "active": "inactive"}`}>
+                          <div className={`station-status ${(station.status ?? "").toLowerCase() === "active" ? "active" : "inactive"}`}>
                             {station.status ?? "Unknown"}
                           </div>
                         </div>
@@ -590,7 +696,7 @@ export default function Station() {
                           <div className="tiny">Updated: {station.updateDate ? new Date(station.updateDate).toLocaleString() : "-"}</div>
 
                           <div className="card-actions">
-                            <button className="btn small" onClick={()=>toggleExpand(station.stationId)}>
+                            <button className="btn small" onClick={() => toggleExpand(station.stationId)}>
                               {isExpanded ? "Thu gọn" : "Chi tiết"}
                             </button>
                             <button
@@ -599,10 +705,10 @@ export default function Station() {
                             >
                               Xem lịch sử
                             </button>
-                            <button className="btn small" onClick={()=>startEdit(station)}>Sửa</button>
-                            <button className="btn danger small" onClick={()=>handleDelete(station.stationId)}>Xóa</button>
+                            <button className="btn small" onClick={() => startEdit(station)}>Sửa</button>
+                            <button className="btn danger small" onClick={() => handleDelete(station.stationId)}>Xóa</button>
                             <button className="btn primary small"
-                                    onClick={() => handleAddStaffClick(station.stationId, station.stationName)}>
+                              onClick={() => handleAddStaffClick(station.stationId, station.stationName)}>
                               Thêm Staff
                             </button>
                           </div>
@@ -633,15 +739,15 @@ export default function Station() {
                           <div className="form-row">
                             <label> Tên trạm
                               <input className="input" type="text" value={editName}
-                                     onChange={(e)=>setEditName(e.target.value)} />
+                                onChange={(e) => setEditName(e.target.value)} />
                             </label>
                             <label> BatteryNumber
                               <input className="input" type="number" min="0" value={editBatteryNumber}
-                                     onChange={(e)=>setEditBatteryNumber(e.target.value)} />
+                                onChange={(e) => setEditBatteryNumber(e.target.value)} />
                             </label>
                             <label> Location
                               <input className="input" type="text" value={editLocation}
-                                     onChange={(e)=>setEditLocation(e.target.value)} />
+                                onChange={(e) => setEditLocation(e.target.value)} />
                             </label>
                           </div>
                           <div className="edit-actions">
@@ -655,19 +761,70 @@ export default function Station() {
 
                       {/* Chi tiết trạm */}
                       <div className={`station-detail ${isExpanded ? "open" : ""}`}>
-                        {/* <div className="counts-grid">
-                          <div className="count-item"><div className="count-num">{batteryCount}</div><div className="count-label">Batteries</div></div>
-                          <div className="count-item"><div className="count-num">{safeLen(station.batteryReports)}</div><div className="count-label">Reports</div></div>
-                          <div className="count-item"><div className="count-num">{safeLen(station.slots)}</div><div className="count-label">Slots</div></div>
-                          <div className="count-item"><div className="count-num">{getStaffCountForStation(station)}</div><div className="count-label">Staff</div></div>
-                        </div> */}
+                        {/* SLOTS LAYOUT 6x5 */}
+                        <div className="slots-section">
+                          <div className="section-title">
+                            Pin đang ở trạm
+                          </div>
+
+                          {Array.isArray(station.slots) && station.slots.length > 0 ? (
+                            <div className="slot-grid">
+                              {buildSlotGrid(station.slots).map((row, rIdx) => (
+                                <div className="liquid slot-row" key={`row-${rIdx}`}>
+                                  {row.map((slot, cIdx) => {
+                                    const s = (slot?.status || "Empty").toLowerCase(); // Empty/Occupied/Reserved/Faulty
+                                    const hasBattery = !!slot?.battery;
+                                    const name = slot?.battery?.batteryName || slot?.battery?.batteryId;
+
+                                    return (
+                                      <button
+                                        type="button"
+                                        key={slot?.slotId || `slot-${rIdx}-${cIdx}`}
+                                        className={`slot-cell status-${s} ${hasBattery ? "has-battery" : ""}`}
+                                        onClick={() => openSlotModal(slot)}
+                                        title={
+                                          slot
+                                            ? (hasBattery
+                                              ? `${slot.battery?.batteryName || slot.battery?.batteryId || "battery"}${slot.battery?.capacity ? ` • ${slot.battery.capacity}Ah` : ""}`
+                                              : slot.status || "Empty")
+                                            : "Trống"
+                                        }
+                                      >
+                                        {hasBattery ? (
+                                          <React.Fragment>
+                                            {slot.battery?.batteryName || slot.battery?.batteryId || "battery"}
+                                            {slot.battery?.capacity ? ` • ${slot.battery.capacity}%` : ""}
+                                            {slot.battery?.status ? (
+                                              <span className="slot-badge" style={{ marginTop: 4 }}>{slot.battery.status}</span>
+                                            ) : null}
+                                          </React.Fragment>
+                                        ) : (
+                                          <div className="slot-status">{slot?.status || "Empty"}</div>
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="empty-note">Trạm chưa có slot nào.</div>
+                          )}
+
+                          <div className="slot-legend">
+                            <span><i className="lg lg-empty" />Empty</span>
+                            <span><i className="lg lg-occupied" />Occupied</span>
+                            <span><i className="lg lg-reserved" />Reserved</span>
+                            <span><i className="lg lg-faulty" />Faulty</span>
+                          </div>
+                        </div>
 
                         {/* DANH SÁCH NHÂN VIÊN CỦA TRẠM: username, name, phone, email */}
                         <div className="staff-section">
                           <div className="section-title">
                             Nhân viên tại trạm ({stationStaff[station.stationId]?.length || 0})
                             <button className="btn small refresh-staff"
-                                    onClick={() => fetchStationStaff(station.stationId)}>
+                              onClick={() => fetchStationStaff(station.stationId)}>
                               Refresh
                             </button>
                           </div>
@@ -679,7 +836,7 @@ export default function Station() {
                           ) : (
                             <div className="staff-list">
                               {stationStaff[station.stationId].map((staff, index) => (
-                                <div className="staff-item" key={(staff.staffId || staff.accountId || index)}>
+                                <div className="liquid staff-item" key={(staff.staffId || staff.accountId || index)}>
                                   <div className="staff-info">
                                     <div className="staff-name">@{staff.username}</div>
                                     <div className="staff-username">{staff.name}</div>
@@ -702,13 +859,13 @@ export default function Station() {
                         </div>
 
                         {/* Batteries */}
-                        <div className="batteries-section">
-                          <div className="section-title">Batteries ở trạm ({batteryCount})</div>
+                        {/* <div className="batteries-section">
+                          <div className="section-title">Pin đang ở trạm ({batteryCount})</div>
                           {batteryCount === 0 ? (
                             <div className="empty-note">Không có battery nào ở trạm này.</div>
                           ) : (
                             <div className="batt-list">
-                              {station.batteries.map((b) => (
+                              {(Array.isArray(station.batteries) ? station.batteries : []).map((b) => (
                                 <div className="batt-item" key={b.batteryId}>
                                   <div className="batt-left">
                                     <div className="batt-id">{b.batteryName || b.batteryId}</div>
@@ -718,18 +875,16 @@ export default function Station() {
                                     </div>
                                   </div>
                                   <div className="batt-right">
-                                    <div className="batt-stats">
                                       <div className="batt-quality">SoH: <strong>{b.batteryQuality ?? "-" }%</strong></div>
                                       <div className={`batt-status ${(b.status ?? "").toLowerCase() === "available" ? "ok" : (b.status ?? "").toLowerCase() === "inuse" ? "warn" : ""}`}>
                                         {b.status ?? "-"}
                                       </div>
-                                    </div>
                                   </div>
                                 </div>
                               ))}
                             </div>
                           )}
-                        </div>
+                        </div> */}
                       </div>
                     </article>
                   );
@@ -752,6 +907,76 @@ export default function Station() {
             </>
           )}
         </>
+      )}
+
+      {/* Modal chi tiết slot/battery */}
+      {showSlotModal && (
+        <div className="modal-overlay" onClick={closeSlotModal}>
+          <div className="modal slot-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Chi tiết Slot</h2>
+
+            {!activeSlot ? (
+              <div className="loading-staff">Không có dữ liệu slot.</div>
+            ) : (
+              <>
+                <ul className="detail-list">
+                  <li><strong>Toạ độ:</strong> ({activeSlot.cordinateX},{activeSlot.cordinateY})</li>
+                  <li><strong>Trạng thái:</strong> {activeSlot.status}</li>
+                  <li><strong>SlotId:</strong> {activeSlot.slotId}</li>
+                  <li><strong>Updated:</strong> {activeSlot.updateDate ? new Date(activeSlot.updateDate).toLocaleString() : "—"}</li>
+                </ul>
+
+                {slotBattery ? (
+                  <div className="battery-detail">
+                    <div className="section-title">Thông tin pin</div>
+                    <div className="batt-card-mini">
+                      <div className="batt-mini-row">
+                        <span className="batt-mini-label">Tên/ID:</span>
+                        <span className="batt-mini-val">
+                          {slotBattery.batteryName || slotBattery.batteryId}
+                        </span>
+                      </div>
+                      <div className="batt-mini-row">
+                        <span className="batt-mini-label">Type:</span>
+                        <span className="batt-mini-val">{slotBattery.batteryType || "—"}</span>
+                      </div>
+                      <div className="batt-mini-row">
+                        <span className="batt-mini-label">Spec:</span>
+                        <span className="batt-mini-val">{slotBattery.specification || "—"}</span>
+                      </div>
+                      <div className="batt-mini-row">
+                        <span className="batt-mini-label">Capacity:</span>
+                        <span className="batt-mini-val">{slotBattery.capacity ?? "—"}%</span>
+                      </div>
+                      <div className="batt-mini-row">
+                        <span className="batt-mini-label">SoH:</span>
+                        <span className="batt-mini-val">{slotBattery.batteryQuality ?? "—"}%</span>
+                      </div>
+                      <div className="batt-mini-row">
+                        <span className="batt-mini-label">Status:</span>
+                        <span className="batt-mini-val">{slotBattery.status || "—"}</span>
+                      </div>
+                      <div className="batt-mini-row">
+                        <span className="batt-mini-label">Updated:</span>
+                        <span className="batt-mini-val">
+                          {slotBattery.updateDate ? new Date(slotBattery.updateDate).toLocaleString() : "—"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : slotLoading ? (
+                  <div className="loading-staff">Đang tải thông tin pin…</div>
+                ) : (
+                  <div className="empty-note">Slot này chưa có pin.</div>
+                )}
+              </>
+            )}
+
+            <div style={{ marginTop: 14, textAlign: "right" }}>
+              <button className="btn" onClick={closeSlotModal}>Đóng</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Popup thêm staff: luôn liệt kê nhân viên CHƯA gán trạm để thêm */}
