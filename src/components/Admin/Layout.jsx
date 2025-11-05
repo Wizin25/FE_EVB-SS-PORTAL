@@ -135,7 +135,8 @@ export default function AdminLayout() {
         <aside
           className={`liquid admin-sidebar ${sidebarOpen ? 'open' : 'closed'}  dark:bg-gray-900/30 border-r border-orange-200 dark:border-gray-700 flex flex-col fixed md:relative z-40 overflow-y-auto`}
           style={{
-            boxShadow: "inset 0 0 22px 0 rgba(255, 255, 255, 0.08)"
+            boxShadow: "inset 0 0 22px 0 rgba(255, 255, 255, 0.08)",
+            borderRadius: "0px",
           }}
         >
           <div className={`mb-8 mt-4 px-6 transition-all duration-300 ${sidebarOpen ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}>

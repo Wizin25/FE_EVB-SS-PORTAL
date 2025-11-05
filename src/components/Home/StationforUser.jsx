@@ -239,6 +239,71 @@ export default function StationForUser() {
     navigate(`/report?stationId=${station.stationId}&stationName=${encodeURIComponent(station.stationName || '')}&location=${encodeURIComponent(station.location || '')}`);
   };
 
+  // NEW: modal cho slot/battery
+  const [showSlotModal, setShowSlotModal] = useState(false);
+  const [activeSlot, setActiveSlot] = useState(null);
+  const [slotBattery, setSlotBattery] = useState(null);
+  const [slotLoading, setSlotLoading] = useState(false);
+  const [slotError, setSlotError] = useState(null);
+
+  // NEW: build grid 5 hàng x 6 cột từ slots
+  const buildSlotGrid = (slots = []) => {
+    const rows = Array.from({ length: 5 }, (_, i) => i + 1); // y: 1..5
+    const cols = Array.from({ length: 6 }, (_, i) => i + 1); // x: 1..6
+    return rows.map((y) =>
+      cols.map((x) => slots.find(s => s.cordinateX === x && s.cordinateY === y) || null)
+    );
+  };
+
+  // NEW: đếm pin theo slots (occupied/battery != null)
+  const getBatteryCountFromSlots = (station) => {
+    if (!Array.isArray(station?.slots)) return 0;
+    return station.slots.filter(s => !!s?.battery).length;
+  };
+
+  // NEW: mở modal – ưu tiên dùng battery embed; fallback gọi get-battery-by-id nếu cần
+  const openSlotModal = async (slot) => {
+    if (!slot) return;
+
+    setActiveSlot(slot);
+    setShowSlotModal(true);
+    setSlotError(null);
+
+    // Dùng dữ liệu đã có sẵn
+    if (slot.battery) {
+      setSlotBattery(slot.battery);
+      return;
+    }
+
+    // Fallback (tuỳ bạn có cần làm "refresh" hay không)
+    const batteryId =
+      slot?.battery?.batteryId || // nếu BE gửi cả batteryId bên trong
+      slot?.batteryId ||          // nếu có field cũ
+      null;
+
+    if (!batteryId) {
+      setSlotBattery(null);
+      return;
+    }
+
+    setSlotLoading(true);
+    try {
+      const b = await authAPI.getBatteryById(batteryId);
+      setSlotBattery(b);
+    } catch (err) {
+      setSlotError(err?.message || "Không lấy được thông tin pin");
+    } finally {
+      setSlotLoading(false);
+    }
+  };
+
+  const closeSlotModal = () => {
+    setShowSlotModal(false);
+    setActiveSlot(null);
+    setSlotBattery(null);
+    setSlotError(null);
+  };
+
   return (
     
     <div

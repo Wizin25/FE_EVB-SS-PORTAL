@@ -32,7 +32,7 @@ export default function BatteryManagementPage() {
 
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const itemsPerPage = 10;
   // dropdown options (fetched)
   const [batteryTypeOptions, setBatteryTypeOptions] = useState([]);
   const [specificationOptions, setSpecificationOptions] = useState([]);
@@ -500,7 +500,7 @@ export default function BatteryManagementPage() {
   // ---------- RENDER ----------
   return (
     <div className="station-container">
-           <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
         <defs>
           <filter id="liquidGlass" x="-20%" y="-20%" width="150%" height="150%" colorInterpolationFilters="sRGB">
             <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="2" seed="8" result="noise" />
@@ -833,49 +833,59 @@ export default function BatteryManagementPage() {
                 currentBatteries.map(b => (
                   <div className="liquid batt-item" key={b.batteryId} style={{ borderRadius: "35px" }}>
                     <div className="batt-top">
-                      {/* Battery Image */}
-                      {b.image && (
-                        <div
-                          className="batt-image"
-                          style={{
-                            marginBottom: 8,
-                            width: 50,
-                            height: 50,
-                            borderRadius: 8,
-                            overflow: 'hidden',
-                            border: '2px solid #e2e8f0',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            marginLeft: 'auto',
-                            marginRight: 'auto'
-                          }}
-                        >
-                          <img
-                            src={b.image}
-                            alt={`Pin ${b.batteryName || b.batteryId}`}
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        {/* Battery Image, kế bên batt-id */}
+                        {b.image && (
+                          <div
+                            className="batt-image"
                             style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'cover',
-                              display: 'block'
+                              width: 50,
+                              height: 50,
+                              borderRadius: 8,
+                              overflow: 'hidden',
+                              border: '2px solid #e2e8f0',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              margin: 0,
                             }}
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              const parent = e.target.parentElement;
-                              if (parent) parent.innerHTML = '<div style="font-size:12px;color:#64748b;line-height:40px;text-align:center;">No Image</div>';
-                            }}
-                          />
-                        </div>
-                      )}
-                      <div className="batt-left">
-                         <div className="batt-id">
+                          >
+                            <img
+                              src={b.image}
+                              alt={`Pin ${b.batteryName || b.batteryId}`}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                display: 'block'
+                              }}
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                const parent = e.target.parentElement;
+                                if (parent) parent.innerHTML = '<div style="font-size:12px;color:#64748b;line-height:40px;text-align:center;">No Image</div>';
+                              }}
+                            />
+                          </div>
+                        )}
+                        <div className="batt-id">
                           {b.batteryName === "Graphene_TTFAR_Accumulator"
                             ? "GTA"
                             : (b.batteryName ? b.batteryName : b.batteryId)}
                         </div>
-                        <div className="batt-meta">{b.batteryType} • {b.capacity}% • {b.specification}</div>
-                        <div className="batt-submeta">Trạm: {b.station?.stationName || b.station?.stationId || "Chưa gán"}</div>
+                      </div>
+                      <div className="batt-left">
+                        <div className="batt-meta">
+                          Loại: <strong>{b.batteryType}</strong>
+                        </div>
+                        <div className="batt-meta">
+                          Dung lượng: <strong>{b.capacity}%</strong>
+                        </div>
+                        <div className="batt-meta">
+                          Dung lượng tối đa: <strong>{b.specification}</strong>
+                        </div>
+                        <div className="batt-submeta">
+                          Trạm: <strong>{b.station?.stationName || b.station?.stationId || "Chưa gán"}</strong>
+                        </div>
                       </div>
                       <div className="batt-right">
                         {/* Status Select */}
@@ -1022,33 +1032,40 @@ export default function BatteryManagementPage() {
                   </div>
                 ) : (
                   <div style={{ marginTop: 12 }}>
-                    {/* Battery Image in Modal */}
-                    {selectedBattery.image && (
-                      <div style={{ marginBottom: 16, textAlign: 'center' }}>
-                        <img
-                          src={selectedBattery.image}
-                          alt={`Pin ${selectedBattery.batteryName || selectedBattery.batteryId}`}
-                          style={{
-                            maxWidth: 200,
-                            maxHeight: 200,
-                            borderRadius: 12,
-                            border: '3px solid #e2e8f0',
-                            objectFit: 'cover',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                          }}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24 }}>
+                      {/* Info on left */}
+                      <div style={{ flex: 1 }}>
+                        <p><b>Tên pin:</b> {selectedBattery.batteryName ? selectedBattery.batteryName : selectedBattery.batteryId}</p>
+                        <p><b>Mã pin:</b> {selectedBattery.batteryId}</p>
+                        <p><b>Loại:</b> {selectedBattery.batteryType}</p>
+                        <p><b>Capacity:</b> {selectedBattery.capacity}%</p>
+                        <p><b>Specification:</b> {selectedBattery.specification}</p>
+                        <p><b>SoH:</b> {selectedBattery.batteryQuality}%</p>
+                        <p><b>Station:</b> {selectedBattery.station?.stationName || selectedBattery.station?.stationId || "Chưa gán"}</p>
                       </div>
-                    )}
-                    <p><b>Tên pin:</b> {selectedBattery.batteryName ? selectedBattery.batteryName : selectedBattery.batteryId}</p>
-                    <p><b>Mã pin:</b> {selectedBattery.batteryId}</p>
-                    <p><b>Loại:</b> {selectedBattery.batteryType}</p>
-                    <p><b>Capacity:</b> {selectedBattery.capacity}%</p>
-                    <p><b>Specification:</b> {selectedBattery.specification}</p>
-                    <p><b>SoH:</b> {selectedBattery.batteryQuality}%</p>
-
+                      {/* Battery Image on right */}
+                      {selectedBattery.image && (
+                        <div style={{ minWidth: 120 }}>
+                          <img
+                            src={selectedBattery.image}
+                            alt={`Pin ${selectedBattery.batteryName || selectedBattery.batteryId}`}
+                            style={{
+                              maxWidth: 190,
+                              maxHeight: 180,
+                              borderRadius: 12,
+                              border: '3px solid #e2e8f0',
+                              objectFit: 'cover',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                              display: 'block',
+                              marginLeft: 0,
+                            }}
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
                     {/* Status Select trong modal */}
                     <div className="status-section" style={{ marginBottom: '12px' }}>
                       <label><b>Trạng thái:</b></label>
@@ -1072,9 +1089,6 @@ export default function BatteryManagementPage() {
                         <option value="Booked">Booked</option>
                       </select>
                     </div>
-
-                    <p><b>Station:</b> {selectedBattery.station?.stationName || selectedBattery.station?.stationId || "Chưa gán"}</p>
-
                     <div style={{ marginTop: 10 }}>
                       <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span>Histories</span>
