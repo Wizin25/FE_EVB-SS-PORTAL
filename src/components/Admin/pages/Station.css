@@ -1781,7 +1781,7 @@
   text-align: center;
   box-sizing: border-box;
   min-height: 22px;
-  max-width: 89px;
+  max-width: 150px;
 }
 
 .slot-cell:hover {
@@ -1816,9 +1816,9 @@
 }
 
 .status-available {
-  background: #e0f2fe;
-  color: #0369a1;
-  border-color: #38bdf8;
+  background: #76c8ff;
+  color: #ffffff;
+  border-color: #00b3ff;
 }
 
 .status-maintenance {
@@ -1871,7 +1871,7 @@
   background: #fde68a;
 }
 .slot-legend i.lg-charging {
-  background: #065f46;
+  background: #24ff62;
 }
 
 .slot-legend i.lg-faulty {

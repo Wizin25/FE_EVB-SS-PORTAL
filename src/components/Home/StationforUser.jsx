@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function StationForUser() {
   const navigate = useNavigate();
-  
+
   // theme and header-related states
   const [theme, setTheme] = useState(() => {
     if (typeof window !== "undefined") {
@@ -67,26 +67,62 @@ export default function StationForUser() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
+  // Reload Station
+  const [isLoading, setIsLoading] = useState(false);
+
   // Array of images to rotate through
   const stationImages = [
     "https://www.global-imi.com/sites/default/files/shutterstock_2002470953-min%20%281%29_1.jpg",
     "https://cdn.prod.website-files.com/6463200e1042b2ca8283ce6b/647869ba7866270da76ee1bb_Battery-Swapping-station%20main-min.jpg"
   ];
 
-  const fetchStations = async () => {
-    setLoading(true);
+  const unwrapStations = (res) => {
+    if (!res) return [];
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res?.data)) return res.data;
+    if (Array.isArray(res?.data?.data)) return res.data.data;
+    return [];
+  };
+
+  const fetchStations = async ({ silent = false } = {}) => {
+    if (!silent) setIsLoading(true);
     setError("");
     try {
-      const data = await authAPI.getAllStations();
-      setStations(Array.isArray(data) ? data : []);
+      const res = await authAPI.getAllStations();
+      const newStations = unwrapStations(res);
+      setStations(newStations);
+
+      // Giữ modal mở và cập nhật nếu pin còn hợp lệ
+      if (showSlotModal && activeSlot) {
+        const st = newStations.find(s => s.stationId === (activeSlot.stationId || activeSlot?.stationId));
+        const updatedSlot = st?.slots?.find(sl => sl.slotId === activeSlot.slotId);
+
+        if (updatedSlot) {
+          const updatedBattery = updatedSlot.battery || null;
+          if (updatedBattery && batteryCompatible(updatedBattery)) {
+            setActiveSlot(prev => ({ ...prev, ...updatedSlot, stationId: st.stationId }));
+            setSlotBattery(updatedBattery);
+          } else {
+            setSlotBattery(null);
+          }
+        } else {
+          setSlotBattery(null);
+        }
+      }
     } catch (err) {
       setError(err?.message || "Không tải được danh sách trạm");
     } finally {
-      setLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
-  useEffect(() => { fetchStations(); }, []);
+  useEffect(() => {
+    fetchStations();
+    const interval = setInterval(() => {
+      fetchStations({ silent: true });
+    }, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load linked vehicles for current user
   useEffect(() => {
@@ -102,7 +138,7 @@ export default function StationForUser() {
           const s = (v.status || v.Status || '').toString().toLowerCase();
           return s === 'active' || s === 'linked';
         });
-        
+
         // Load battery info for each vehicle
         const vehiclesWithBattery = await Promise.all(
           filtered.map(async (vehicle) => {
@@ -122,7 +158,7 @@ export default function StationForUser() {
             }
           })
         );
-        
+
         setVehicles(vehiclesWithBattery);
         if (vehiclesWithBattery.length > 0) {
           const vin = vprop(vehiclesWithBattery[0], 'vin');
@@ -149,14 +185,14 @@ export default function StationForUser() {
   // helper to get property with multiple possible keys
   const vprop = (obj, key) => {
     const map = {
-      vin: ['VIN','vin','vehicleId','vehicleID','id'],
-      batteryId: ['BatteryID','batteryId','batteryID','battery'],
-      batteryName: ['batteryName','BatteryName','name','Name'],
-      batteryType: ['batteryType','BatteryType','type','Type'],
-      batterySpec: ['specification','Specification','spec','Spec'],
-      batteryCapacity: ['capacity','Capacity'],
-      batteryQuality: ['batteryQuality','BatteryQuality','quality','Quality'],
-      vehicleName: ['vehicle_name','vehicleName','name','model','vehicle_name']
+      vin: ['VIN', 'vin', 'vehicleId', 'vehicleID', 'id'],
+      batteryId: ['BatteryID', 'batteryId', 'batteryID', 'battery'],
+      batteryName: ['batteryName', 'BatteryName', 'name', 'Name'],
+      batteryType: ['batteryType', 'BatteryType', 'type', 'Type'],
+      batterySpec: ['specification', 'Specification', 'spec', 'Spec'],
+      batteryCapacity: ['capacity', 'Capacity'],
+      batteryQuality: ['batteryQuality', 'BatteryQuality', 'quality', 'Quality'],
+      vehicleName: ['vehicle_name', 'vehicleName', 'name', 'model', 'vehicle_name']
     };
     const keys = map[key] || [key];
     for (const k of keys) if (obj && obj[k] != null) return obj[k];
@@ -164,27 +200,27 @@ export default function StationForUser() {
   };
 
   // Determine selected vehicle battery requirements
-  const selectedVehicle = useMemo(() => vehicles.find(v => vprop(v,'vin') === selectedVehicleVin), [vehicles, selectedVehicleVin]);
+  const selectedVehicle = useMemo(() => vehicles.find(v => vprop(v, 'vin') === selectedVehicleVin), [vehicles, selectedVehicleVin]);
   const selectedVehicleBatteryType = useMemo(() => vprop(selectedVehicle?.battery || selectedVehicle, 'batteryType').toString().toLowerCase(), [selectedVehicle]);
   const selectedVehicleBatterySpec = useMemo(() => vprop(selectedVehicle?.battery || selectedVehicle, 'batterySpec').toString().toLowerCase(), [selectedVehicle]);
 
   const batteryCompatible = (battery) => {
     if (!selectedVehicleVin) return true; // no vehicle chosen, show all
-    
+
     const bType = (vprop(battery, 'batteryType') || '').toString().toLowerCase();
     const bSpec = (vprop(battery, 'batterySpec') || '').toString().toLowerCase();
-    
+
     // Kiểm tra xem xe có thông tin battery type/spec không (không phải chuỗi rỗng)
     const hasVehicleType = selectedVehicleBatteryType && selectedVehicleBatteryType.trim() !== '';
     const hasVehicleSpec = selectedVehicleBatterySpec && selectedVehicleBatterySpec.trim() !== '';
-    
+
     // Nếu xe không có thông tin battery type/spec, coi như tất cả pin đều compatible
     if (!hasVehicleType && !hasVehicleSpec) return true;
-    
+
     // Nếu xe có thông tin battery type/spec, phải match chính xác
     const typeMatch = !hasVehicleType || bType === selectedVehicleBatteryType;
     const specMatch = !hasVehicleSpec || bSpec === selectedVehicleBatterySpec;
-    
+
     return typeMatch && specMatch;
   };
 
@@ -194,19 +230,24 @@ export default function StationForUser() {
       // Always hide inactive stations
       const stationStatus = (st.status ?? "").toLowerCase();
       if (stationStatus === "inactive") return false;
-      
+
       if (statusFilter !== "All" && stationStatus !== statusFilter.toLowerCase()) return false;
-      if (!text) return true;
-      const candidate = `${st.stationName ?? st.Name ?? ""} ${st.location ?? ""}`.toLowerCase();
-      if (!candidate.includes(text)) return false;
-      // If a vehicle is selected, only keep stations having at least one compatible battery
+      if (text) {
+        const candidate = `${st.stationName ?? st.Name ?? ""} ${st.location ?? ""}`.toLowerCase();
+        if (!candidate.includes(text)) return false;
+      }
+
+      // Nếu có chọn xe: chỉ giữ trạm có ÍT NHẤT 1 pin phù hợp trong slots
       if (selectedVehicleVin) {
-        const bs = Array.isArray(st.batteries) ? st.batteries : [];
+        const bs = Array.isArray(st.slots)
+          ? st.slots.map(s => s?.battery).filter(Boolean)
+          : [];
         return bs.some(batteryCompatible);
       }
       return true;
     });
   }, [stations, q, statusFilter, selectedVehicleVin, selectedVehicleBatteryType, selectedVehicleBatterySpec]);
+
 
   const totalItems = filtered.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -219,7 +260,7 @@ export default function StationForUser() {
   }, [q, statusFilter]);
 
   const safeLen = (arr) => (Array.isArray(arr) ? arr.length : 0);
-  
+
 
   // Function to toggle battery details visibility for a station
   const toggleStationDetails = (stationId) => {
@@ -239,73 +280,61 @@ export default function StationForUser() {
     navigate(`/report?stationId=${station.stationId}&stationName=${encodeURIComponent(station.stationName || '')}&location=${encodeURIComponent(station.location || '')}`);
   };
 
-  // NEW: modal cho slot/battery
-  const [showSlotModal, setShowSlotModal] = useState(false);
-  const [activeSlot, setActiveSlot] = useState(null);
-  const [slotBattery, setSlotBattery] = useState(null);
-  const [slotLoading, setSlotLoading] = useState(false);
-  const [slotError, setSlotError] = useState(null);
 
-  // NEW: build grid 5 hàng x 6 cột từ slots
+  // === STATE cho modal slot ===
+  const [showSlotModal, setShowSlotModal] = useState(false);
+  const [activeSlot, setActiveSlot] = useState(null);      // slot object (kèm stationId)
+  const [slotBattery, setSlotBattery] = useState(null);    // battery embed trong slot
+
+
+  // === Build grid 5 hàng × 6 cột từ slots ===
   const buildSlotGrid = (slots = []) => {
     const rows = Array.from({ length: 5 }, (_, i) => i + 1); // y: 1..5
     const cols = Array.from({ length: 6 }, (_, i) => i + 1); // x: 1..6
-    return rows.map((y) =>
-      cols.map((x) => slots.find(s => s.cordinateX === x && s.cordinateY === y) || null)
-    );
+    return rows.map(y => cols.map(x => slots.find(s => s.cordinateX === x && s.cordinateY === y) || null));
   };
 
-  // NEW: đếm pin theo slots (occupied/battery != null)
-  const getBatteryCountFromSlots = (station) => {
-    if (!Array.isArray(station?.slots)) return 0;
-    return station.slots.filter(s => !!s?.battery).length;
-  };
-
-  // NEW: mở modal – ưu tiên dùng battery embed; fallback gọi get-battery-by-id nếu cần
-  const openSlotModal = async (slot) => {
-    if (!slot) return;
-
-    setActiveSlot(slot);
+  // === Mở modal slot: chỉ cho phép khi có pin & pin phù hợp ===
+  const openSlotModal = (slot, stationId) => {
+    const b = slot?.battery;
+    // Không có pin -> không mở
+    if (!b) return;
+    // Không phù hợp -> không mở (có thể hiện toast nếu muốn)
+    if (!batteryCompatible(b)) {
+      // toast.info('Pin này không phù hợp với xe đã chọn');
+      return;
+    }
+    setActiveSlot({ ...slot, stationId });
+    setSlotBattery(b);         // dùng luôn battery embed, không gọi API
     setShowSlotModal(true);
-    setSlotError(null);
-
-    // Dùng dữ liệu đã có sẵn
-    if (slot.battery) {
-      setSlotBattery(slot.battery);
-      return;
-    }
-
-    // Fallback (tuỳ bạn có cần làm "refresh" hay không)
-    const batteryId =
-      slot?.battery?.batteryId || // nếu BE gửi cả batteryId bên trong
-      slot?.batteryId ||          // nếu có field cũ
-      null;
-
-    if (!batteryId) {
-      setSlotBattery(null);
-      return;
-    }
-
-    setSlotLoading(true);
-    try {
-      const b = await authAPI.getBatteryById(batteryId);
-      setSlotBattery(b);
-    } catch (err) {
-      setSlotError(err?.message || "Không lấy được thông tin pin");
-    } finally {
-      setSlotLoading(false);
-    }
   };
 
   const closeSlotModal = () => {
     setShowSlotModal(false);
     setActiveSlot(null);
     setSlotBattery(null);
-    setSlotError(null);
   };
 
+  // === Chọn pin từ modal (đi thẳng sang booking hay callback tùy dự án) ===
+  const chooseBatteryFromModal = () => {
+    const b = slotBattery;
+    if (!b) return;
+    const bid = b.batteryId || b.id;
+    const bname = b.batteryName || bid || '';
+    const sid = activeSlot?.stationId || '';
+    const qs = new URLSearchParams({
+      stationId: sid,
+      batteryId: bid,
+      batteryName: bname,
+      ...(selectedVehicleVin ? { vin: selectedVehicleVin } : {})
+    }).toString();
+    // Điều hướng tùy luồng của bạn:
+    window.location.href = `/booking?${qs}`;
+  };
+
+
   return (
-    
+
     <div
       className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}
       style={{ maxHeight: "calc(100vh - 120px)", overflowY: "auto" }}
@@ -323,7 +352,7 @@ export default function StationForUser() {
           backgroundRepeat: "no-repeat",
           backgroundPosition: "top right",
           backgroundSize: "100% auto",
-          
+
           transition: "opacity 0.2s"
         }}
         aria-hidden="true"
@@ -340,36 +369,36 @@ export default function StationForUser() {
       </div>
       {/* Main illustration with subtle border and shadow */}
       <div
-            style={{
-              width: "100%",
-              maxWidth: 1500,
-              margin: "0 auto 1.5rem auto",
-              borderRadius: "8px",
-              overflow: "hidden",
-              boxShadow:
-                theme === "dark"
-                  ? "0 6px 32px rgba(59,130,246,0.12)"
-                  : "0 6px 32px rgba(16,185,129,0.13)",
-              border: theme === "dark"
-                ? "1.5px solid #334155"
-                : "1.5px solid #bbf7d0",
-              position: "relative",
-              zIndex: 2
-            }}
-          >
-            <img
-              src="https://etimg.etb2bimg.com/photo/97076517.cms"
-              alt="Battery Station Modern"
-              style={{
-                width: "100%",
-                height: "320px",
-                objectFit: "cover",
-                display: "block",
-                background: "#e0ffe7"
-              }}
-            />
-          </div>
-      <div className="liquid station-container">
+        style={{
+          width: "100%",
+          maxWidth: 1500,
+          margin: "0 auto 1.5rem auto",
+          borderRadius: "8px",
+          overflow: "hidden",
+          boxShadow:
+            theme === "dark"
+              ? "0 6px 32px rgba(59,130,246,0.12)"
+              : "0 6px 32px rgba(16,185,129,0.13)",
+          border: theme === "dark"
+            ? "1.5px solid #334155"
+            : "1.5px solid #bbf7d0",
+          position: "relative",
+          zIndex: 2
+        }}
+      >
+        <img
+          src="https://etimg.etb2bimg.com/photo/97076517.cms"
+          alt="Battery Station Modern"
+          style={{
+            width: "100%",
+            height: "320px",
+            objectFit: "cover",
+            display: "block",
+            background: "#e0ffe7"
+          }}
+        />
+      </div>
+      <div className="station-container">
         <div
           style={{
             textAlign: "center",
@@ -413,12 +442,12 @@ export default function StationForUser() {
           <select
             className="station-select"
             value={selectedVehicleVin}
-            onChange={(e)=>setSelectedVehicleVin(e.target.value)}
+            onChange={(e) => setSelectedVehicleVin(e.target.value)}
           >
             <option value="">🚗 Chọn xe đã liên kết (lọc theo pin phù hợp)</option>
             {vehicles.map(v => (
-              <option key={vprop(v,'vin')} value={vprop(v,'vin')}>
-                {vprop(v,'vehicleName') || vprop(v,'name') || 'Vehicle'}
+              <option key={vprop(v, 'vin')} value={vprop(v, 'vin')}>
+                {vprop(v, 'vehicleName') || vprop(v, 'name') || 'Vehicle'}
               </option>
             ))}
           </select>
@@ -428,12 +457,12 @@ export default function StationForUser() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
-          <select className="station-select" value={statusFilter} onChange={(e)=>setStatusFilter(e.target.value)}>
+          <select className="station-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="All">📊 Tất cả trạng thái</option>
             <option value="Active">✅ Active</option>
             <option value="Inactive">❌ Inactive</option>
           </select>
-          <button className="btn" onClick={fetchStations} disabled={loading}>
+          <button className="btn" onClick={fetchStations} disabled={isLoading}>
             {loading ? "🔄 Đang tải..." : "🔄 Reload"}
           </button>
         </div>
@@ -461,441 +490,387 @@ export default function StationForUser() {
                 const stationUniqueId = st.stationId ?? st.StationId ?? st.id ?? idx;
                 const isExpanded = expandedStations.has(stationUniqueId);
                 return (
-                <article 
-                  key={stationUniqueId} 
-                  className="station-card-for-user" 
-                  style={{ 
-                    animationDelay: `${idx * 40}ms`,
-                    background: theme === 'dark' 
-                      ? 'linear-gradient(145deg, #374151 0%, #1f2937 100%)'
-                      : 'linear-gradient(145deg,rgba(255, 255, 255, 0.08) 0%,rgba(248, 250, 252, 0.26) 100%)',
-                    border: theme === 'dark' 
-                      ? '1px solid #4b5563'
-                      : '1px solid #e2e8f0',
-                    borderRadius: '16px',
-                    boxShadow: theme === 'dark'
-                      ? '0 10px 25px rgba(0, 0, 0, 0.3)'
-                      : '0 10px 25px rgba(0, 0, 0, 0.1)',
-                    overflow: 'hidden',
-                    position: 'relative',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-5px)';
-                    e.currentTarget.style.boxShadow = theme === 'dark'
-                      ? '0 20px 40px rgba(0, 0, 0, 0.4)'
-                      : '0 20px 40px rgba(0, 0, 0, 0.15)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = theme === 'dark'
-                      ? '0 10px 25px rgba(0, 0, 0, 0.3)'
-                      : '0 10px 25px rgba(0, 0, 0, 0.1)';
-                  }}
-                >
-                  {/* Station Image */}
-                  <div style={{
-                    height: '400px',
-                    background: `url(${stationImages[idx % stationImages.length]}) center/cover`,
-                    position: 'relative'
-                  }}>
+                  <article
+                    key={stationUniqueId}
+                    className="station-card-for-user"
+                    style={{
+                      animationDelay: `${idx * 40}ms`,
+                      background: theme === 'dark'
+                        ? 'linear-gradient(145deg, #374151 0%, #1f2937 100%)'
+                        : 'linear-gradient(145deg,rgba(255, 255, 255, 0.08) 0%,rgba(248, 250, 252, 0.26) 100%)',
+                      border: theme === 'dark'
+                        ? '1px solid #4b5563'
+                        : '1px solid #e2e8f0',
+                      borderRadius: '16px',
+                      boxShadow: theme === 'dark'
+                        ? '0 10px 25px rgba(0, 0, 0, 0.3)'
+                        : '0 10px 25px rgba(0, 0, 0, 0.1)',
+                      overflow: 'hidden',
+                      position: 'relative',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-5px)';
+                      e.currentTarget.style.boxShadow = theme === 'dark'
+                        ? '0 20px 40px rgba(0, 0, 0, 0.4)'
+                        : '0 20px 40px rgba(0, 0, 0, 0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = theme === 'dark'
+                        ? '0 10px 25px rgba(0, 0, 0, 0.3)'
+                        : '0 10px 25px rgba(0, 0, 0, 0.1)';
+                    }}
+                  >
+                    {/* Station Image */}
                     <div style={{
-                      position: 'absolute',
-                      top: '12px',
-                      right: '12px',
-                      background: (st.status ?? "").toLowerCase() === "active" 
-                        ? 'rgba(34, 197, 94, 0.9)' 
-                        : 'rgba(239, 68, 68, 0.9)',
-                      color: 'white',
-                      padding: '4px 12px',
-                      borderRadius: '20px',
-                      fontSize: '0.8rem',
-                      fontWeight: 'bold',
-                      backdropFilter: 'blur(10px)'
+                      height: '400px',
+                      background: `url(${stationImages[idx % stationImages.length]}) center/cover`,
+                      position: 'relative'
                     }}>
-                      {(st.status ?? "").toLowerCase() === "active" ? "🟢" : "🔴"} {st.status ?? "Unknown"}
+                      <div style={{
+                        position: 'absolute',
+                        top: '12px',
+                        right: '12px',
+                        background: (st.status ?? "").toLowerCase() === "active"
+                          ? 'rgba(34, 197, 94, 0.9)'
+                          : 'rgba(239, 68, 68, 0.9)',
+                        color: 'white',
+                        padding: '4px 12px',
+                        borderRadius: '20px',
+                        fontSize: '0.8rem',
+                        fontWeight: 'bold',
+                        backdropFilter: 'blur(10px)'
+                      }}>
+                        {(st.status ?? "").toLowerCase() === "active" ? "🟢" : "🔴"} {st.status ?? "Unknown"}
+                      </div>
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '0',
+                        left: '0',
+                        right: '0',
+                        background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+                        height: '60px'
+                      }}></div>
                     </div>
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '0',
-                      left: '0',
-                      right: '0',
-                      background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                      height: '60px'
-                    }}></div>
-                  </div>
 
-                  <div style={{ padding: '20px' }}>
-                    <div className="station-head" style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'flex-start',
-                      marginBottom: '12px'
-                    }}>
-                      <div className="head-left" style={{ flex: 1 }}>
-                        <h3 className="station-id" style={{
-                          fontSize: '1.4rem',
-                          fontWeight: 'bold',
-                          color: theme === 'dark' ? '#f1f5f9' : '#ffffff',
-                          marginBottom: '8px'
-                        }}>
-                          🏢 {st.stationName ?? "Tên trạm chưa có"}
-                        </h3>
-                        <div className="station-subinfo" style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          marginBottom: '12px'
-                        }}>
-                          <span className="sub-location" style={{
-                            color: theme === 'dark' ? '#94a3b8' : '#ffffff',
-                            fontSize: '0.9rem'
+                    <div style={{ padding: '20px' }}>
+                      <div className="station-head" style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        marginBottom: '12px'
+                      }}>
+                        <div className="head-left" style={{ flex: 1 }}>
+                          <h3 className="station-id" style={{
+                            fontSize: '1.4rem',
+                            fontWeight: 'bold',
+                            color: theme === 'dark' ? '#f1f5f9' : '#ffffff',
+                            marginBottom: '8px'
                           }}>
-                            📍 {st.location ?? "-"}
-                          </span>
-                          <span className="sub-sep" style={{
-                            color: theme === 'dark' ? '#64748b' : '#94a3b8'
-                          }}>•</span>
-                          <span className="sub-rating" style={{
-                            color: theme === 'dark' ? '#fbbf24' : '#f59e0b',
-                            fontSize: '0.9rem',
-                            fontWeight: '500'
+                            🏢 {st.stationName ?? "Tên trạm chưa có"}
+                          </h3>
+                          <div className="station-subinfo" style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            marginBottom: '12px'
                           }}>
-                            ⭐ {typeof st.rating === "number" ? st.rating.toFixed(1) : "-"}
-                          </span>
+                            <span className="sub-location" style={{
+                              color: theme === 'dark' ? '#94a3b8' : '#ffffff',
+                              fontSize: '0.9rem'
+                            }}>
+                              📍 {st.location ?? "-"}
+                            </span>
+                            <span className="sub-sep" style={{
+                              color: theme === 'dark' ? '#64748b' : '#94a3b8'
+                            }}>•</span>
+                            <span className="sub-rating" style={{
+                              color: theme === 'dark' ? '#fbbf24' : '#f59e0b',
+                              fontSize: '0.9rem',
+                              fontWeight: '500'
+                            }}>
+                              ⭐ {typeof st.rating === "number" ? st.rating.toFixed(1) : "-"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="emergency-actions" style={{ marginLeft: '16px' }}>
+                          <button
+                            className="emergency-btn primary"
+                            onClick={() => handleReportClick(st)}
+                            style={{
+                              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                              color: 'white',
+                              padding: '8px 16px',
+                              borderRadius: '20px',
+                              border: 'none',
+                              fontWeight: 'bold',
+                              fontSize: '0.8rem',
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                              transition: 'all 0.3s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.transform = 'scale(1.05)';
+                              e.target.style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.4)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.transform = 'scale(1)';
+                              e.target.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
+                            }}
+                          >
+                            ⚠️ Báo cáo
+                          </button>
                         </div>
                       </div>
-                      <div className="emergency-actions" style={{ marginLeft: '16px' }}>
-                        <button 
-                          className="emergency-btn primary" 
-                          onClick={() => handleReportClick(st)}
-                          style={{
-                            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                            color: 'white',
-                            padding: '8px 16px',
-                            borderRadius: '20px',
-                            border: 'none',
+
+                      <div className="summary-row" style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: '16px',
+                        marginBottom: '20px',
+                        padding: '16px',
+                        background: theme === 'dark'
+                          ? 'rgba(55, 65, 81, 0.5)'
+                          : 'rgba(248, 250, 252, 0.8)',
+                        borderRadius: '12px',
+                        border: theme === 'dark'
+                          ? '1px solid rgba(75, 85, 99, 0.3)'
+                          : '1px solid rgba(226, 232, 240, 0.5)'
+                      }}>
+                        <div className="summary-item" style={{ textAlign: 'center' }}>
+                          <div className="summary-num" style={{
+                            fontSize: '1.8rem',
                             fontWeight: 'bold',
+                            color: theme === 'dark' ? '#3b82f6' : '#2563eb',
+                            marginBottom: '4px'
+                          }}>
+                            🔋 {st.batteryNumber ?? 0}
+                          </div>
+                          <div className="summary-label" style={{
                             fontSize: '0.8rem',
+                            color: theme === 'dark' ? '#94a3b8' : '#64748b'
+                          }}>
+                            Số pin đăng ký
+                          </div>
+                        </div>
+                        <div className="summary-item" style={{ textAlign: 'center' }}>
+                          <div className="summary-num" style={{
+                            fontSize: '1.8rem',
+                            fontWeight: 'bold',
+                            color: theme === 'dark' ? '#10b981' : '#059669',
+                            marginBottom: '4px'
+                          }}>
+                            ⚡ {st.batteryNumber ?? 0}
+                          </div>
+                          <div className="summary-label" style={{
+                            fontSize: '0.8rem',
+                            color: theme === 'dark' ? '#94a3b8' : '#64748b'
+                          }}>
+                            Pin đang ở trạm
+                          </div>
+                        </div>
+                        <div className="summary-item hide-mobile" style={{ textAlign: 'center' }}>
+                          <div className="summary-num" style={{
+                            fontSize: '1.8rem',
+                            fontWeight: 'bold',
+                            color: theme === 'dark' ? '#f59e0b' : '#d97706',
+                            marginBottom: '4px'
+                          }}>
+                            📊 {safeLen(st.batteryHistories)}
+                          </div>
+                          <div className="summary-label" style={{
+                            fontSize: '0.8rem',
+                            color: theme === 'dark' ? '#94a3b8' : '#64748b'
+                          }}>
+                            Lịch sử
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Batteries detail list - Đẹp trai, lung linh hơn */}
+                      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+                        <button
+                          type="button"
+                          onClick={() => toggleStationDetails(stationUniqueId)}
+                          style={{
+                            padding: '10px 18px',
+                            borderRadius: '9999px',
+                            border: 'none',
+                            fontWeight: 600,
                             cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
-                            transition: 'all 0.3s ease'
+                            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                            color: '#fff',
+                            boxShadow: '0 8px 20px rgba(37, 99, 235, 0.25)',
+                            transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 12px 30px rgba(37, 99, 235, 0.35)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 8px 20px rgba(37, 99, 235, 0.25)';
+                          }}
+                        >
+                          {isExpanded ? 'Thu gọn danh sách pin' : 'Xem danh sách pin'}
+                        </button>
+                      </div>
+                      {isExpanded && (
+                        <div
+                          style={{
+                            marginTop: '20px',
+                            marginBottom: '20px',
+                            borderTop: theme === 'dark' ? '2px solid #2563eb' : '2px solid rgb(59, 246, 78)',
+                            paddingTop: '20px',
+                            background: theme === 'dark' ? 'rgba(16,24,39,0.70)' : 'rgba(236, 245, 255, 0)',
+                            borderRadius: 12,
+                            boxShadow: theme === 'dark'
+                              ? '0 2px 12px rgba(30,41,59,.10)'
+                              : '0 4px 16px rgba(59,130,246,0.09)'
+                          }}>
+                          <div
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                              gap: '18px'
+                            }}
+                          >
+                            {/* ===== SƠ ĐỒ KHE (6×5) — slot-only ===== */}
+
+                            <div className="slots-section" style={{ marginTop: 6, marginBottom: 16 }}>
+                              {Array.isArray(st.slots) && st.slots.length > 0 ? (
+                                <div className="slot-grid">
+                                  {buildSlotGrid(st.slots).map((row, rIdx) => (
+                                    <div className="slot-row liquid" key={`row-${rIdx}`}>
+                                      {row.map((slot, cIdx) => {
+                                        const hasBattery = !!slot?.battery;
+                                        const b = slot?.battery || null;
+                                        const status = (b?.status || slot?.status || 'Empty').toLowerCase();
+                                        const isCompatible = hasBattery && batteryCompatible(b);
+                                        const canOpen = hasBattery && isCompatible;
+
+                                        const name = hasBattery ? (b.batteryName || b.batteryId) : '';
+                                        const badge = hasBattery ? (b.status || '') : (slot?.status || 'Empty');
+
+                                        return (
+                                          <button
+                                            type="button"
+                                            key={slot?.slotId || `slot-${rIdx}-${cIdx}`}
+                                            className={`slot-cell status-${status} ${hasBattery ? 'has-battery' : ''}`}
+                                            onClick={() => canOpen && openSlotModal(slot, st.stationId)}
+                                            title={
+                                              !hasBattery
+                                                ? (slot?.status || 'Empty')
+                                                : isCompatible
+                                                  ? `${name}${b?.capacity != null ? ` • ${b.capacity}%` : ''} • ${badge} (phù hợp)`
+                                                  : `${name} • Không phù hợp với xe`
+                                            }
+                                            style={{
+                                              cursor: canOpen ? 'pointer' : 'not-allowed',
+                                              opacity: hasBattery ? (isCompatible ? 1 : 0.42) : 1,
+                                              outline: (hasBattery && isCompatible) ? '2px solid rgb(59, 246, 78)' : undefined
+                                            }}
+                                          >
+                                            {hasBattery ? (
+                                              <>
+                                                <div className="slot-status" style={{ fontWeight: 800 }}>
+                                                  {name}
+                                                </div>
+                                                <div className="slot-badge">
+                                                  {badge}{b?.capacity != null ? ` • ${b.capacity}%` : ''}
+                                                </div>
+                                              </>
+                                            ) : (
+                                              <div className="slot-status">{slot?.status || 'Empty'}</div>
+                                            )}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="empty-note">Trạm chưa có slot nào.</div>
+                              )}
+
+                              <div className="slot-legend" style={{ justifyContent: 'center' }}>
+                                <span><i className="lg lg-empty" />Empty</span>
+                                <span><i className="lg lg-available" />Available</span>
+                                <span><i className="lg lg-charging" />Charging</span>
+                                <span><i className="lg lg-faulty" />Booked</span>
+                              </div>
+                            </div>
+
+
+
+                            {(Array.isArray(st.slots) ? st.slots.map(s => s?.battery).filter(Boolean) : []).map((b) => {
+                              const bid = vprop(b, 'batteryId') || vprop(b, 'id') || vprop(b, 'BatteryId');
+                              const bname = vprop(b, 'batteryName') || bid || 'N/A';
+                              const btype = vprop(b, 'batteryType') || '-';
+                              const bspec = vprop(b, 'batterySpec') || '-';
+                              const bcap = vprop(b, 'batteryCapacity');
+                              const bqual = vprop(b, 'batteryQuality');
+                              const bstatus = (b.status || b.Status || '').toString();
+                              const compatible = batteryCompatible(b);
+                              const isBooked = bstatus.toLowerCase() === 'booked';
+
+                              // Smart icon and status color
+                              let statusChipColor = '#22c55e', statusIcon = '🟢';
+                              if (bstatus.toLowerCase() === 'active') { statusChipColor = '#22c55e'; statusIcon = '🟢'; }
+                              else if (isBooked) { statusChipColor = '#f87171'; statusIcon = '🔴'; }
+                              else if (bstatus.toLowerCase().includes('ready')) { statusChipColor = '#06b6d4'; statusIcon = '🔋'; }
+                            })}
+                          </div>
+
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <button
+                          className="btn"
+                          style={{
+                            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                            color: 'white',
+                            padding: '10px 16px',
+                            borderRadius: '25px',
+                            fontWeight: 'bold',
+                            border: 'none'
+                          }}
+                          onClick={() => setOpenRatingFor(st)}
+                        >
+                          ⭐ Đánh giá
+                        </button>
+                        <a
+                          className="btn primary"
+                          href={`/booking?stationId=${encodeURIComponent(st.stationId)}`}
+                          style={{
+                            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                            color: 'white',
+                            padding: '12px 24px',
+                            borderRadius: '25px',
+                            textDecoration: 'none',
+                            fontWeight: 'bold',
+                            fontSize: '0.9rem',
+                            transition: 'all 0.3s ease',
+                            boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+                            border: 'none'
                           }}
                           onMouseEnter={(e) => {
                             e.target.style.transform = 'scale(1.05)';
-                            e.target.style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.4)';
+                            e.target.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)';
                           }}
                           onMouseLeave={(e) => {
                             e.target.style.transform = 'scale(1)';
-                            e.target.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
+                            e.target.style.boxShadow = '0 4px 15px rgba(59, 130, 246, 0.3)';
                           }}
                         >
-                        ⚠️ Báo cáo
-                        </button>
+                          📅 Đặt lịch
+                        </a>
                       </div>
                     </div>
-
-                    <div className="summary-row" style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(3, 1fr)',
-                      gap: '16px',
-                      marginBottom: '20px',
-                      padding: '16px',
-                      background: theme === 'dark' 
-                        ? 'rgba(55, 65, 81, 0.5)' 
-                        : 'rgba(248, 250, 252, 0.8)',
-                      borderRadius: '12px',
-                      border: theme === 'dark' 
-                        ? '1px solid rgba(75, 85, 99, 0.3)'
-                        : '1px solid rgba(226, 232, 240, 0.5)'
-                    }}>
-                      <div className="summary-item" style={{ textAlign: 'center' }}>
-                        <div className="summary-num" style={{
-                          fontSize: '1.8rem',
-                          fontWeight: 'bold',
-                          color: theme === 'dark' ? '#3b82f6' : '#2563eb',
-                          marginBottom: '4px'
-                        }}>
-                          🔋 {st.batteryNumber ?? 0}
-                        </div>
-                        <div className="summary-label" style={{
-                          fontSize: '0.8rem',
-                          color: theme === 'dark' ? '#94a3b8' : '#64748b'
-                        }}>
-                          Số pin đăng ký
-                        </div>
-                      </div>
-                      <div className="summary-item" style={{ textAlign: 'center' }}>
-                        <div className="summary-num" style={{
-                          fontSize: '1.8rem',
-                          fontWeight: 'bold',
-                          color: theme === 'dark' ? '#10b981' : '#059669',
-                          marginBottom: '4px'
-                        }}>
-                          ⚡ {safeLen(st.batteries)}
-                        </div>
-                        <div className="summary-label" style={{
-                          fontSize: '0.8rem',
-                          color: theme === 'dark' ? '#94a3b8' : '#64748b'
-                        }}>
-                          Pin đang ở trạm
-                        </div>
-                      </div>
-                      <div className="summary-item hide-mobile" style={{ textAlign: 'center' }}>
-                        <div className="summary-num" style={{
-                          fontSize: '1.8rem',
-                          fontWeight: 'bold',
-                          color: theme === 'dark' ? '#f59e0b' : '#d97706',
-                          marginBottom: '4px'
-                        }}>
-                          📊 {safeLen(st.batteryHistories)}
-                        </div>
-                        <div className="summary-label" style={{
-                          fontSize: '0.8rem',
-                          color: theme === 'dark' ? '#94a3b8' : '#64748b'
-                        }}>
-                          Lịch sử
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Batteries detail list - Đẹp trai, lung linh hơn */}
-                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
-                      <button
-                        type="button"
-                        onClick={() => toggleStationDetails(stationUniqueId)}
-                        style={{
-                          padding: '10px 18px',
-                          borderRadius: '9999px',
-                          border: 'none',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                          color: '#fff',
-                          boxShadow: '0 8px 20px rgba(37, 99, 235, 0.25)',
-                          transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-2px)';
-                          e.currentTarget.style.boxShadow = '0 12px 30px rgba(37, 99, 235, 0.35)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 8px 20px rgba(37, 99, 235, 0.25)';
-                        }}
-                      >
-                        {isExpanded ? 'Thu gọn danh sách pin' : 'Xem danh sách pin'}
-                      </button>
-                    </div>
-                    {isExpanded && (
-                    <div
-                      style={{
-                        marginTop: '20px',
-                        marginBottom: '20px',
-                        borderTop: theme === 'dark' ? '2px solid #2563eb' : '2px solid #3b82f6',
-                        paddingTop: '20px',
-                        background: theme === 'dark' ? 'rgba(16,24,39,0.70)' : 'rgba(236,245,255,0.70)',
-                        borderRadius: 12,
-                        boxShadow: theme === 'dark'
-                          ? '0 2px 12px rgba(30,41,59,.10)'
-                          : '0 4px 16px rgba(59,130,246,0.09)'
-                      }}
-                    >
-                      <h3
-                        style={{
-                          margin: '0 0 24px 0',
-                          fontSize: '1.27rem',
-                          color: theme === 'dark' ? '#60a5fa' : '#2563eb',
-                          fontWeight: 'bold',
-                          letterSpacing: 0.2,
-                          textAlign: 'center'
-                        }}
-                      >
-                        🪫 Danh sách pin tại trạm
-                      </h3>
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                          gap: '18px'
-                        }}
-                      >
-                        {(Array.isArray(st.batteries) ? st.batteries : []).map((b) => {
-                          const bid = vprop(b,'batteryId') || vprop(b,'id') || vprop(b,'BatteryId');
-                          const bname = vprop(b,'batteryName') || bid || 'N/A';
-                          const btype = vprop(b,'batteryType') || '-';
-                          const bspec = vprop(b,'batterySpec') || '-';
-                          const bcap = vprop(b,'batteryCapacity');
-                          const bqual = vprop(b,'batteryQuality');
-                          const bstatus = (b.status || b.Status || '').toString();
-                          const compatible = batteryCompatible(b);
-                          const isBooked = bstatus.toLowerCase() === 'booked';
-
-                          // Smart icon and status color
-                          let statusChipColor = '#22c55e', statusIcon = '🟢';
-                          if (bstatus.toLowerCase() === 'active') { statusChipColor = '#22c55e'; statusIcon = '🟢'; }
-                          else if (isBooked) { statusChipColor = '#f87171'; statusIcon = '🔴'; }
-                          else if (bstatus.toLowerCase().includes('ready')) { statusChipColor = '#06b6d4'; statusIcon = '🔋'; }
-
-                          // Compose battery card
-                          return (
-                            <div
-                              key={String(bid)}
-                              style={{
-                                border: compatible
-                                  ? '1px solid #22c55e'
-                                  : (theme === 'dark' ? '1.5px solid #334155' : '1.5px solid #e5e7eb'),
-                                borderRadius: 14,
-                                background: compatible
-                                  ? (theme === 'dark' ? 'linear-gradient(100deg,#14532d30 10%,#111827 90%)' : 'linear-gradient(100deg, #f0fdf4 80%, #bbf7d0 100%)')
-                                  : (theme === 'dark' ? '#151a23' : '#f8fafc'),
-                                boxShadow: compatible
-                                  ? (theme === 'dark'
-                                    ? '0 2px 12px #22c55e1a'
-                                    : '0 2px 9px #36d39919')
-                                  : undefined,
-                                padding: '16px 14px 14px 14px',
-                                transition: 'all 0.18s'
-                              }}
-                            >
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                marginBottom: '10px',
-                                gap: '8px'
-                              }}>
-                                <span style={{
-                                  fontSize: 22,
-                                  verticalAlign: 'middle',
-                                }}>
-                                  {statusIcon}
-                                </span>
-                                <span style={{
-                                  display: 'inline-block',
-                                  fontSize: 13,
-                                  fontWeight: '700',
-                                  color: statusChipColor,
-                                  background: theme === 'dark'
-                                    ? '#1e293b' : '#f3f4f6',
-                                  borderRadius: 15,
-                                  padding: '2px 10px',
-                                  border: `1px solid ${statusChipColor}`,
-                                  letterSpacing: '0.04em',
-                                  boxShadow: theme === 'dark' ? undefined : '0 1px 3px #c7d2fe19'
-                                }}>
-                                  {bstatus ? bstatus : 'Chưa rõ trạng thái'}
-                                </span>
-                              </div>
-                              <div style={{
-                                fontSize: 14.5,
-                                fontWeight: 600,
-                                marginBottom: 7,
-                                color: theme === 'dark' ? '#bae6fd' : '#0369a1',
-                                textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap"
-                              }}>
-                                <span style={{
-                                  marginRight: 6,
-                                  letterSpacing: 0.02
-                                }}>🔋 {bname}</span>
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: 12.5,
-                                  color: theme === 'dark' ? '#cbd5e1' : '#374151',
-                                  marginBottom: 5,
-                                  display: 'grid',
-                                  rowGap: '3px'
-                                }}>
-                                <div>BatteryID: <b>{bid || 'N/A'}</b></div>
-                                <div>Loại: <b>{btype}</b></div>
-                                <div>Dung lượng: <b>{bcap ?? '-'}</b> | Spec: <b>{bspec}</b></div>
-                                <div>Chất lượng: <b>{bqual ?? '-'}</b></div>
-                              </div>
-                              <div style={{
-                                display: 'flex',
-                                justifyContent: 'flex-end',
-                                marginTop: 12
-                              }}>
-                                <a
-                                  className="btn small"
-                                  href={
-                                    (!compatible || isBooked)
-                                      ? undefined
-                                      : `/booking?stationId=${encodeURIComponent(st.stationId)}&batteryId=${encodeURIComponent(bid)}&batteryName=${encodeURIComponent(bname)}${selectedVehicleVin ? `&vin=${encodeURIComponent(selectedVehicleVin)}` : ''}`
-                                  }
-                                  style={{
-                                    background: (compatible && !isBooked)
-                                      ? 'linear-gradient(93deg, #22d3ee 0%, #38bdf8 29%, #22c55e 100%)'
-                                      : (theme === 'dark' ? '#334155' : '#e5e7eb'),
-                                    color: (compatible && !isBooked) ? 'white' : (theme === 'dark' ? '#cbd5e1' : '#0f172a'),
-                                    border: (compatible && !isBooked)
-                                      ? 'none'
-                                      : (theme === 'dark' ? '1px solid #334155' : '1px solid #d1d5db'),
-                                    fontWeight: 700,
-                                    padding: '7px 16px',
-                                    borderRadius: '18px',
-                                    textDecoration: 'none',
-                                    transition: 'all 0.17s',
-                                    pointerEvents: (compatible && !isBooked) ? 'auto' : 'none',
-                                    opacity: (compatible && !isBooked) ? 1 : 0.5,
-                                    fontSize: 13
-                                  }}
-                                >
-                                  {(compatible && !isBooked) ? '🔁 Chọn pin này' : (isBooked ?  'Đã được đặt' : 'Không phù hợp')}
-                                </a>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    )}
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <button
-                        className="btn"
-                        style={{
-                          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                          color: 'white',
-                          padding: '10px 16px',
-                          borderRadius: '25px',
-                          fontWeight: 'bold',
-                          border: 'none'
-                        }}
-                        onClick={() => setOpenRatingFor(st)}
-                      >
-                        ⭐ Đánh giá
-                      </button>
-                      <a 
-                        className="btn primary" 
-                        href={`/booking?stationId=${encodeURIComponent(st.stationId)}`}
-                        style={{
-                          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                          color: 'white',
-                          padding: '12px 24px',
-                          borderRadius: '25px',
-                          textDecoration: 'none',
-                          fontWeight: 'bold',
-                          fontSize: '0.9rem',
-                          transition: 'all 0.3s ease',
-                          boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
-                          border: 'none'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.transform = 'scale(1.05)';
-                          e.target.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.transform = 'scale(1)';
-                          e.target.style.boxShadow = '0 4px 15px rgba(59, 130, 246, 0.3)';
-                        }}
-                      >
-                        📅 Đặt lịch
-                      </a>
-                    </div>
-                  </div>
-                </article>
+                  </article>
                 );
               })}
             </div>
@@ -936,10 +911,10 @@ export default function StationForUser() {
                   className={`btn small ${page === currentPage ? 'active' : ''}`}
                   onClick={() => setCurrentPage(page)}
                   style={{
-                    background: page === currentPage 
+                    background: page === currentPage
                       ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
                       : theme === 'dark' ? '#374151' : '#f1f5f9',
-                    color: page === currentPage 
+                    color: page === currentPage
                       ? 'white'
                       : theme === 'dark' ? '#f1f5f9' : '#1e293b',
                     border: 'none',
@@ -981,6 +956,69 @@ export default function StationForUser() {
         />
       )}
 
+      {showSlotModal && (
+        <div className="modal-overlay" onClick={closeSlotModal}>
+          <div className="modal slot-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Chi tiết Pin</h2>
+
+            {(!activeSlot || !slotBattery) ? (
+              <div className="empty-note">Không có dữ liệu pin.</div>
+            ) : (
+              <>
+                <ul className="detail-list" style={{ marginBottom: 8 }}>
+                  <li><strong>Toạ độ slot:</strong> ({activeSlot.cordinateX},{activeSlot.cordinateY})</li>
+                  <li><strong>Trạng thái slot:</strong> {activeSlot.status}</li>
+                </ul>
+                {showSlotModal && activeSlot && slotBattery == null && (
+                  <div className="empty-note" style={{ marginBottom: 8 }}>
+                    Pin ở slot này hiện không khả dụng hoặc không còn phù hợp với xe sau khi cập nhật.
+                  </div>
+                )}
+
+                <div className="batt-card-mini">
+                  <div className="batt-mini-row">
+                    <span className="batt-mini-label">Tên/ID:</span>
+                    <span className="batt-mini-val">{slotBattery.batteryName || slotBattery.batteryId}</span>
+                  </div>
+                  <div className="batt-mini-row">
+                    <span className="batt-mini-label">Type:</span>
+                    <span className="batt-mini-val">{slotBattery.batteryType || '—'}</span>
+                  </div>
+                  <div className="batt-mini-row">
+                    <span className="batt-mini-label">Spec:</span>
+                    <span className="batt-mini-val">{slotBattery.specification || '—'}</span>
+                  </div>
+                  <div className="batt-mini-row">
+                    <span className="batt-mini-label">Capacity:</span>
+                    <span className="batt-mini-val">{slotBattery.capacity ?? '—'}%</span>
+                  </div>
+                  <div className="batt-mini-row">
+                    <span className="batt-mini-label">SoH:</span>
+                    <span className="batt-mini-val">{slotBattery.batteryQuality ?? '—'}%</span>
+                  </div>
+                  <div className="batt-mini-row">
+                    <span className="batt-mini-label">Status:</span>
+                    <span className="batt-mini-val">{slotBattery.status || '—'}</span>
+                  </div>
+                  <div className="batt-mini-row">
+                    <span className="batt-mini-label">Updated:</span>
+                    <span className="batt-mini-val">
+                      {slotBattery.updateDate ? new Date(slotBattery.updateDate).toLocaleString() : '—'}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
+                  <button className="btn light" onClick={closeSlotModal}>Đóng</button>
+                  <button className="btn" onClick={chooseBatteryFromModal}>
+                    🔁 Chọn pin này
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
       <Footer />
     </div>
   );
