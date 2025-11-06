@@ -1,24 +1,18 @@
-// Form.jsx
 import { useState, useEffect, useMemo } from 'react';
 import { authAPI } from '../../services/authAPI';
 import { formAPI } from '../../services/formAPI';
-import { getCurrentUserPayload, isInRole } from '../../services/jwt';
+import { isInRole } from '../../services/jwt';
 
 export default function FormPage() {
   const [forms, setForms] = useState([]);
   const [selectedForm, setSelectedForm] = useState(null);
   const [loading, setLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-
-  // Thêm state mới cho customer details
   const [customerDetails, setCustomerDetails] = useState({});
   const [detailLoading, setDetailLoading] = useState({});
-
-  // Thêm state mới cho station details
   const [stationDetails, setStationDetails] = useState({});
   const [stationLoading, setStationLoading] = useState({});
 
-  // State cho form tạo mới
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -26,17 +20,15 @@ export default function FormPage() {
     stationId: ''
   });
 
-  // State cho tìm kiếm và sắp xếp - ĐÃ CẬP NHẬT
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [stationFilter, setStationFilter] = useState('All');
+  const [stations, setStations] = useState([]);
   const [sortBy, setSortBy] = useState('date');
   const [sortDirection, setSortDirection] = useState('desc');
-
-  // State cho phân trang
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Lấy thông tin user hiện tại
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
@@ -49,12 +41,9 @@ export default function FormPage() {
     fetchCurrentUser();
   }, []);
 
-  // Hàm lấy thông tin customer theo accountId
   const fetchCustomerDetails = async (accountId, formId) => {
     if (!accountId || customerDetails[accountId]) return;
-
     setDetailLoading(prev => ({ ...prev, [accountId]: true }));
-    
     try {
       const response = await authAPI.getCustomerById(accountId);
       if (response.isSuccess && response.data) {
@@ -70,12 +59,9 @@ export default function FormPage() {
     }
   };
 
-  // Hàm lấy thông tin station theo stationId
   const fetchStationDetails = async (stationId, formId) => {
     if (!stationId || stationDetails[stationId]) return;
-
     setStationLoading(prev => ({ ...prev, [stationId]: true }));
-    
     try {
       const response = await authAPI.getStationByIdForAdmin(stationId);
       if (response) {
@@ -91,32 +77,18 @@ export default function FormPage() {
     }
   };
 
-  // Lấy tất cả forms - THÊM LOG ĐỂ DEBUG
   const fetchAllForms = async () => {
     setLoading(true);
     try {
       const response = await formAPI.getAllForms();
-      console.log('API Response:', response); // THÊM LOG
       if (response.isSuccess) {
         const formsData = response.data || [];
-        console.log('Forms data:', formsData); // THÊM LOG
         setForms(formsData);
-
-        // Fetch customer details cho mỗi form
         formsData.forEach(form => {
-          if (form.accountId) {
-            fetchCustomerDetails(form.accountId, form.id);
-          }
-        });
-
-        // Fetch station details cho mỗi form
-        formsData.forEach(form => {
-          if (form.stationId) {
-            fetchStationDetails(form.stationId, form.id);
-          }
+          if (form.accountId) fetchCustomerDetails(form.accountId, form.id);
+          if (form.stationId) fetchStationDetails(form.stationId, form.id);
         });
       } else {
-        console.error('Error fetching forms:', response.message);
         alert('Lỗi khi tải danh sách form: ' + response.message);
       }
     } catch (error) {
@@ -127,22 +99,32 @@ export default function FormPage() {
     }
   };
 
-  // Tạo form mới
-  const handleCreateForm = async (e) => {
-    e.preventDefault();
-    
+  const fetchAllStations = async () => {
+    try {
+      const response = await authAPI.getAllStations();
+      if (response && Array.isArray(response)) {
+        setStations(response);
+      }
+    } catch (error) {
+      console.error('Error fetching stations:', error);
+    }
+  };
+
+  const handleCreateForm = async () => {
     if (!currentUser) {
       alert('Vui lòng đăng nhập để tạo form');
       return;
     }
-
+    if (!formData.title || !formData.stationId) {
+      alert('Vui lòng nhập đầy đủ thông tin bắt buộc');
+      return;
+    }
     setLoading(true);
     try {
       const createData = {
         ...formData,
         accountId: currentUser.accountId || currentUser.id
       };
-
       const response = await formAPI.createForm(createData);
       if (response.isSuccess) {
         alert('Tạo form thành công!');
@@ -159,47 +141,26 @@ export default function FormPage() {
     }
   };
 
-  // Xóa form - SỬA LẠI ĐỂ XÁC ĐỊNH ĐÚNG FORM ID
   const handleDeleteForm = async (form) => {
-    // Xác định formId từ các trường có thể có
     const formId = form.id || form.formId || form.FormId;
-    
-    console.log('Attempting to delete form:', form);
-    console.log('Form ID to delete:', formId);
-    
     if (!formId) {
       alert('Không tìm thấy ID của form để xóa');
       return;
     }
-    
     if (!window.confirm('Bạn có chắc muốn xóa form này?')) return;
-
     setLoading(true);
     try {
-      console.log('Calling deleteForm API with formId:', formId);
       const response = await formAPI.deleteForm(formId);
-      console.log('Delete response:', response);
-      
       if (response.isSuccess) {
-        console.log('Delete successful');
         alert('Xóa form thành công!');
         setSelectedForm(null);
         fetchAllForms();
       } else {
-        console.log('Delete failed:', response.message);
         alert('Lỗi khi xóa form: ' + response.message);
       }
     } catch (error) {
-      console.error('Delete error details:', {
-        error,
-        response: error.response,
-        data: error.response?.data
-      });
-      
-      // Hiển thị thông báo lỗi chi tiết hơn
-      const errorMessage = error.response?.data?.message || 
-                          error.message || 
-                          'Vui lòng thử lại';
+      console.error('Delete error details:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Vui lòng thử lại';
       alert('Lỗi khi xóa form: ' + errorMessage);
     } finally {
       setLoading(false);
@@ -216,13 +177,9 @@ export default function FormPage() {
   };
 
   const handleFormDataChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Hàm xử lý sắp xếp
   const handleSort = (field) => {
     if (sortBy === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -232,80 +189,61 @@ export default function FormPage() {
     }
   };
 
-  // Lọc và sắp xếp forms - ĐÃ CẬP NHẬT
   const filteredAndSortedForms = useMemo(() => {
     let results = [...forms];
-
-    // Tìm kiếm theo nhiều trường
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       results = results.filter(form => {
-        // Tìm customer tương ứng với form.accountId
         const customer = customerDetails[form.accountId];
-        // Tìm station tương ứng với form.stationId
         const station = stationDetails[form.stationId];
-        
-        // Tìm kiếm theo các trường
-        const accountIdMatch = form.accountId && form.accountId.toLowerCase().includes(term);
-        const stationMatch = form.stationId && form.stationId.toLowerCase().includes(term);
-        const stationNameMatch = station && station.stationName && station.stationName.toLowerCase().includes(term);
-        const titleMatch = form.title && form.title.toLowerCase().includes(term);
-        const descriptionMatch = form.description && form.description.toLowerCase().includes(term);
-        
-        // Tìm kiếm theo customer details (nếu có)
-        const customerNameMatch = customer && customer.name && customer.name.toLowerCase().includes(term);
-        const customerUserNameMatch = customer && customer.username && customer.username.toLowerCase().includes(term);
-        const customerPhoneMatch = customer && customer.phone && customer.phone.toLowerCase().includes(term);
-        const customerEmailMatch = customer && customer.email && customer.email.toLowerCase().includes(term);
-
-        return accountIdMatch || stationMatch || stationNameMatch || titleMatch || descriptionMatch || 
-               customerNameMatch || customerUserNameMatch|| customerPhoneMatch || customerEmailMatch;
+        return (
+          (form.accountId && form.accountId.toLowerCase().includes(term)) ||
+          (form.stationId && form.stationId.toLowerCase().includes(term)) ||
+          (station && station.stationName && station.stationName.toLowerCase().includes(term)) ||
+          (form.title && form.title.toLowerCase().includes(term)) ||
+          (form.description && form.description.toLowerCase().includes(term)) ||
+          (customer && customer.name && customer.name.toLowerCase().includes(term)) ||
+          (customer && customer.username && customer.username.toLowerCase().includes(term)) ||
+          (customer && customer.phone && customer.phone.toLowerCase().includes(term)) ||
+          (customer && customer.email && customer.email.toLowerCase().includes(term))
+        );
       });
     }
-
-    // Lọc theo status
     if (statusFilter !== 'All') {
       results = results.filter(form => 
         form.status && form.status.toLowerCase() === statusFilter.toLowerCase()
       );
     }
-
-    // Sắp xếp
+    if (stationFilter !== 'All') {
+      results = results.filter(form => form.stationId === stationFilter);
+    }
     if (sortBy) {
       results.sort((a, b) => {
         let aValue = a[sortBy];
         let bValue = b[sortBy];
-
-        // Xử lý sắp xếp theo date
         if (sortBy === 'date') {
           aValue = aValue ? new Date(aValue) : new Date(0);
           bValue = bValue ? new Date(bValue) : new Date(0);
         }
-
-        // Xử lý các trường string
         if (typeof aValue === 'string') aValue = aValue.toLowerCase();
         if (typeof bValue === 'string') bValue = bValue.toLowerCase();
-
         if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
         if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
         return 0;
       });
     }
-
     return results;
-  }, [forms, searchTerm, statusFilter, sortBy, sortDirection, customerDetails, stationDetails]);
+  }, [forms, searchTerm, statusFilter, stationFilter, sortBy, sortDirection, customerDetails, stationDetails]);
 
-  // Tính toán phân trang
   const totalItems = filteredAndSortedForms.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentForms = filteredAndSortedForms.slice(startIndex, endIndex);
 
-  // Reset về trang 1 khi filters thay đổi
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, sortBy, sortDirection]);
+  }, [searchTerm, statusFilter, stationFilter, sortBy, sortDirection]);
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
@@ -315,17 +253,16 @@ export default function FormPage() {
 
   useEffect(() => {
     fetchAllForms();
+    fetchAllStations();
   }, []);
 
   const canCreateForm = currentUser && isInRole('EvDriver');
 
-  // Hàm format date giống Controller.jsx
   const formatDate = (dateString) => {
     if (!dateString || dateString === 'N/A') return 'N/A';
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return 'N/A';
-      
       return date.toLocaleString('vi-VN', {
         year: 'numeric',
         month: '2-digit',
@@ -339,498 +276,454 @@ export default function FormPage() {
     }
   };
 
-  // Hàm xác định màu sắc cho status
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'pending':
-      case 'chờ xử lý':
-        return '#f59e0b'; // orange
+      case 'submitted':
+        return 'bg-orange-500';
       case 'approved':
-      case 'đã duyệt':
-        return '#10b981'; // green
+        return 'bg-green-500';
       case 'rejected':
-      case 'từ chối':
-        return '#ef4444'; // red
-      case 'completed':
-      case 'hoàn thành':
-        return '#3b82f6'; // blue
+        return 'bg-red-500';
+      case 'deleted':
+        return 'bg-gray-500';
       default:
-        return '#6b7280'; // gray
+        return 'bg-gray-500';
     }
   };
 
-  // Icon sắp xếp
   const getSortIcon = (field) => {
     if (sortBy !== field) return '↕️';
     return sortDirection === 'asc' ? '↑' : '↓';
   };
 
-  // Hàm lấy Form ID từ nhiều trường có thể có
   const getFormId = (form) => {
     return form.id || form.formId || form.FormId || 'N/A';
   };
 
   return (
-    <div style={{ padding: 20, maxWidth: 1200, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 30 }}>Quản lý Form</h1>
+    <div className="mx-auto space-y-6 max-w-7xl">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">📋 Quản lý Form</h1>
+        <button 
+          onClick={fetchAllForms}
+          disabled={loading}
+          className="px-4 py-2 font-semibold text-white transition-all transform rounded-lg shadow-lg bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 hover:scale-105"
+        >
+          {loading ? '🔄 Đang tải...' : '🔄 Làm mới'}
+        </button>
+      </div>
 
-      {/* Form tạo mới - Chỉ hiển thị cho EvDriver */}
       {canCreateForm && (
-        <section style={{ marginBottom: 40, padding: 20, border: '1px solid #e2e8f0', borderRadius: 8 }}>
-          <h2 style={{ marginBottom: 16 }}>Tạo Form Mới</h2>
-          <form onSubmit={handleCreateForm} style={{ display: 'grid', gap: 16, maxWidth: 500 }}>
-            <label style={{ display: 'grid', gap: 6 }}>
-              <span>Tiêu đề *</span>
+        <div className="p-6 border border-orange-200 shadow-xl bg-gradient-to-br from-white to-orange-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl dark:border-gray-700">
+          <h2 className="flex items-center gap-2 mb-4 text-xl font-bold text-gray-900 dark:text-white">
+            ✨ Tạo Form Mới
+          </h2>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Tiêu đề *
+              </label>
               <input 
                 value={formData.title} 
                 onChange={(e) => handleFormDataChange('title', e.target.value)}
                 placeholder="Nhập tiêu đề form" 
-                required
-                style={{ padding: '10px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }} 
+                className="w-full px-4 py-3 text-gray-900 transition-all bg-white border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
-            </label>
+            </div>
             
-            <label style={{ display: 'grid', gap: 6 }}>
-              <span>Mô tả</span>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Station ID *
+              </label>
+              <input 
+                value={formData.stationId} 
+                onChange={(e) => handleFormDataChange('stationId', e.target.value)}
+                placeholder="Nhập ID trạm" 
+                className="w-full px-4 py-3 text-gray-900 transition-all bg-white border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div className="space-y-2 md:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Mô tả
+              </label>
               <textarea 
                 value={formData.description} 
                 onChange={(e) => handleFormDataChange('description', e.target.value)}
                 placeholder="Nhập mô tả" 
                 rows={3}
-                style={{ padding: '10px 12px', borderRadius: 6, border: '1px solid #cbd5e1', resize: 'vertical' }} 
+                className="w-full px-4 py-3 text-gray-900 transition-all bg-white border border-gray-300 rounded-lg resize-none dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
-            </label>
+            </div>
             
-            <label style={{ display: 'grid', gap: 6 }}>
-              <span>Ngày đăng ký đổi pin</span>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Ngày đăng ký đổi pin
+              </label>
               <input 
                 type="date"
                 value={formData.date} 
                 onChange={(e) => handleFormDataChange('date', e.target.value)}
-                style={{ padding: '10px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }} 
+                className="w-full px-4 py-3 text-gray-900 transition-all bg-white border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
-            </label>
+            </div>
             
-            <label style={{ display: 'grid', gap: 6 }}>
-              <span>Station ID *</span>
-              <input 
-                value={formData.stationId} 
-                onChange={(e) => handleFormDataChange('stationId', e.target.value)}
-                placeholder="Nhập ID trạm" 
-                required
-                style={{ padding: '10px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }} 
-              />
-            </label>
-            
-            <button 
-              type="submit" 
-              disabled={loading}
-              style={{ 
-                padding: '12px 16px', 
-                background: '#0f172a', 
-                color: 'white', 
-                borderRadius: 6, 
-                fontWeight: 600,
-                opacity: loading ? 0.6 : 1,
-                cursor: loading ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {loading ? 'Đang xử lý...' : 'Tạo Form'}
-            </button>
-          </form>
-        </section>
+            <div className="flex items-end">
+              <button 
+                onClick={handleCreateForm}
+                disabled={loading}
+                className="w-full px-6 py-3 font-semibold text-white transition-all transform rounded-lg shadow-lg bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 hover:scale-105"
+              >
+                {loading ? '⏳ Đang xử lý...' : '✅ Tạo Form'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Tìm kiếm và sắp xếp - GIỐNG CONTROLLER.JSX */}
-      <section style={{ marginBottom: 40, padding: 20, border: '1px solid #e2e8f0', borderRadius: 8 }}>
-        <h2 style={{ marginBottom: 16 }}>Tìm kiếm & Sắp xếp Form</h2>
+      <div className="p-6 bg-white border border-gray-200 shadow-xl dark:bg-gray-800 rounded-2xl dark:border-gray-700">
+        <h2 className="flex items-center gap-2 mb-4 text-xl font-bold text-gray-900 dark:text-white">
+          🔍 Tìm kiếm & Lọc
+        </h2>
         
-        <div className="controller-tools" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'end' }}>
-          
-          {/* Search Box - GIỐNG CONTROLLER.JSX */}
-          <div className="search-box" style={{ position: 'relative', minWidth: 300 }}>
-            <input
-              type="text"
-              placeholder="Search by Username, Customer Name, Phone, Station..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-              style={{
-                width: '100%',
-                padding: '10px 40px 10px 12px',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                fontSize: '14px',
-                outline: 'none',
-                transition: 'border-color 0.2s'
-              }}
-            />
-            <span 
-              className="search-icon" 
-              style={{
-                position: 'absolute',
-                right: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: '#64748b'
-              }}
-            >
-              🔍
-            </span>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+          <div className="space-y-2 lg:col-span-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Tìm kiếm
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Tìm theo Username, Customer, Phone, Station..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-3 pl-10 text-gray-900 transition-all bg-white border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
+              <span className="absolute text-gray-400 transform -translate-y-1/2 left-3 top-1/2">
+                🔍
+              </span>
+            </div>
           </div>
 
-          {/* Role Filter - GIỐNG CONTROLLER.JSX */}
-          <div className="role-filter" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Filter by Status</span>
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Lọc theo Status
+            </label>
             <select 
               value={statusFilter} 
               onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ 
-                padding: '8px 12px', 
-                borderRadius: '6px', 
-                border: '1px solid #cbd5e1',
-                fontSize: '14px'
-              }}
+              className="w-full px-4 py-3 text-gray-900 transition-all bg-white border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             >
-              <option value="All">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-              <option value="completed">Completed</option>
+              <option value="All">📊 Tất cả</option>
+              <option value="submitted">✅ Submitted</option>
+              <option value="approved">✅ Approved</option>
+              <option value="rejected">❌ Rejected</option>
+              <option value="deleted">🗑️ Deleted</option>
             </select>
           </div>
 
-          {/* Sort Controls - GIỐNG CONTROLLER.JSX */}
-          <div className="sort-controls" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Sort by</span>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Lọc theo Station
+            </label>
+            <select 
+              value={stationFilter} 
+              onChange={(e) => setStationFilter(e.target.value)}
+              className="w-full px-4 py-3 text-gray-900 transition-all bg-white border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            >
+              <option value="All">🏢 Tất cả Trạm</option>
+              {stations.map((station) => (
+                <option key={station.stationId} value={station.stationId}>
+                  {station.stationName || station.stationId}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Sắp xếp theo
+            </label>
+            <div className="flex gap-2">
               <select 
                 value={sortBy} 
                 onChange={(e) => handleSort(e.target.value)}
-                style={{ 
-                  padding: '8px 12px', 
-                  borderRadius: '6px', 
-                  border: '1px solid #cbd5e1',
-                  fontSize: '14px'
-                }}
+                className="flex-1 px-4 py-3 text-gray-900 transition-all bg-white border border-gray-300 rounded-lg dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               >
-                <option value="date">Date</option>
-                <option value="title">Title</option>
-                <option value="status">Status</option>
+                <option value="date">📅 Ngày</option>
+                <option value="title">📝 Tiêu đề</option>
+                <option value="status">📊 Status</option>
               </select>
-              
               <button 
                 onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
-                style={{ 
-                  padding: '8px 12px', 
-                  background: '#3b82f6', 
-                  color: 'white', 
-                  borderRadius: '6px',
-                  border: 'none',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  minWidth: '100px'
-                }}
+                className="px-4 py-3 font-semibold text-white transition-all transform bg-blue-500 rounded-lg shadow-md hover:bg-blue-600 hover:scale-105"
               >
-                {sortDirection === 'asc' ? '↑ Asc' : '↓ Desc'}
+                {sortDirection === 'asc' ? '↑' : '↓'}
               </button>
             </div>
           </div>
-
-          {/* Stats - GIỐNG CONTROLLER.JSX */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginLeft: 'auto' }}>
-            <span style={{ fontSize: 14, fontWeight: 500 }}>Results</span>
-            <div style={{ fontSize: 14, color: '#64748b' }}>
-              Showing: {filteredAndSortedForms.length} / {forms.length} forms
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Hiển thị form chi tiết */}
-      {selectedForm && (
-        <section style={{ marginBottom: 40, padding: 20, border: '1px solid #e2e8f0', borderRadius: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h2>Form Chi Tiết</h2>
-            <button 
-              onClick={() => setSelectedForm(null)}
-              style={{ padding: '6px 12px', background: '#6b7280', color: 'white', borderRadius: 6 }}
-            >
-              Đóng
-            </button>
-          </div>
-          <div style={{ padding: 16, background: '#f8fafc', borderRadius: 6 }}>
-            <pre style={{ whiteSpace: 'pre-wrap', fontSize: 14 }}>
-              {JSON.stringify(selectedForm, null, 2)}
-            </pre>
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-              <button 
-                onClick={() => handleDeleteForm(selectedForm)}
-                style={{ padding: '8px 16px', background: '#ef4444', color: 'white', borderRadius: 6 }}
-              >
-                Xóa Form
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Danh sách forms - ĐÃ CẬP NHẬT VỚI PHÂN TRANG */}
-      <section style={{ padding: 20, border: '1px solid #e2e8f0', borderRadius: 8 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2>
-            Danh sách Forms 
-            <span style={{ fontSize: 16, fontWeight: 'normal', color: '#64748b', marginLeft: 8 }}>
-              ({currentForms.length} / {filteredAndSortedForms.length} trên {forms.length} forms)
-            </span>
-          </h2>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 14, color: '#64748b' }}>
-              Sắp xếp: {sortBy === 'date' ? 'Ngày' : sortBy === 'title' ? 'Tiêu đề' : 'Trạng thái'} {getSortIcon(sortBy)}
-            </span>
-            <button 
-              onClick={fetchAllForms}
-              disabled={loading}
-              style={{ 
-                padding: '8px 16px', 
-                background: '#0f172a', 
-                color: 'white', 
-                borderRadius: 6,
-                opacity: loading ? 0.6 : 1
-              }}
-            >
-              {loading ? 'Đang tải...' : 'Làm mới'}
-            </button>
-          </div>
         </div>
 
-        {/* Thông tin phân trang */}
-        {totalItems > 0 && (
-          <div style={{ marginBottom: 16, padding: '12px 16px', background: '#f8fafc', borderRadius: 6 }}>
-            <span style={{ fontSize: 14, color: '#64748b' }}>
-              Trang {currentPage}/{totalPages} - Hiển thị {startIndex + 1}-{Math.min(endIndex, totalItems)} trên {totalItems} forms
-            </span>
+        <div className="flex items-center justify-between p-4 mt-4 rounded-lg bg-gradient-to-r from-orange-50 to-orange-100 dark:from-gray-700 dark:to-gray-600">
+          <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+            📈 Kết quả: <span className="text-orange-600 dark:text-orange-400">{filteredAndSortedForms.length}</span> / {forms.length} forms
           </div>
-        )}
+          {totalPages > 0 && (
+            <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              📄 Trang {currentPage}/{totalPages}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="p-6 bg-white border border-gray-200 shadow-xl dark:bg-gray-800 rounded-2xl dark:border-gray-700">
+        <h2 className="flex items-center gap-2 mb-6 text-xl font-bold text-gray-900 dark:text-white">
+          📑 Danh sách Forms
+          <span className="text-sm font-normal text-gray-500">
+            ({currentForms.length} forms)
+          </span>
+        </h2>
         
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 40 }}>
-            <p>Đang tải dữ liệu...</p>
-          </div>
-        ) : forms.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>
-            <p>Không có form nào</p>
+          <div className="py-20 text-center">
+            <div className="inline-block w-12 h-12 border-4 border-orange-500 rounded-full animate-spin border-t-transparent"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Đang tải dữ liệu...</p>
           </div>
         ) : currentForms.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>
-            <p>Không tìm thấy form nào phù hợp với tiêu chí tìm kiếm</p>
+          <div className="py-20 text-center">
+            <p className="mb-4 text-4xl">📭</p>
+            <p className="text-gray-600 dark:text-gray-400">
+              {forms.length === 0 ? 'Không có form nào' : 'Không tìm thấy form phù hợp'}
+            </p>
           </div>
         ) : (
-          <>
-            <div style={{ display: 'grid', gap: 12 }}>
-              {currentForms.map((form) => {
-                const customer = customerDetails[form.accountId];
-                const station = stationDetails[form.stationId];
-                const isCustomerLoading = detailLoading[form.accountId];
-                const isStationLoading = stationLoading[form.stationId];
-                const formId = getFormId(form);
-                
-                return (
-                  <div 
-                    key={formId} 
-                    style={{ 
-                      padding: 16, 
-                      border: '1px solid #e2e8f0', 
-                      borderRadius: 8,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      background: 'white'
-                    }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <h3 style={{ margin: '0 0 8px 0', fontSize: 18, fontWeight: 600 }}>{form.title}</h3>
-                      <p style={{ margin: '4px 0', color: '#64748b' }}>{form.description}</p>
-                      
-                      {/* Thông tin Form cơ bản - ĐÃ CẬP NHẬT VỚI STATION NAME */}
-                      <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 14, flexWrap: 'wrap' }}>
-                        {form.stationId && (
-                          <span>
-                            <strong>Station: </strong> 
-                            {isStationLoading ? (
-                              'Đang tải...'
-                            ) : station ? (
-                              `${station.stationName || 'N/A'}`
-                            ) : (
-                              form.stationId
-                            )}
-                          </span>
-                        )}
-                        {form.startDate && (
-                          <span>
-                            <strong>Ngày tạo form:</strong> {formatDate(form.startDate)}
-                          </span>
-                        )}
-                        {form.date && (
-                          <span>
-                            <strong>Ngày đăng ký đổi pin:</strong> {formatDate(form.date)}
-                          </span>
-                        )}
-                        <span>
-                          <strong>Form ID:</strong> {formId}
+          <div className="space-y-4">
+            {currentForms.map((form) => {
+              const customer = customerDetails[form.accountId];
+              const station = stationDetails[form.stationId];
+              const isCustomerLoading = detailLoading[form.accountId];
+              const isStationLoading = stationLoading[form.stationId];
+              const formId = getFormId(form);
+              
+              const isDeleteDisabled = form.status?.toLowerCase() === 'deleted';
+              
+              return (
+                <div 
+                  key={formId} 
+                  className="p-6 transition-all duration-300 transform border border-gray-200 bg-gradient-to-br from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-xl dark:border-gray-600 hover:shadow-2xl hover:-translate-y-1"
+                >
+                  <div className="flex flex-col gap-6 lg:flex-row">
+                    <div className="flex-1 space-y-4">
+                      <div className="flex items-start justify-between">
+                        <h3 className="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white">
+                          📝 {form.title}
+                        </h3>
+                        <span className={`${getStatusColor(form.status)} text-white px-4 py-1 rounded-full text-xs font-bold uppercase shadow-md`}>
+                          {form.status || 'N/A'}
                         </span>
                       </div>
+                      
+                      {form.description && (
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          {form.description}
+                        </p>
+                      )}
+                      
+                      {/* Form Details - Compact */}
+                      <div className="flex flex-wrap gap-4 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-500 dark:text-gray-400">🆔</span>
+                          <span className="font-medium text-gray-900 dark:text-white">{formId}</span>
+                        </div>
+                        
+                        {form.stationId && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-500 dark:text-gray-400">🏢</span>
+                            <span className="font-medium text-gray-900 dark:text-white">
+                              {isStationLoading ? '⏳' : station ? station.stationName || 'N/A' : form.stationId}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {form.startDate && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-500 dark:text-gray-400">📅 Ngày tạo:</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{formatDate(form.startDate)}</span>
+                          </div>
+                        )}
+                        
+                        {form.date && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-500 dark:text-gray-400">🗓️ Ngày đặt lịch:</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{formatDate(form.date)}</span>
+                          </div>
+                        )}
+                      </div>
 
-                      {/* Thông tin Customer chi tiết - GIỐNG CONTROLLER.JSX */}
                       {form.accountId && (
-                        <div style={{ marginTop: 12, padding: 12, background: '#f8fafc', borderRadius: 6 }}>
-                          <h4 style={{ margin: '0 0 8px 0', fontSize: 14, fontWeight: 600 }}>Thông tin Customer:</h4>
+                        <div className="p-4 mt-4 border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-600 dark:to-gray-700 rounded-xl dark:border-gray-500">
+                          <h4 className="flex items-center gap-2 mb-3 font-bold text-gray-900 dark:text-white">
+                            👤 Thông tin Customer
+                          </h4>
                           {isCustomerLoading ? (
-                            <p style={{ margin: 0, fontSize: 14, color: '#64748b' }}>Đang tải thông tin...</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">⏳ Đang tải...</p>
                           ) : customer ? (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8, fontSize: 14 }}>
+                            <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2 lg:grid-cols-3">
                               <div>
-                                <strong>Name:</strong> {customer.name || 'N/A'}
+                                <span className="font-semibold text-gray-700 dark:text-gray-200">📛 Tên:</span>
+                                <p className="text-gray-900 dark:text-white">{customer.name || 'N/A'}</p>
                               </div>
                               <div>
-                                <strong>Phone:</strong> {customer.phone || 'N/A'}
+                                <span className="font-semibold text-gray-700 dark:text-gray-200">📞 SĐT:</span>
+                                <p className="text-gray-900 dark:text-white">{customer.phone || 'N/A'}</p>
                               </div>
                               <div>
-                                <strong>Email:</strong> {customer.email || 'N/A'}
+                                <span className="font-semibold text-gray-700 dark:text-gray-200">📧 Email:</span>
+                                <p className="text-gray-900 truncate dark:text-white">{customer.email || 'N/A'}</p>
                               </div>
-                              <div>
-                                <strong>Address:</strong> {customer.address || 'N/A'}
-                              </div>
-                              {customer.customerID && (
-                                <div>
-                                  <strong>Customer ID:</strong> {customer.customerID}
-                                </div>
-                              )}
                               {customer.username && (
                                 <div>
-                                  <strong>Username:</strong> {customer.username}
+                                  <span className="font-semibold text-gray-700 dark:text-gray-200">👥 Username:</span>
+                                  <p className="text-gray-900 dark:text-white">{customer.username}</p>
+                                </div>
+                              )}
+                              {customer.address && (
+                                <div className="md:col-span-2">
+                                  <span className="font-semibold text-gray-700 dark:text-gray-200">📍 Địa chỉ:</span>
+                                  <p className="text-gray-900 dark:text-white">{customer.address}</p>
                                 </div>
                               )}
                               {customer.status && (
                                 <div>
-                                  <strong>Status:</strong> 
-                                  <span style={{ 
-                                    marginLeft: 6,
-                                    padding: '2px 8px', 
-                                    borderRadius: 12, 
-                                    fontSize: 12,
-                                    backgroundColor: customer.status === 'Active' ? '#10b981' : '#ef4444',
-                                    color: 'white'
-                                  }}>
+                                  <span className="font-semibold text-gray-700 dark:text-gray-200">⚡ Status:</span>
+                                  <span className={`ml-2 px-3 py-1 rounded-full text-xs font-bold text-white ${customer.status === 'Active' ? 'bg-green-500' : 'bg-red-500'}`}>
                                     {customer.status}
                                   </span>
                                 </div>
                               )}
                             </div>
                           ) : (
-                            <p style={{ margin: 0, fontSize: 14, color: '#64748b' }}>
-                              Không tìm thấy thông tin customer
-                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">❌ Không tìm thấy thông tin</p>
                           )}
                         </div>
                       )}
                     </div>
                     
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexDirection: 'column' }}>
-                      {/* Status */}
-                      <span 
-                        style={{ 
-                          padding: '6px 12px', 
-                          borderRadius: 20, 
-                          fontSize: 12, 
-                          fontWeight: 600,
-                          backgroundColor: getStatusColor(form.status),
-                          color: 'white',
-                          textTransform: 'capitalize'
-                        }}
-                      >
-                        {form.status || 'Chưa xác định'}
-                      </span>
-                      
-                      {/* Nút Xóa - ĐÃ SỬA */}
+                    <div className="flex gap-3 lg:flex-col lg:w-32">
                       <button 
                         onClick={() => handleDeleteForm(form)}
-                        disabled={loading}
-                        style={{ 
-                          padding: '6px 12px', 
-                          background: '#ef4444', 
-                          color: 'white', 
-                          borderRadius: 6,
-                          fontSize: 12,
-                          opacity: loading ? 0.6 : 1,
-                          cursor: loading ? 'not-allowed' : 'pointer'
-                        }}
+                        disabled={loading || isDeleteDisabled}
+                        className={`flex-1 px-4 py-3 text-sm font-semibold text-white transition-all transform rounded-lg shadow-lg lg:flex-none ${
+                          isDeleteDisabled 
+                            ? 'bg-gradient-to-r from-gray-400 to-gray-500 cursor-not-allowed' 
+                            : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 hover:scale-105'
+                        } disabled:opacity-50`}
                       >
-                        {loading ? 'Đang xóa...' : 'Xóa'}
+                        {isDeleteDisabled ? '❌ Đã xóa' : '🗑️ Xóa'}
                       </button>
                     </div>
                   </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-8">
+            <button 
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-4 py-2 font-semibold text-gray-700 transition-all bg-gray-200 rounded-lg dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ← Trước
+            </button>
+            
+            <div className="flex gap-2">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let page;
+                if (totalPages <= 5) {
+                  page = i + 1;
+                } else if (currentPage <= 3) {
+                  page = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  page = totalPages - 4 + i;
+                } else {
+                  page = currentPage - 2 + i;
+                }
+                
+                return (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-all transform hover:scale-105 ${
+                      page === currentPage
+                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {page}
+                  </button>
                 );
               })}
             </div>
+            
+            <button 
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 font-semibold text-gray-700 transition-all bg-gray-200 rounded-lg dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Sau →
+            </button>
+          </div>
+        )}
+      </div>
 
-            {/* Phân trang */}
-            {totalPages > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 20 }}>
+      {selectedForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 flex items-center justify-between p-6 text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-t-2xl">
+              <h2 className="text-2xl font-bold">📋 Chi tiết Form</h2>
+              <button 
+                onClick={() => setSelectedForm(null)}
+                className="px-4 py-2 font-semibold transition-all bg-white rounded-lg bg-opacity-20 hover:bg-opacity-30"
+              >
+                ✕ Đóng
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                <pre className="overflow-x-auto text-sm text-gray-800 whitespace-pre-wrap dark:text-gray-200">
+                  {JSON.stringify(selectedForm, null, 2)}
+                </pre>
+              </div>
+              <div className="flex gap-3 mt-6">
                 <button 
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  style={{ 
-                    padding: '8px 12px', 
-                    background: currentPage === 1 ? '#cbd5e1' : '#3b82f6', 
-                    color: 'white', 
-                    borderRadius: 6,
-                    border: 'none',
-                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                  onClick={() => {
+                    handleDeleteForm(selectedForm);
+                    setSelectedForm(null);
                   }}
+                  disabled={selectedForm.status?.toLowerCase() === 'deleted'}
+                  className={`px-6 py-3 font-semibold text-white transition-all transform rounded-lg shadow-lg ${
+                    selectedForm.status?.toLowerCase() === 'deleted'
+                      ? 'bg-gradient-to-r from-gray-400 to-gray-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 hover:scale-105'
+                  }`}
                 >
-                  ← Trước
+                  {selectedForm.status?.toLowerCase() === 'deleted' ? '❌ Đã xóa' : '🗑️ Xóa Form'}
                 </button>
-                
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <button
-                      key={page}
-                      onClick={() => handlePageChange(page)}
-                      style={{ 
-                        padding: '8px 12px', 
-                        background: page === currentPage ? '#0f172a' : '#e2e8f0', 
-                        color: page === currentPage ? 'white' : '#64748b', 
-                        borderRadius: 6,
-                        border: 'none',
-                        cursor: 'pointer',
-                        minWidth: 40
-                      }}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                </div>
-                
                 <button 
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  style={{ 
-                    padding: '8px 12px', 
-                    background: currentPage === totalPages ? '#cbd5e1' : '#3b82f6', 
-                    color: 'white', 
-                    borderRadius: 6,
-                    border: 'none',
-                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
-                  }}
+                  onClick={() => setSelectedForm(null)}
+                  className="px-6 py-3 font-semibold text-gray-700 transition-all bg-gray-200 rounded-lg dark:bg-gray-600 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-500"
                 >
-                  Sau →
+                  Hủy
                 </button>
               </div>
-            )}
-          </>
-        )}
-      </section>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

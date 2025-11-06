@@ -379,7 +379,7 @@ const ReportManager = () => {
       {/* Popup chi tiết báo cáo - giữ nguyên */}
       {selectedReport && (
         <div className="report-detail-popup" onClick={handleCloseDetail}>
-          <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+          <div className="popup-content-report" onClick={(e) => e.stopPropagation()}>
             <div className="popup-header">
               <h2>📋 Chi tiết báo cáo</h2>
               <button className="close-btn" onClick={handleCloseDetail}>×</button>
@@ -466,7 +466,7 @@ const ReportManager = () => {
               )}
             </div>
 
-            <div className="popup-actions">
+            <div className="popup-actions-report">
               <button 
                 className="btn btn-danger"
                 onClick={() => {

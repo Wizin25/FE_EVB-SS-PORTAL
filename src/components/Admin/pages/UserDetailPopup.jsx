@@ -244,6 +244,20 @@ export default function UserDetailPopup({
                 </span>
               </div>
 
+              <div className="detail-row">
+                <span className="detail-label">Start Date:</span>
+                <span className="detail-value">
+                    {user.startDate}
+                </span>
+              </div>
+
+              <div className="detail-row">
+                <span className="detail-label">Update Date:</span>
+                <span className="detail-value">
+                    {user.updateDate}
+                </span>
+              </div>
+
             </div>
 
             {/* Action buttons */}

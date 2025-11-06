@@ -272,7 +272,6 @@
   transition: background 0.3s ease;
   position: sticky;
   top: 0;
-  z-index: 10;
 }
 
 .users-table th:hover {
