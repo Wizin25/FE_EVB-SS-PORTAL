@@ -47,6 +47,8 @@ function BatteryReportForm({
   const [description, setDescription] = useState('');
   const [reportType, setReportType] = useState('General');
   const [imageFile, setImageFile] = useState(null);
+  const [capacity, setCapacity] = useState('');
+  const [batteryQuality, setBatteryQuality] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -97,6 +99,8 @@ function BatteryReportForm({
         batteryId: defaults?.batteryId || '',
         exchangeBatteryId: defaults?.exchangeBatteryId || '',
         reportType,
+        capacity,
+        batteryQuality,
       };
       console.log('Battery Report Payload:', payload); // Add logging to verify payload
       const res = await authAPI.addBatteryReport(payload);
@@ -107,6 +111,8 @@ function BatteryReportForm({
         setReportType('General');
         setImageFile(null);
         setImageUrl('');
+        setCapacity('');
+        setBatteryQuality('');
       } else {
         error(res?.responseCode || 'Tạo Battery Report thất bại');
       }
@@ -130,7 +136,7 @@ function BatteryReportForm({
       <h3 style={{ margin: '0 0 10px 0' }}>🧾 Tạo Battery Report</h3>
       <div style={{ display: 'grid', gap: 10 }}>
         <div style={{ display: 'grid', gap: 6 }}>
-          <label><strong>Tên báo cáo (Name)</strong></label>
+          <label><strong>Tên báo cáo</strong></label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -151,6 +157,38 @@ function BatteryReportForm({
             style={{ padding: 10, resize: 'vertical' }}
           />
         </div>
+        <div style={{ display: 'grid', gap: 6, gridTemplateColumns: '1fr 1fr' }}>
+          <div>
+            <label>
+              <strong>Capacity (%)</strong>
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={capacity || ''}
+              onChange={e => setCapacity(e.target.value)}
+              placeholder="Nhập dung lượng pin (%)"
+              className="select"
+              style={{ padding: '10px 18px', width: '98%' }}
+            />
+          </div>
+          <div>
+            <label>
+              <strong>Battery Quality (%)</strong>
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={batteryQuality || ''}
+              onChange={e => setBatteryQuality(e.target.value)}
+              placeholder="Nhập chất lượng pin (%)"
+              className="select"
+              style={{ padding: '10px 18px', width: '98%' }}
+            />
+          </div>
+        </div>
 
         <div style={{ display: 'grid', gap: 6 }}>
           <label><strong>Report Type</strong></label>
@@ -165,6 +203,7 @@ function BatteryReportForm({
             <option value="Orther">Orther</option>
           </select>
         </div>
+
 
         <div className="customer-box" style={{ background: 'rgba(255,255,255,0.6)' }}>
           <div className="customer-grid">
@@ -1477,7 +1516,7 @@ function StaffPage() {
             <h3 className="profile-drawer-title">Hồ sơ nhân viên</h3>
             <button className="profile-close-btn" onClick={() => setShowProfile(false)}>Đóng</button>
           </div>
-          <div className="profile-drawer-content liquid">
+          <div className="profile-drawer-content liquid" style={{ borderRadius: 0 }}>
             {currentUser ? (
               <>
                 <div className="profile-section">
@@ -1508,7 +1547,7 @@ function StaffPage() {
         {isFormsView && (
           <>
             {/* Filters (GLASS) */}
-            <section className="filters glass liquid">
+            <section className="filters glass liquid" style={{ borderRadius: 15 }}>
               <h2 className="filters-title">Tìm kiếm & Sắp xếp Form</h2>
               <div className="filters-row">
                 <div className="input-search">
@@ -1834,12 +1873,12 @@ function StaffPage() {
 
             {selectedForm && (
               <div className="modal-root">
-                <div className="modal-card liquid">
-                  <div className="modal-head liquid">
-                    <h2>Form Chi Tiết</h2>
+                <div className="modal-card liquid" style={{ borderRadius: 10 }}>
+                  <div className="modal-head">
+                    <h2>Form chi tiết</h2>
                     <button className="btn-close" onClick={() => setSelectedForm(null)}>Đóng</button>
                   </div>
-                  <div className="modal-body liquid">
+                  <div className="modal-body liquid"style={{ borderRadius: 5 }}>
                     {/* <pre className="modal-pre">{JSON.stringify(selectedForm, null, 2)}</pre> */}
                     {/* Hiển thị chi tiết cục pin nếu có batteryId */}
                     {selectedForm?.batteryId && (

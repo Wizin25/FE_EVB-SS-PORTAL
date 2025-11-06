@@ -768,7 +768,7 @@ export const authAPI = {
   },
 
   // BatteryReport APIs
-  addBatteryReport: async ({ name, description, image, imageUrl, accountId, stationId, batteryId, reportType, exchangeBatteryId }) => {
+  addBatteryReport: async ({ name, description, image, imageUrl, accountId, stationId, batteryId, reportType, exchangeBatteryId, capacity, Capacity, batteryQuality, BatteryQuality}) => {
     try {
       const form = new FormData();
       form.append('Name', name ?? '');
@@ -779,6 +779,8 @@ export const authAPI = {
       form.append('BatteryId', batteryId ?? '');
       form.append('ReportType', reportType ?? 'General');
       form.append('ExchangeBatteryId', exchangeBatteryId ?? '');
+      form.append('Capacity', capacity ?? Capacity ?? '');
+      form.append('BatteryQuality', batteryQuality ?? BatteryQuality ?? '');
 
       const res = await api.post('/api/BatteryReport/add_battery_report', form, {
         headers: { 'Content-Type': 'multipart/form-data' },

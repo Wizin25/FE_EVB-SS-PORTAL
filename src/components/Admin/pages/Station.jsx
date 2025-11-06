@@ -772,7 +772,7 @@ export default function Station() {
                               {buildSlotGrid(station.slots).map((row, rIdx) => (
                                 <div className="liquid slot-row" key={`row-${rIdx}`}>
                                   {row.map((slot, cIdx) => {
-                                    const s = (slot?.status || "Empty").toLowerCase(); // Empty/Occupied/Reserved/Faulty
+                                    const s = (slot.battery?.status || "Empty").toLowerCase(); // Empty/Occupied/Reserved/Faulty
                                     const hasBattery = !!slot?.battery;
                                     const name = slot?.battery?.batteryName || slot?.battery?.batteryId;
 
@@ -813,9 +813,10 @@ export default function Station() {
 
                           <div className="slot-legend">
                             <span><i className="lg lg-empty" />Empty</span>
-                            <span><i className="lg lg-occupied" />Occupied</span>
-                            <span><i className="lg lg-reserved" />Reserved</span>
-                            <span><i className="lg lg-faulty" />Faulty</span>
+                            <span><i className="lg lg-available" />Available</span>
+                            <span><i className="lg lg-charging " />Charging</span>
+                            <span><i className="lg lg-reserved" />Maintenance</span>
+                            <span><i className="lg lg-faulty" />Booked</span>
                           </div>
                         </div>
 

@@ -279,7 +279,22 @@
 .modal-card {
   border-radius: 16px; max-width: 680px; width: 92%; max-height: 90vh; overflow: auto; margin: 20px;
 }
-.modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.modal-head { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 16px; 
+  margin-top: 10px;
+  padding: 0 18px; /* thêm padding ngang để chữ không dính sát viền */
+}
+
+.modal-head h2 {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0;
+  color: #ffffff;
+  letter-spacing: .1px;
+}
 .btn-close { padding: 8px 12px; background: #6b7280; color: #fff; border-radius: 10px; border: none; cursor: pointer; }
 .modal-body { padding: 16px; border-radius: 12px; }
 .modal-pre { white-space: pre-wrap; font-size: 14px; margin: 0; word-break: break-word; }
