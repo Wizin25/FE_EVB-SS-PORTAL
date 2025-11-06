@@ -119,15 +119,26 @@ function MonthCalendar({ year, month, today, selectedDate, onDateSelect }) {
   }
 
   return (
-    <div style={{ flex: 1, margin: "0 10px" }}>
+    <div style={{
+      flex: 1,
+      margin: "0 2px",
+      maxWidth: 1000,
+      minWidth: 0,
+      borderRadius: 10,
+      background: "#f8fafc",
+      boxShadow: "0 1px 4px 0 #64748b08",
+      padding: 10,
+      border: "1px solid rgb(9, 9, 9)"
+    }}>
       <h3
         style={{
-          fontSize: 20,
+          fontSize: 15,
           fontWeight: 700,
           textAlign: "center",
-          marginBottom: 16,
+          marginBottom: 8,
           color: "#334155",
-          letterSpacing: 1,
+          letterSpacing: 0.5,
+          textTransform: "uppercase"
         }}
       >
         {monthNames[month]} {year}
@@ -136,10 +147,10 @@ function MonthCalendar({ year, month, today, selectedDate, onDateSelect }) {
         style={{
           width: "100%",
           borderCollapse: "separate",
-          borderSpacing: "4px",
-          background: "#fff",
-          borderRadius: 12,
-          boxShadow: "0 2px 8px 0 #64748b11",
+          borderSpacing: "5px",
+          background: "#f8fafc",
+          borderRadius: 8,
+          boxShadow: "none",
         }}
       >
         <thead>
@@ -148,14 +159,14 @@ function MonthCalendar({ year, month, today, selectedDate, onDateSelect }) {
               <th
                 key={d}
                 style={{
-                  color: idx === 0 ? "#ef4444" : "#0ea5e9",
-                  fontWeight: 700,
-                  fontSize: 16,
-                  padding: 8,
+                  color: idx === 0 ? "#ef4444" : "#2563eb",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  padding: 4,
                   textAlign: "center",
-                  letterSpacing: 1,
-                  background: "#f1f5f9",
-                  borderRadius: 8,
+                  background: "#e0e7ef",
+                  borderRadius: 6,
+                  letterSpacing: 0.2
                 }}
               >
                 {d}
@@ -1698,50 +1709,95 @@ export default function Calendar({ onDateSelect }) {
   return (
     <div
       style={{
-        maxWidth: 1000,
-        margin: "40px auto",
-        background: "linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%)",
-        borderRadius: 20,
-        boxShadow: "0 8px 32px 0 #64748b22",
-        padding: 40,
+        maxWidth: 1500,
+        margin: "48px auto",
+        padding: 0,
+        // background: "linear-gradient(135deg, #e0e7ff 0%, #f0fdfa 60%, #c7d2fe 100%)",
+        borderRadius: 28,
+        boxShadow: "0 12px 36px 0 #0ea5e94a",
+        overflow: "hidden",
+        border: "1.5px solid #bae6fd",
+        position: "relative"
       }}
     >
-      <h1
+      {/* Top accent bar */}
+      <div
         style={{
-          fontSize: 36,
-          fontWeight: 800,
-          textAlign: "center",
-          marginBottom: 16,
-          color: "#0ea5e9",
-          letterSpacing: 1,
+          height: 8,
+          background: "linear-gradient(90deg,#0ea5e9,#22d3ee,#a5b4fc,#fff 80%)"
+        }}
+      />
+      {/* Header with icon */}
+      {/* <div
+        style={{
+          padding: "36px 40px 16px 40px",
+          display: "flex",
+          gap: 18,
+          alignItems: "center",
+          justifyContent: "center",
+          borderBottom: "1px solid #dbeafe"
         }}
       >
-        📅 Lịch Chọn Ngày
-      </h1>
+        <div
+          style={{
+            fontSize: 20,
+            background: "linear-gradient(135deg,#38bdf8 40%,#818cf8 110%)",
+            borderRadius: "50%",
+            width: 50,
+            height: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 2px 16px #a5b4fc40",
+            marginBottom: 4,
+          }}
+        >
+          <span role="img" aria-label="calendar">📅</span>
+        </div>
+        <h1
+          style={{
+            fontSize: 30,
+            fontWeight: 900,
+            textAlign: "center",
+            margin: 0,
+            color: "#334155",
+            letterSpacing: 1,
+            textShadow: "0 1px 0 #bae6fd, 0 2px 8px #818cf810"
+          }}
+        >
+          Lịch trạm
+        </h1>
+      </div> */}
 
-      {/* Date/Month/Year selectors (giữ nguyên) */}
+      {/* Date/Month/Year selectors */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          marginBottom: 24,
-          gap: 16,
+          margin: "5px 0 22px 0",
+          gap: 18,
           flexWrap: "wrap",
+          // background: "linear-gradient(85deg,#e0f2fe 40%,#fafafa 100%)",
+          borderRadius: "0 0 24px 24px",
+          boxShadow: "0 2px 16px 0 rgb(4, 4, 4)",
+          padding: "21px 0 19px 0"
         }}
       >
         <select
           value={currentMonth}
           onChange={handleMonthChange}
           style={{
-            padding: "8px 16px",
-            borderRadius: 8,
-            border: "2px solid #e2e8f0",
-            fontSize: 16,
-            fontWeight: 600,
-            color: "#334155",
-            background: "#fff",
+            padding: "10px 20px",
+            borderRadius: 11,
+            border: "2.5px solid #a5b4fc",
+            fontSize: 18,
+            fontWeight: 700,
+            color: "#312e81",
+            background: "#f1f5f9",
             cursor: "pointer",
+            transition: "border 0.2s",
+            boxShadow: "0 1px 5px 0 #c7d2fe30"
           }}
         >
           {monthNames.map((name, index) => (
@@ -1758,57 +1814,88 @@ export default function Calendar({ onDateSelect }) {
           min="1900"
           max="2100"
           style={{
-            padding: "8px 16px",
-            borderRadius: 8,
-            border: "2px solid #e2e8f0",
-            fontSize: 16,
-            fontWeight: 600,
-            color: "#334155",
-            background: "#fff",
-            width: 100,
+            padding: "10px 20px",
+            borderRadius: 11,
+            border: "2.5px solid #a5b4fc",
+            fontSize: 18,
+            fontWeight: 700,
+            color: "#2563eb",
+            background: "#f1f5f9",
+            width: 120,
             textAlign: "center",
+            boxShadow: "0 1px 5px 0 #818cf810",
+            outline: "none",
+            transition: "border 0.2s"
           }}
         />
       </div>
 
-      {/* Navigation buttons (giữ nguyên) */}
+      {/* Navigation buttons */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          marginBottom: 24,
-          gap: 20,
+          margin: "0 0 30px 0",
+          gap: 32,
         }}
       >
         <button
           onClick={handlePrevMonth}
-          style={buttonStyle}
-          onMouseEnter={(e) => {
-            e.target.style.transform = "translateY(-2px)";
-            e.target.style.boxShadow = "0 4px 12px 0 #3b82f644";
+          style={{
+            ...buttonStyle,
+            background: "linear-gradient(90deg,rgb(56, 248, 98) 0%,rgb(153, 248, 129) 100%)",
+            borderRadius: 16,
+            padding: "14px 26px",
+            fontSize: 18,
+            letterSpacing: 0.2,
+            minWidth: 210, // Đặt bằng nhau
+            minHeight: 55, // Đảm bảo cùng chiều cao
+            color: "black",
+            boxShadow: "0 2px 8px 0 #38bdf852",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = "translateY(0)";
-            e.target.style.boxShadow = "0 2px 8px 0 #3b82f622";
+          onMouseEnter={e => {
+            e.target.style.transform = "scale(1.045) translateY(-1px)";
+            e.target.style.boxShadow = "0 4px 14px 0 #818cf883";
+          }}
+          onMouseLeave={e => {
+            e.target.style.transform = "scale(1) translateY(0)";
+            e.target.style.boxShadow = "0 2px 8px 0 #38bdf852";
           }}
         >
-          ← Tháng trước
+          <span aria-label="prev month" role="img" style={{marginRight: 7}}>←</span> Tháng trước
         </button>
 
         <button
           onClick={handleNextMonth}
-          style={buttonStyle}
-          onMouseEnter={(e) => {
-            e.target.style.transform = "translateY(-2px)";
-            e.target.style.boxShadow = "0 4px 12px 0 #3b82f644";
+          style={{
+            ...buttonStyle,
+            background: "linear-gradient(90deg,rgb(56, 248, 98) 0%,rgb(153, 248, 129) 100%)",
+            borderRadius: 16,
+            padding: "14px 26px",
+            fontSize: 18,
+            letterSpacing: 0.2,
+            minWidth: 210, // Đặt bằng nhau
+            minHeight: 55, // Đảm bảo cùng chiều cao
+            color: "black",
+            boxShadow: "0 2px 8px 0 #38bdf852",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = "translateY(0)";
-            e.target.style.boxShadow = "0 2px 8px 0 #3b82f622";
+          onMouseEnter={e => {
+            e.target.style.transform = "scale(1.045) translateY(-1px)";
+            e.target.style.boxShadow = "0 4px 14px 0 #818cf883";
+          }}
+          onMouseLeave={e => {
+            e.target.style.transform = "scale(1) translateY(0)";
+            e.target.style.boxShadow = "0 2px 8px 0 #38bdf852";
           }}
         >
-          Tháng sau →
+          Tháng sau <span aria-label="next month" role="img" style={{marginLeft: 7}}>→</span>
         </button>
       </div>
 
@@ -1838,6 +1925,7 @@ export default function Calendar({ onDateSelect }) {
           gap: 20,
           justifyContent: "center",
           flexWrap: "wrap",
+          marginBottom: "25px",
         }}
       >
         <MonthCalendar

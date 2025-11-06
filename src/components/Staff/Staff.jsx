@@ -2222,17 +2222,7 @@ function StaffPage() {
         {isStationSchedulesView && (
           <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
             <h2 className="filters-title">Lịch trình các trạm theo ngày</h2>
-            <p style={{ marginTop: 4, color: 'rgba(15,23,42,0.7)' }}>
-              Chọn ngày để xem lịch trình của các trạm bạn phụ trách
-            </p>
-
             {/* Calendar Component */}
-            <div style={{
-              background: 'rgba(255,255,255,0.8)',
-              borderRadius: '16px',
-              padding: '20px',
-              marginBottom: '20px'
-            }}>
               <Calendar
                 onDateSelect={(selectedDate) => {
                   console.log('Date selected in Staff:', selectedDate);
@@ -2277,7 +2267,6 @@ function StaffPage() {
                   }));
                 }}
               />
-            </div>
           </section>
         )}
 
