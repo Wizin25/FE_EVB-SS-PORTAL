@@ -1177,4 +1177,16 @@ getTotalRevenue: async (formData) => {
     throw new Error(error?.message || JSON.stringify(error) || 'Get total revenue failed');
   }
 },
+
+// Add this to your authAPI object in authAPI.js
+getTotalExchangeBattery: async (formData) => {
+  try {
+    const response = await api.post('/api/dashboard/total_exchange_battery', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error?.message || JSON.stringify(error) || 'Get total exchange battery failed');
+  }
+},
 };

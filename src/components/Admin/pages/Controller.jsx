@@ -470,12 +470,6 @@ export default function ControllerPage() {
                 Email {getSortIcon('email')}
               </th>
               <th>Status</th>
-              <th onClick={() => handleSort('startDate')}>
-                Start Date {getSortIcon('startDate')}
-              </th>
-              <th onClick={() => handleSort('updateDate')}>
-                Update Date {getSortIcon('updateDate')}
-              </th>
               <th>Detail</th>
             </tr>
           </thead>
@@ -514,9 +508,6 @@ export default function ControllerPage() {
                       <option value="Inactive">Inactive</option>
                     </select>
                   </td>
-
-                  <td>{formatDate(user.startDate)}</td>
-                  <td>{formatDate(user.updateDate)}</td>
                   <td>
                     <button 
                       className="detail-button"

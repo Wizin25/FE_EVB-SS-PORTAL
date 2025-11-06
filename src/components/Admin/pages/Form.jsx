@@ -1,8 +1,7 @@
-// Form.jsx - Improved UI with Tailwind CSS
 import { useState, useEffect, useMemo } from 'react';
 import { authAPI } from '../../services/authAPI';
 import { formAPI } from '../../services/formAPI';
-import { getCurrentUserPayload, isInRole } from '../../services/jwt';
+import { isInRole } from '../../services/jwt';
 
 export default function FormPage() {
   const [forms, setForms] = useState([]);
@@ -30,7 +29,6 @@ export default function FormPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Lấy thông tin user hiện tại
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
@@ -305,7 +303,6 @@ export default function FormPage() {
 
   return (
     <div className="mx-auto space-y-6 max-w-7xl">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">📋 Quản lý Form</h1>
         <button 
@@ -317,7 +314,6 @@ export default function FormPage() {
         </button>
       </div>
 
-      {/* Form tạo mới */}
       {canCreateForm && (
         <div className="p-6 border border-orange-200 shadow-xl bg-gradient-to-br from-white to-orange-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl dark:border-gray-700">
           <h2 className="flex items-center gap-2 mb-4 text-xl font-bold text-gray-900 dark:text-white">
@@ -386,14 +382,12 @@ export default function FormPage() {
         </div>
       )}
 
-      {/* Tìm kiếm và lọc */}
       <div className="p-6 bg-white border border-gray-200 shadow-xl dark:bg-gray-800 rounded-2xl dark:border-gray-700">
         <h2 className="flex items-center gap-2 mb-4 text-xl font-bold text-gray-900 dark:text-white">
           🔍 Tìm kiếm & Lọc
         </h2>
         
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-          {/* Search */}
           <div className="space-y-2 lg:col-span-2">
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
               Tìm kiếm
@@ -412,7 +406,6 @@ export default function FormPage() {
             </div>
           </div>
 
-          {/* Status Filter */}
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
               Lọc theo Status
@@ -430,7 +423,6 @@ export default function FormPage() {
             </select>
           </div>
 
-          {/* Station Filter */}
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
               Lọc theo Station
@@ -449,7 +441,6 @@ export default function FormPage() {
             </select>
           </div>
 
-          {/* Sort */}
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
               Sắp xếp theo
@@ -474,7 +465,6 @@ export default function FormPage() {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="flex items-center justify-between p-4 mt-4 rounded-lg bg-gradient-to-r from-orange-50 to-orange-100 dark:from-gray-700 dark:to-gray-600">
           <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">
             📈 Kết quả: <span className="text-orange-600 dark:text-orange-400">{filteredAndSortedForms.length}</span> / {forms.length} forms
@@ -487,7 +477,6 @@ export default function FormPage() {
         </div>
       </div>
 
-      {/* Danh sách forms */}
       <div className="p-6 bg-white border border-gray-200 shadow-xl dark:bg-gray-800 rounded-2xl dark:border-gray-700">
         <h2 className="flex items-center gap-2 mb-6 text-xl font-bold text-gray-900 dark:text-white">
           📑 Danh sách Forms
@@ -517,13 +506,14 @@ export default function FormPage() {
               const isStationLoading = stationLoading[form.stationId];
               const formId = getFormId(form);
               
+              const isDeleteDisabled = form.status?.toLowerCase() === 'deleted';
+              
               return (
                 <div 
                   key={formId} 
                   className="p-6 transition-all duration-300 transform border border-gray-200 bg-gradient-to-br from-white to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded-xl dark:border-gray-600 hover:shadow-2xl hover:-translate-y-1"
                 >
                   <div className="flex flex-col gap-6 lg:flex-row">
-                    {/* Left side - Form Info */}
                     <div className="flex-1 space-y-4">
                       <div className="flex items-start justify-between">
                         <h3 className="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white">
@@ -540,38 +530,37 @@ export default function FormPage() {
                         </p>
                       )}
                       
-                      {/* Form Details Grid */}
-                      <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
-                        <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 dark:bg-gray-600">
-                          <span className="font-semibold text-gray-700 dark:text-gray-200">🆔 Form ID:</span>
-                          <span className="text-gray-900 dark:text-white">{formId}</span>
+                      {/* Form Details - Compact */}
+                      <div className="flex flex-wrap gap-4 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-500 dark:text-gray-400">🆔</span>
+                          <span className="font-medium text-gray-900 dark:text-white">{formId}</span>
                         </div>
                         
                         {form.stationId && (
-                          <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-gray-600">
-                            <span className="font-semibold text-gray-700 dark:text-gray-200">🏢 Station:</span>
-                            <span className="text-gray-900 dark:text-white">
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-500 dark:text-gray-400">🏢</span>
+                            <span className="font-medium text-gray-900 dark:text-white">
                               {isStationLoading ? '⏳' : station ? station.stationName || 'N/A' : form.stationId}
                             </span>
                           </div>
                         )}
                         
                         {form.startDate && (
-                          <div className="flex items-center gap-2 p-3 rounded-lg bg-purple-50 dark:bg-gray-600">
-                            <span className="font-semibold text-gray-700 dark:text-gray-200">📅 Ngày tạo:</span>
-                            <span className="text-gray-900 dark:text-white">{formatDate(form.startDate)}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-500 dark:text-gray-400">📅 Ngày tạo:</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{formatDate(form.startDate)}</span>
                           </div>
                         )}
                         
                         {form.date && (
-                          <div className="flex items-center gap-2 p-3 rounded-lg bg-orange-50 dark:bg-gray-600">
-                            <span className="font-semibold text-gray-700 dark:text-gray-200">📅 Ngày đặt lịch:</span>
-                            <span className="text-gray-900 dark:text-white">{formatDate(form.date)}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-500 dark:text-gray-400">🗓️ Ngày đặt lịch:</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{formatDate(form.date)}</span>
                           </div>
                         )}
                       </div>
 
-                      {/* Customer Info */}
                       {form.accountId && (
                         <div className="p-4 mt-4 border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-600 dark:to-gray-700 rounded-xl dark:border-gray-500">
                           <h4 className="flex items-center gap-2 mb-3 font-bold text-gray-900 dark:text-white">
@@ -621,14 +610,17 @@ export default function FormPage() {
                       )}
                     </div>
                     
-                    {/* Right side - Actions */}
                     <div className="flex gap-3 lg:flex-col lg:w-32">
                       <button 
                         onClick={() => handleDeleteForm(form)}
-                        disabled={loading}
-                        className="flex-1 px-4 py-3 text-sm font-semibold text-white transition-all transform rounded-lg shadow-lg lg:flex-none bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 disabled:opacity-50 hover:scale-105"
+                        disabled={loading || isDeleteDisabled}
+                        className={`flex-1 px-4 py-3 text-sm font-semibold text-white transition-all transform rounded-lg shadow-lg lg:flex-none ${
+                          isDeleteDisabled 
+                            ? 'bg-gradient-to-r from-gray-400 to-gray-500 cursor-not-allowed' 
+                            : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 hover:scale-105'
+                        } disabled:opacity-50`}
                       >
-                        🗑️ Xóa
+                        {isDeleteDisabled ? '❌ Đã xóa' : '🗑️ Xóa'}
                       </button>
                     </div>
                   </div>
@@ -638,7 +630,6 @@ export default function FormPage() {
           </div>
         )}
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex flex-wrap items-center justify-center gap-2 mt-8">
             <button 
@@ -689,7 +680,6 @@ export default function FormPage() {
         )}
       </div>
 
-      {/* Modal chi tiết form */}
       {selectedForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -714,9 +704,14 @@ export default function FormPage() {
                     handleDeleteForm(selectedForm);
                     setSelectedForm(null);
                   }}
-                  className="px-6 py-3 font-semibold text-white transition-all transform rounded-lg shadow-lg bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 hover:scale-105"
+                  disabled={selectedForm.status?.toLowerCase() === 'deleted'}
+                  className={`px-6 py-3 font-semibold text-white transition-all transform rounded-lg shadow-lg ${
+                    selectedForm.status?.toLowerCase() === 'deleted'
+                      ? 'bg-gradient-to-r from-gray-400 to-gray-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 hover:scale-105'
+                  }`}
                 >
-                  🗑️ Xóa Form
+                  {selectedForm.status?.toLowerCase() === 'deleted' ? '❌ Đã xóa' : '🗑️ Xóa Form'}
                 </button>
                 <button 
                   onClick={() => setSelectedForm(null)}
