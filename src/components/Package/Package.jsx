@@ -8,9 +8,8 @@ import './Package.css';
 import HeaderDriver from "../Home/header";
 import Footer from "../Home/footer";
 
-// 🆕 THÊM CONSTANTS VÀ SESSION KEY
 const SERVICE_TYPES = { PACKAGE: 'Package' };
-const PAYMENT_CTX = 'paymentCtx'; // sessionStorage key chung cho Package và PrePaid
+const PAYMENT_CTX = 'paymentCtx';
 
 const Package = () => {
   const [packages, setPackages] = useState([]);
@@ -35,12 +34,10 @@ const Package = () => {
     return "light";
   });
 
-  // Ensure header booking works from Packages page
   const handleOpenBooking = () => {
     navigate('/booking');
   };
 
-  // 🔧 HELPER FUNCTIONS
   const getVehicleProperty = (vehicle, property) => {
     if (!vehicle) return 'N/A';
     
@@ -89,7 +86,6 @@ const Package = () => {
     return property === 'price' ? 0 : 'N/A';
   };
 
-  // 🆕 IMPROVED: Hàm lấy batteryType để hiển thị (giống như trong Vehicle)
   const getBatteryDisplayName = (vehicle) => {
     const batteryId = getVehicleProperty(vehicle, 'battery');
     
@@ -97,19 +93,16 @@ const Package = () => {
       return 'Chưa có thông tin pin';
     }
 
-    // Ưu tiên lấy từ batteryDetails trước
     if (batteryId && batteryDetails[batteryId]) {
       const battery = batteryDetails[batteryId];
       return battery.batteryType || battery.type || battery.battery_type || 'Chưa có thông tin pin';
     }
     
-    // Fallback: lấy từ vehicle property
     const batteryName = getVehicleProperty(vehicle, 'batteryName');
     if (batteryName !== 'N/A') {
       return batteryName;
     }
     
-    // Cuối cùng hiển thị batteryType từ specification nếu có
     if (batterySpecification) {
       return formatBatterySpecification(batterySpecification);
     }
@@ -117,7 +110,6 @@ const Package = () => {
     return 'Chưa có thông tin pin';
   };
 
-  // 🆕 IMPROVED: Hàm lấy battery details với retry logic
   const loadBatteryDetails = async (batteryId) => {
     if (!batteryId || batteryId === 'N/A' || batteryDetails[batteryId]) {
       return;
@@ -129,7 +121,6 @@ const Package = () => {
       
       let batteryData = null;
       
-      // Handle different response structures
       if (batteryResponse && batteryResponse.data) {
         batteryData = batteryResponse.data;
       } else if (batteryResponse && batteryResponse.isSuccess && batteryResponse.data) {
@@ -150,7 +141,6 @@ const Package = () => {
     } catch (err) {
       console.error(`❌ Error loading battery details for ${batteryId}:`, err);
       
-      // Fallback: Try to get basic battery info from vehicle
       if (selectedVehicle) {
         const fallbackBatteryName = getVehicleProperty(selectedVehicle, 'batteryName');
         if (fallbackBatteryName !== 'N/A') {
@@ -170,7 +160,6 @@ const Package = () => {
       return 'N/A';
     }
 
-    // Tìm package trong danh sách packages đã load
     const currentPackage = packages.find(pkg => 
       getPackageProperty(pkg, 'id') === packageId
     );
@@ -182,7 +171,6 @@ const Package = () => {
     return packageId;
   };
 
-  // 🆕 HÀM MỚI: Format thời hạn package với expiredDate
   const getPackageDurationText = (pkg) => {
     const expiredDate = getPackageProperty(pkg, 'expiredDate');
     
@@ -195,7 +183,6 @@ const Package = () => {
       return `${expiredDate} ngày`;
     }
     
-    // Fallback nếu không có expiredDate
     const duration = getPackageProperty(pkg, 'duration');
     if (duration && duration !== 'N/A') {
       return duration;
@@ -230,31 +217,25 @@ const Package = () => {
     return vehiclePackageId === packageId;
   };
 
-  // 🎯 CORE FUNCTION: Extract packages from different API response structures
   const extractPackagesFromResponse = (response) => {
     if (!response) return [];
     
-    // Case 1: Direct array
     if (Array.isArray(response)) {
       return response;
     }
     
-    // Case 2: Response với data array
     if (response.data && Array.isArray(response.data)) {
       return response.data;
     }
     
-    // Case 3: Response với data.data array
     if (response.data && response.data.data && Array.isArray(response.data.data)) {
       return response.data.data;
     }
     
-    // Case 4: Response với isSuccess và data array
     if (response.data && response.data.isSuccess && Array.isArray(response.data.data)) {
       return response.data.data;
     }
     
-    // Case 5: Tìm array trong object (deep search)
     const findArrayInObject = (obj) => {
       if (Array.isArray(obj)) return obj;
       if (typeof obj === 'object' && obj !== null) {
@@ -275,11 +256,9 @@ const Package = () => {
     return foundArray || [];
   };
 
-  // 🎯 CORE FUNCTION: Filter packages by specification (fallback logic)
   const filterPackagesBySpecification = (allPackages, specification) => {
     if (!specification || !allPackages.length) return allPackages;
     
-    // Mapping logic giữa battery specification và packages
     const specMapping = {
       'V48_Ah12': ['Cơ Bản', 'Tiết Kiệm', 'Basic', 'Standard'],
       'V72_Ah38': ['Cao Cấp', 'Doanh Nghiệp', 'Premium', 'Enterprise'],
@@ -294,13 +273,11 @@ const Package = () => {
     const packageNamesForSpec = specMapping[specification] || [];
     
     return allPackages.filter(pkg => {
-      // Nếu không có mapping, trả về tất cả
       if (packageNamesForSpec.length === 0) return true;
       
       const packageName = getPackageProperty(pkg, 'name').toLowerCase();
       const packageDesc = getPackageProperty(pkg, 'description').toLowerCase();
       
-      // Check nếu package name hoặc description chứa từ khóa
       return packageNamesForSpec.some(name => 
         packageName.includes(name.toLowerCase()) || 
         packageDesc.includes(name.toLowerCase())
@@ -308,7 +285,6 @@ const Package = () => {
     });
   };
 
-  // 🆕 IMPROVED: Get battery specification with better fallbacks
   const getVehicleBatterySpecification = async (vehicle) => {
     try {
       const vehicleId = getVehicleProperty(vehicle, 'vin');
@@ -320,7 +296,6 @@ const Package = () => {
 
       console.log('🔋 Fetching battery specification for vehicle:', vehicleId);
       
-      // BƯỚC 1: Thử lấy từ battery details trước
       const batteryId = getVehicleProperty(vehicle, 'battery');
       if (batteryId && batteryId !== 'N/A' && batteryDetails[batteryId]) {
         const battery = batteryDetails[batteryId];
@@ -331,7 +306,6 @@ const Package = () => {
         }
       }
       
-      // BƯỚC 2: Gọi API để lấy battery của vehicle
       const batteryResponse = await vehicleAPI.getBatteryByVehicleId(vehicleId);
       
       let batteryData = null;
@@ -346,7 +320,6 @@ const Package = () => {
       console.log('📦 Battery API response:', batteryData);
 
       if (batteryData) {
-        // BƯỚC 3: Lấy specification từ battery data
         const specification = batteryData.specification || 
                              batteryData.Specification || 
                              batteryData.batterySpecification;
@@ -357,7 +330,6 @@ const Package = () => {
         }
       }
 
-      // BƯỚC 4: Fallback đến vehicle data
       console.warn('❌ No specification found in battery data, trying vehicle fallback');
       const vehicleSpec = getVehicleProperty(vehicle, 'specification');
       if (vehicleSpec && vehicleSpec !== 'N/A') {
@@ -371,7 +343,6 @@ const Package = () => {
     } catch (error) {
       console.error('💥 Error getting battery specification:', error);
       
-      // Final fallback
       try {
         const directSpec = getVehicleProperty(vehicle, 'specification');
         if (directSpec && directSpec !== 'N/A') {
@@ -386,7 +357,6 @@ const Package = () => {
     }
   };
 
-  // 🎯 MAIN FUNCTION: Load packages với multi-fallback strategy
   const loadPackagesForSelectedVehicle = async (forceRefresh = false) => {
     if (!selectedVehicle) {
       setPackages([]);
@@ -398,11 +368,9 @@ const Package = () => {
       setLoading(true);
       setError('');
       
-      // Load battery details cho selected vehicle
       const batteryId = getVehicleProperty(selectedVehicle, 'battery');
       await loadBatteryDetails(batteryId);
       
-      // BƯỚC 1: Lấy battery specification từ vehicle
       const specification = await getVehicleBatterySpecification(selectedVehicle);
       
       if (!specification) {
@@ -415,7 +383,6 @@ const Package = () => {
       console.log('🔄 Loading packages for battery specification:', specification);
       setBatterySpecification(specification);
 
-      // Kiểm tra cache trước
       const cacheKey = `${specification}_${getVehicleProperty(selectedVehicle, 'vin')}`;
       if (packagesCache[cacheKey] && !forceRefresh) {
         console.log('📦 Using cached packages');
@@ -427,7 +394,6 @@ const Package = () => {
       let packagesData = [];
       let apiSource = 'unknown';
       
-      // BƯỚC 2: SỬ DỤNG FLOW MỚI - Dùng battery specification để lấy package
       try {
         console.log('🔍 Using NEW FLOW: get_package_by_battery_type with:', specification);
         const batteryTypeResponse = await packageAPI.getPackageByBatteryType(specification);
@@ -437,7 +403,6 @@ const Package = () => {
       } catch (batteryTypeError) {
         console.warn('❌ Battery specification API failed, trying fallbacks...', batteryTypeError);
         
-        // Fallback đến các method cũ nếu cần
         try {
           const vehicleName = getVehicleProperty(selectedVehicle, 'name');
           if (vehicleName && vehicleName !== 'N/A') {
@@ -454,7 +419,6 @@ const Package = () => {
 
       console.log(`📊 Final packages from ${apiSource}:`, packagesData);
 
-      // 🆕 BƯỚC 2.5: LẤY CHI TIẾT TỪNG PACKAGE ĐỂ CÓ expiredDate
       if (packagesData.length > 0) {
         console.log('🔍 Fetching detailed package information for expiredDate...');
         const detailedPackages = [];
@@ -466,7 +430,6 @@ const Package = () => {
               console.log(`📦 Fetching details for package: ${packageId}`);
               const packageDetailResponse = await packageAPI.getPackageById(packageId);
               
-              // Extract chi tiết package từ response
               let packageDetail = null;
               if (packageDetailResponse && packageDetailResponse.data) {
                 packageDetail = packageDetailResponse.data;
@@ -477,7 +440,6 @@ const Package = () => {
               }
               
               if (packageDetail) {
-                // Kết hợp dữ liệu chi tiết với dữ liệu cơ bản
                 detailedPackages.push({
                   ...pkg,
                   ...packageDetail
@@ -499,7 +461,6 @@ const Package = () => {
         console.log('📦 Final packages with details:', packagesData);
       }
 
-      // BƯỚC 3: Thêm package hiện tại của vehicle (nếu có)
       const currentPackageId = getVehicleProperty(selectedVehicle, 'package');
       let currentPackage = null;
       
@@ -509,7 +470,6 @@ const Package = () => {
           const currentPackageResponse = await packageAPI.getPackageById(currentPackageId);
           if (currentPackageResponse && currentPackageResponse.data) {
             currentPackage = currentPackageResponse.data;
-            // Đảm bảo package hiện tại có trong danh sách
             if (!packagesData.some(pkg => getPackageProperty(pkg, 'id') === currentPackageId)) {
               packagesData.push(currentPackage);
               console.log('✅ Added current package to list');
@@ -520,12 +480,10 @@ const Package = () => {
         }
       }
 
-      // BƯỚC 4: Lọc packages active và hiển thị
       const activePackages = packagesData.filter(pkg => 
         !isPackageDecommissioned(pkg) || getPackageProperty(pkg, 'id') === currentPackageId
       );
       
-      // Cache kết quả
       setPackagesCache(prev => ({
         ...prev,
         [cacheKey]: activePackages
@@ -548,7 +506,6 @@ const Package = () => {
     }
   };
 
-  // 🆕 ENHANCED: Format battery specification function
   const formatBatterySpecification = (spec) => {
     if (!spec) return 'Đang tải...';
     
@@ -569,12 +526,10 @@ const Package = () => {
       '72V-38Ah': '72V-38Ah'
     };
     
-    // Try exact match first
     if (specMap[spec]) {
       return specMap[spec];
     }
     
-    // Try case-insensitive match
     const lowerSpec = spec.toLowerCase();
     for (const key in specMap) {
       if (key.toLowerCase() === lowerSpec) {
@@ -582,11 +537,9 @@ const Package = () => {
       }
     }
     
-    // Return original if no mapping found
     return spec;
   };
 
-  // 🎯 EVENT HANDLERS
   const handleVehicleChange = (e) => {
     const vehicleId = e.target.value;
     if (vehicleId === "") {
@@ -672,8 +625,7 @@ const Package = () => {
         ));
         
         setSelectedPackage(null);
-        await loadPackagesForSelectedVehicle(true); // Force refresh
-        
+        await loadPackagesForSelectedVehicle(true);
       } else {
         const errorMessage = response?.message || 
                             response?.responseCode || 
@@ -760,7 +712,7 @@ const Package = () => {
         ));
         
         setSelectedPackage(null);
-        await loadPackagesForSelectedVehicle(true); // Force refresh
+        await loadPackagesForSelectedVehicle(true);
         
       } else {
         const errorMessage = response?.message || 
@@ -818,7 +770,6 @@ const Package = () => {
       } catch {}
       if (!accountId) throw new Error('Không xác định được AccountId người dùng.');
 
-      // 1) Tạo ORDER (ServiceType=Package, ServiceId = PackageId, Vin bắt buộc)
       const orderRes = await authAPI.createOrder({
         serviceType: SERVICE_TYPES.PACKAGE,
         accountId,
@@ -834,7 +785,6 @@ const Package = () => {
 
       if (!orderId) throw new Error('Không nhận được OrderId sau khi tạo Order.');
 
-      // 2) Gọi PayOS để lấy link
       const description = `${userName} CHUYEN TIEN`;
       const payRes = await authAPI.createPayOSPayment({ orderId, description });
       const redirectUrl =
@@ -843,7 +793,6 @@ const Package = () => {
 
       if (!redirectUrl) throw new Error('Không nhận được link thanh toán từ PayOS.');
 
-      // Lưu context để PaymentSuccess dùng lại
       sessionStorage.setItem(PAYMENT_CTX, JSON.stringify({
         orderId,
         serviceType: 'Package',
@@ -854,7 +803,6 @@ const Package = () => {
         packageName
       }));
 
-      // 3) Redirect sang PayOS
       window.location.href = redirectUrl;
     } catch (err) {
       setError(err?.message || 'Không thể khởi tạo thanh toán gói.');
@@ -864,7 +812,6 @@ const Package = () => {
     }
   };
 
-  // 🎯 COMPONENT LIFECYCLE
   useEffect(() => {
     if (location.state?.selectedVehicle) {
       setSelectedVehicle(location.state.selectedVehicle);
@@ -914,7 +861,6 @@ const Package = () => {
     }
   }, [selectedVehicle]);
 
-  // 🎯 NAVIGATION HANDLERS
   const handleGoBack = () => {
     navigate(-1);
   };
@@ -946,7 +892,6 @@ const Package = () => {
     
     const normalizedType = type.toString().trim().toLowerCase();
     
-    // Ánh xạ về các giá trị enum chuẩn
     if (normalizedType.includes('electric_motorbike') || normalizedType.includes('motorbike')) {
       return 'electric_motorbike';
     } else if (normalizedType.includes('electric_bike') || normalizedType.includes('e_bike')) {
@@ -970,7 +915,6 @@ const Package = () => {
     return typeMap[normalizedType] || normalizedType;
   };
 
-  // 🎯 RENDER COMPONENT
   return (
     <div className="package-page" style={{ overflowY: 'auto', maxHeight: '100vh' }}>
       {/* Header */}
@@ -1009,7 +953,6 @@ const Package = () => {
         
       <div className="package-container">
         <div className="package-content">
-          {/* Hero Section */}
           <div className="package-hero">
             <button className="package-back-btn" onClick={handleGoBack}>
               <span className="package-back-icon">←</span>
@@ -1084,7 +1027,6 @@ const Package = () => {
                   </div>
                   
                   <div className="vehicle-additional-info">
-                    {/* 🔋 Pin Information - HIỂN THỊ BATTERY TYPE GIỐNG VEHICLE */}
                     <div className="info-item">
                       <span className="info-label">🔋 Loại pin:</span>
                       <span className="info-value">
@@ -1092,7 +1034,6 @@ const Package = () => {
                       </span>
                     </div>
                     
-                    {/* ⚡ Battery Specification */}
                     <div className="info-item">
                       <span className="info-label">⚡ Thông số kỹ thuật:</span>
                       <span className="info-value specification">
@@ -1192,7 +1133,6 @@ const Package = () => {
                           
                           <h3>{packageDisplayName}</h3>
                           <p className="package-price">{getPackageProperty(pkg,'price')?.toLocaleString('vi-VN')} VND</p>
-                          {/* 🆕 THAY THẾ DÒNG NÀY: Sử dụng getPackageDurationText */}
                           <p className="package-duration">⏱️ {getPackageDurationText(pkg)}</p>
                           <p className="package-description">{getPackageProperty(pkg, 'description') || 'Không có mô tả'}</p>
                           
@@ -1285,10 +1225,8 @@ const Package = () => {
                 <h4>{getPackageDisplayName(selectedPackage)}</h4>
                 <p><strong>Mã gói:</strong> {getPackageProperty(selectedPackage, 'id')}</p>
                 <p><strong>Giá:</strong> {getPackageProperty(selectedPackage, 'price')?.toLocaleString('vi-VN')} VND</p>
-                {/* 🆕 THAY THẾ DÒNG NÀY: Sử dụng getPackageDurationText */}
                 <p><strong>Thời hạn:</strong> {getPackageDurationText(selectedPackage)}</p>
                 <p><strong>Mô tả:</strong> {getPackageProperty(selectedPackage, 'description') || 'Không có mô tả'}</p>
-                {/* 🆕 THÊM DÒNG NÀY: Hiển thị expiredDate chi tiết */}
                 <p><strong>Chi tiết thời hạn:</strong> {getPackageProperty(selectedPackage, 'expiredDate')} ngày</p>
                 
                 <div className="vehicle-info-box">
@@ -1298,7 +1236,6 @@ const Package = () => {
                   <br />
                   <strong>VIN:</strong> {getVehicleProperty(selectedVehicle, 'vin')}
                   <br />
-                  {/* CẬP NHẬT: Hiển thị batteryType giống Vehicle */}
                   <strong>Loại pin:</strong> {getBatteryDisplayName(selectedVehicle)}
                   <br />
                   <strong>Thông số kỹ thuật:</strong> {formatBatterySpecification(batterySpecification)}

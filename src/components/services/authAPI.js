@@ -1191,4 +1191,20 @@ getTotalExchangeBattery: async (formData) => {
     throw new Error(error?.message || JSON.stringify(error) || 'Get total exchange battery failed');
   }
 },
+
+  loginGoogle: () => {
+    // Chuyển hướng đến endpoint bắt đầu đăng nhập Google
+    window.location.href = 'https://localhost:5001/api/Account/login-google';
+  },
+
+  // Hàm này sẽ được gọi từ GoogleCallback component để lấy token sau khi redirect
+  handleGoogleCallback: async () => {
+    try {
+      const response = await api.get('/api/Account/google-response');
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Google authentication failed');
+    }
+  },
+
 };

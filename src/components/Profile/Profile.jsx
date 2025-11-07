@@ -1139,40 +1139,6 @@ function Profile({ theme = "light" }) {
                       <div style={{ fontSize: 24, fontWeight: 700, color: '#f59e0b' }}>{count(orders)}</div>
                       <div style={{ fontSize: 14, opacity: 0.8 }}>Đơn hàng</div>
                     </div>
-                    <div className="liquid-glass" style={{ padding: 16, textAlign: 'center' }}>
-                      <div style={{ fontSize: 24, fontWeight: 700, color: '#ef4444' }}>{count(reports)}</div>
-                      <div style={{ fontSize: 14, opacity: 0.8 }}>Báo cáo</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="profile-section">
-                  <div className="profile-section-title">👀 Xem trước</div>
-                  <div className="profile-section-content" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(250px, 1fr))", gap: 20 }}>
-                    <div className="liquid-glass" style={{ padding: 16 }}>
-                      <div style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        🔋 Pin trao đổi
-                      </div>
-                      {renderPreview(exchangeBatteries, "id")}
-                    </div>
-                    <div className="liquid-glass" style={{ padding: 16 }}>
-                      <div style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        📋 Đơn đặt lịch
-                      </div>
-                      {renderPreview(forms.slice(0, 3), "title")}
-                    </div>
-                    <div className="liquid-glass" style={{ padding: 16 }}>
-                      <div style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        💳 Đơn hàng
-                      </div>
-                      {renderPreview(orders, "orderId")}
-                    </div>
-                    <div className="liquid-glass" style={{ padding: 16 }}>
-                      <div style={{ fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        📝 Báo cáo
-                      </div>
-                      {renderPreview(reports, "id")}
-                    </div>
                   </div>
                 </div>
               </div>

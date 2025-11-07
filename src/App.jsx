@@ -25,6 +25,9 @@ import ReportManager from './components/Admin/pages/ReportManager.jsx';
 import PaymentSuccess from './components/Payment/PaymentSuccess.jsx';
 import PaymentFailure from './components/Payment/PaymentFailure.jsx';
 import StationScheduleHistory from './components/Profile/StationScheHistory.jsx';
+import GoogleCallback from './components/Log/GoogleCallback';
+
+
 function App() {
   return (
     <Router>
@@ -58,6 +61,9 @@ function App() {
           <Route path="/payment/success" element={<PaymentSuccess />} />
           <Route path="/payment/failure" element={<PaymentFailure />} />
           <Route path="/stationschehistory" element={<StationScheduleHistory />} />
+          <Route path="/google-callback" element={<GoogleCallback />} />
+
+
         </Routes>
       </div>
     </Router>
