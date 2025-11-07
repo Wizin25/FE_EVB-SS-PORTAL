@@ -768,7 +768,7 @@ export const authAPI = {
   },
 
   // BatteryReport APIs
-  addBatteryReport: async ({ name, description, image, imageUrl, accountId, stationId, batteryId, reportType, exchangeBatteryId, capacity, Capacity, batteryQuality, BatteryQuality}) => {
+  addBatteryReport: async ({ name, description, image, imageUrl, accountId, stationId, batteryId, reportType, exchangeBatteryId, capacity, Capacity, batteryQuality, BatteryQuality }) => {
     try {
       const form = new FormData();
       form.append('Name', name ?? '');
@@ -1107,104 +1107,108 @@ export const authAPI = {
       throw new Error(error?.message || JSON.stringify(error) || 'Get reports by station id failed');
     }
   },
-getStationSchedulesByAccountId: async (accountId) => {
-  try {
-    const response = await api.get('/api/StationSchedule/get_station_schedules_by_account_id', {
-      params: { accountId }
-    });
-    return response.data;
-  } catch (error) {
-    throw new Error(error?.message || JSON.stringify(error) || 'Get station schedules by account id failed');
-  }
-},
-getOrdersByAccountId: async (accountId) => {
-  try {
-    const response = await api.get('/api/Order/get_orders_by_account_id', {
-      params: { accountId }
-    });
-    return response.data;
-  } catch (error) {
-    throw new Error(error?.message || JSON.stringify(error) || 'Get orders by account id failed');
-  }
-},
-// Add this to your authAPI object in authAPI.js
-getDashboardSummary: async () => {
-  try {
-    const response = await api.get('/api/dashboard/summary');
-    return response.data;
-  } catch (error) {
-    throw new Error(error?.message || JSON.stringify(error) || 'Get dashboard summary failed');
-  }
-},
-
-// Dashboard APIs
-getDashboardSummary: async () => {
-  try {
-    const response = await api.get('/api/dashboard/summary');
-    return response.data;
-  } catch (error) {
-    throw new Error(error?.message || JSON.stringify(error) || 'Get dashboard summary failed');
-  }
-},
-
-showDashboard: async (formData) => {
-  try {
-    const response = await api.post('/api/dashboard/show_dashboard', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-    return response.data;
-  } catch (error) {
-    throw new Error(error?.message || JSON.stringify(error) || 'Get dashboard data failed');
-  }
-},
-
-getTotalUsers: async (formData) => {
-  try {
-    const response = await api.post('/api/dashboard/total_user', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-    return response.data;
-  } catch (error) {
-    throw new Error(error?.message || JSON.stringify(error) || 'Get total users failed');
-  }
-},
-
-getTotalRevenue: async (formData) => {
-  try {
-    const response = await api.post('/api/dashboard/total_revenue', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-    return response.data;
-  } catch (error) {
-    throw new Error(error?.message || JSON.stringify(error) || 'Get total revenue failed');
-  }
-},
-
-// Add this to your authAPI object in authAPI.js
-getTotalExchangeBattery: async (formData) => {
-  try {
-    const response = await api.post('/api/dashboard/total_exchange_battery', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-    return response.data;
-  } catch (error) {
-    throw new Error(error?.message || JSON.stringify(error) || 'Get total exchange battery failed');
-  }
-},
-
-  loginGoogle: () => {
-    // Chuyển hướng đến endpoint bắt đầu đăng nhập Google
-    window.location.href = 'https://localhost:5001/api/Account/login-google';
-  },
-
-  // Hàm này sẽ được gọi từ GoogleCallback component để lấy token sau khi redirect
-  handleGoogleCallback: async () => {
+  getStationSchedulesByAccountId: async (accountId) => {
     try {
-      const response = await api.get('/api/Account/google-response');
+      const response = await api.get('/api/StationSchedule/get_station_schedules_by_account_id', {
+        params: { accountId }
+      });
       return response.data;
     } catch (error) {
-      throw new Error(error?.message || JSON.stringify(error) || 'Google authentication failed');
+      throw new Error(error?.message || JSON.stringify(error) || 'Get station schedules by account id failed');
     }
   },
+  getOrdersByAccountId: async (accountId) => {
+    try {
+      const response = await api.get('/api/Order/get_orders_by_account_id', {
+        params: { accountId }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Get orders by account id failed');
+    }
+  },
+  // Add this to your authAPI object in authAPI.js
+  getDashboardSummary: async () => {
+    try {
+      const response = await api.get('/api/dashboard/summary');
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Get dashboard summary failed');
+    }
+  },
+
+  // Dashboard APIs
+  showDashboard: async (formData) => {
+    try {
+      const response = await api.post('/api/dashboard/show_dashboard', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Get dashboard data failed');
+    }
+  },
+
+  getTotalUsers: async (formData) => {
+    try {
+      const response = await api.post('/api/dashboard/total_user', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Get total users failed');
+    }
+  },
+
+  getTotalRevenue: async (formData) => {
+    try {
+      const response = await api.post('/api/dashboard/total_revenue', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Get total revenue failed');
+    }
+  },
+
+  // Add this to your authAPI object in authAPI.js
+  getTotalExchangeBattery: async (formData) => {
+    try {
+      const response = await api.post('/api/dashboard/total_exchange_battery', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error(error?.message || JSON.stringify(error) || 'Get total exchange battery failed');
+    }
+  },
+
+ // =================== GOOGLE LOGIN FLOW ===================
+getGoogleLoginUrl: async () => {
+  try {
+    const res = await api.get('/api/Account/login-google');
+    // backend có thể trả { requestUrl: "..."} hoặc string trực tiếp
+    return res.data?.requestUrl || res.data || null;
+  } catch (error) {
+    console.error('Error getting Google login URL:', error);
+    throw new Error('Không lấy được đường dẫn đăng nhập Google');
+  }
+},
+
+getGoogleAccessToken: async () => {
+  try {
+    const res = await api.get('/api/Account/google-response');
+    return (
+      res?.data?.accessToken ||
+      res?.data?.token ||
+      res?.accessToken ||
+      res?.token ||
+      null
+    );
+  } catch (error) {
+    console.error('Error getting Google access token:', error);
+    throw new Error('Không lấy được access token từ Google');
+  }
+},
 
 };
