@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/authAPI';
 import { decodeJwt, extractRolesFromPayload } from '../services/jwt';
@@ -10,6 +10,31 @@ function SignIn() {
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
   const navigate = useNavigate();
+
+  // Xử lý Google callback nếu có token trong URL (sau khi redirect back)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const googleToken = urlParams.get('token');
+    
+    if (googleToken) {
+      handleGoogleToken(googleToken);
+    }
+  }, []);
+
+  const handleGoogleToken = async (token) => {
+    try {
+      localStorage.setItem('authToken', token);
+      const payload = decodeJwt(token);
+      const roles = extractRolesFromPayload(payload);
+      
+      if (roles.includes('Admin')) navigate('/admin');
+      else if (roles.includes('Bsstaff')) navigate('/staff');
+      else navigate('/home');
+    } catch (error) {
+      console.error('Error handling Google token:', error);
+      setFormError('Failed to process Google login');
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,7 +53,8 @@ function SignIn() {
     if (!trimmedUsername) newErrors.username = 'Username is required';
     if (trimmedUsername.includes(' ')) newErrors.username = 'Username cannot contain spaces';
     if (!formData.password) newErrors.password = 'Password is required';
-    if (formData.password && formData.password.length < 3) newErrors.password = 'Mật khẩu phải có ít nhất 3 ký tự';
+    if (formData.password && formData.password.length < 3)
+      newErrors.password = 'Password must be at least 3 characters';
     if (formData.password.includes(' ')) newErrors.password = 'Password cannot contain spaces';
     return newErrors;
   };
@@ -57,31 +83,45 @@ function SignIn() {
     }
     setLoading(true);
     try {
-      const result = await authAPI.signIn({ username: formData.username.trim(), password: formData.password });
+      const result = await authAPI.signIn({
+        username: formData.username.trim(),
+        password: formData.password,
+      });
       const token = result?.token || result?.accessToken || result?.data?.token;
-      if (token) localStorage.setItem('authToken', token);
-      const payload = token ? decodeJwt(token) : null;
-      const roles = extractRolesFromPayload(payload);
-      if (roles.includes('Admin')) navigate('/admin');
-      else if (roles.includes('Bsstaff')) navigate('/staff');
-      else navigate('/home');
+      if (token) {
+        localStorage.setItem('authToken', token);
+        const payload = decodeJwt(token);
+        const roles = extractRolesFromPayload(payload);
+
+        if (roles.includes('Admin')) navigate('/admin');
+        else if (roles.includes('Bsstaff')) navigate('/staff');
+        else navigate('/home');
+      }
     } catch (error) {
       if (error?.errors && typeof error.errors === 'object') {
         const mapped = mapBackendErrorsToFields(error.errors);
         if (Object.keys(mapped).length > 0) setErrors(mapped);
         else {
-          const aggregated = Object.values(error.errors).flat().filter(Boolean).join(' - ');
+          const aggregated = Object.values(error.errors)
+            .flat()
+            .filter(Boolean)
+            .join(' - ');
           if (aggregated) setFormError(aggregated);
         }
       } else if (error?.title) {
         setFormError(error.title);
       } else {
-        const msg = error?.message || error?.detail || error?.toString() || 'Đăng nhập thất bại';
+        const msg =
+          error?.message || error?.detail || error?.toString() || 'Đăng nhập thất bại';
         setFormError(msg);
       }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleLogin = () => {
+    authAPI.loginGoogle();
   };
 
   return (
@@ -92,22 +132,47 @@ function SignIn() {
         muted
         playsInline
         style={{
-          position: "fixed",
-          top: 0, left: 0,
-          width: "100vw", height: "100vh",
-          objectFit: "cover", zIndex: -2, pointerEvents: "none"
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          objectFit: 'cover',
+          zIndex: -2,
+          pointerEvents: 'none',
         }}
       >
-        <source src="https://res.cloudinary.com/dscvguyvb/video/upload/v1761766142/15107541-uhd_3840_2160_30fps_mt03rn.mp4" type="video/mp4" />
+        <source
+          src="https://res.cloudinary.com/dscvguyvb/video/upload/v1761766142/15107541-uhd_3840_2160_30fps_mt03rn.mp4"
+          type="video/mp4"
+        />
       </video>
 
-      {/* LiquidGlass filter */}
       <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
         <defs>
-          <filter id="liquidGlass" x="-20%" y="-20%" width="140%" height="140%" colorInterpolationFilters="sRGB">
-            <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="1" seed="10" result="noise" />
+          <filter
+            id="liquidGlass"
+            x="-20%"
+            y="-20%"
+            width="140%"
+            height="140%"
+            colorInterpolationFilters="sRGB"
+          >
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.008 0.012"
+              numOctaves="1"
+              seed="10"
+              result="noise"
+            />
             <feGaussianBlur in="noise" stdDeviation="2" result="map" />
-            <feDisplacementMap in="SourceGraphic" in2="map" scale="100" xChannelSelector="R" yChannelSelector="G" />
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="map"
+              scale="100"
+              xChannelSelector="R"
+              yChannelSelector="G"
+            />
           </filter>
         </defs>
       </svg>
@@ -133,10 +198,11 @@ function SignIn() {
                 onChange={handleChange}
                 required
                 disabled={loading}
-                autoComplete='username'
+                autoComplete="username"
               />
               {errors.username && <div className="input-error">{errors.username}</div>}
             </div>
+
             <div className="input-group">
               <input
                 type="password"
@@ -150,9 +216,29 @@ function SignIn() {
               {errors.password && <div className="input-error">{errors.password}</div>}
             </div>
 
-            {formError && <div className="input-error" style={{ marginBottom: 12 }}>{formError}</div>}
-            <Link to="/forgot" className="forgot-link">Forgot Password?</Link>
-            <button type="submit" className="sign-button" disabled={loading}>{loading ? 'Signing In...' : 'Sign In'}</button>
+            {formError && (
+              <div className="input-error" style={{ marginBottom: 12 }}>
+                {formError}
+              </div>
+            )}
+
+            <Link to="/forgot" className="forgot-link">
+              Forgot Password?
+            </Link>
+
+            <button type="submit" className="sign-button" disabled={loading}>
+              {loading ? 'Signing In...' : 'Sign In'}
+            </button>
+
+            {/* ==== Google Login Button ==== */}
+            <button
+              type="button"
+              className="sign-button google-btn"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+            >
+              Sign In with Google
+            </button>
           </form>
 
           <p className="sign-link">

@@ -37,9 +37,7 @@ const Vehicle = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [nextBooking, setNextBooking] = useState(null);
   
-  // Danh sách các tên xe từ enum - ĐÃ SẮP XẾP THEO LOẠI
   const vehicleNameOptions = [
-    // electric_motorbike - Xe máy điện
     { value: 'YADEA_VELAX', label: 'Yadea Velax', type: 'electric_motorbike' },
     { value: 'YADEA_VOLTGUARD_U', label: 'Yadea Voltguard U', type: 'electric_motorbike' },
     { value: 'YADEA_VOLTGUARD_P', label: 'Yadea Voltguard P', type: 'electric_motorbike' },
@@ -61,7 +59,6 @@ const Vehicle = () => {
     { value: 'YADEA_VELAX_SOOBIN', label: 'Yadea Velax Soobin', type: 'electric_motorbike' },
     { value: 'YADEA_ORIS_SOOBIN', label: 'Yadea Oris Soobin', type: 'electric_motorbike' },
     
-    // electric_bike - Xe đạp điện
     { value: 'YADEA_I8_VINTAGE', label: 'Yadea i8 Vintage', type: 'electric_bike' },
     { value: 'YADEA_I8', label: 'Yadea i8', type: 'electric_bike' },
     { value: 'YADEA_I6_Accumulator', label: 'Yadea i6 Accumulator', type: 'electric_bike' },
@@ -69,19 +66,16 @@ const Vehicle = () => {
     { value: 'YADEA_IFUN', label: 'Yadea iFun', type: 'electric_bike' },
     { value: 'YADEA_IGO', label: 'Yadea iGo', type: 'electric_bike' },
     
-    // electric_assist_bicycle - Xe đạp trợ lực
     { value: 'YADEA_VITO', label: 'Yadea Vito', type: 'electric_assist_bicycle' },
     { value: 'YADEA_FLIT', label: 'Yadea Flit', type: 'electric_assist_bicycle' }
   ];
 
-  // Danh sách loại xe từ enum VehicleTypeEnums - ĐÃ SẮP XẾP
   const vehicleTypeOptions = [
     { value: 'electric_motorbike', label: 'Electric Motorbike' },
     { value: 'electric_bike', label: 'Electric Bike' },
     { value: 'electric_assist_bicycle', label: 'Electric Assist Bicycle' }
   ];
 
-  // Hàm tự động xác định loại xe dựa trên tên xe
   const getVehicleTypeFromName = (vehicleName) => {
     const vehicle = vehicleNameOptions.find(v => v.value === vehicleName);
     return vehicle ? vehicle.type : 'electric_motorbike'; // Mặc định là xe máy điện
@@ -89,7 +83,6 @@ const Vehicle = () => {
 
   // Mapping ảnh xe
   const vehicleImageMapping = {
-    // Xe máy điện - electric_motorbike
     'YADEA_VELAX': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Velax-Anh-nho-ben-tren.png',
     'YADEA_VOLTGUARD_U': 'https://www.yadea.com.vn/wp-content/uploads/2025/01/V002-U-anh-chinh-1-480x361.png',
     'YADEA_VOLTGUARD_P': 'https://www.yadea.com.vn/wp-content/uploads/2025/01/Anh-sp-chinh-1200x880-den.png',
@@ -111,7 +104,6 @@ const Vehicle = () => {
     'YADEA_VELAX_SOOBIN': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Velax_3_Xanh-Bentley.png',
     'YADEA_ORIS_SOOBIN': 'https://www.yadea.com.vn/wp-content/uploads/2025/05/Oris_3_Hong-anh-dao.png',
     
-    // Xe đạp điện - electric_bike
     'YADEA_I8_VINTAGE': 'https://www.yadea.com.vn/wp-content/uploads/2025/03/Anh-dau-banner-i8-gau-xanh-1280x880px.png',
     'YADEA_I8': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/Anh-sp-banner-1280x880-trang-sua-i8-moi.png',
     'YADEA_I6_Accumulator': 'https://product.hstatic.net/200000859553/product/hong_cb6790de6aa84124ae1f359932b6b20c_master.png',
@@ -119,7 +111,6 @@ const Vehicle = () => {
     'YADEA_IFUN': 'https://www.yadea.com.vn/wp-content/uploads/2024/08/YADEA-iFUN-xanh-anh-ngang.webp',
     'YADEA_IGO': 'https://www.yadea.com.vn/wp-content/uploads/2023/11/igo-black-banner-1.png',
     
-    // Xe đạp trợ lực - electric_assist_bicycle
     'YADEA_VITO': 'https://www.yadea.com.vn/wp-content/uploads/2025/09/Anh-ngang-VITO-xanh.png',
     'YADEA_FLIT': 'https://www.yadea.com.vn/wp-content/uploads/2025/09/Anh-ngang-FLIT-trang.png'
   };
@@ -134,7 +125,7 @@ const Vehicle = () => {
     return vehicleNameOptions.filter(vehicle => vehicle.type === vehicleType);
   };
 
-  // HÀM MỚI: Load chi tiết package bằng packageId
+  // HÀM : Load chi tiết package bằng packageId
   const loadPackageDetails = async (vehiclesData) => {
     try {
       const packageMap = {};
@@ -212,7 +203,7 @@ const Vehicle = () => {
     };
   };
 
-  // HÀM MỚI: Hiển thị trạng thái pin
+  // HÀM : Hiển thị trạng thái pin
   const getBatteryStatusDisplay = (status) => {
     const statusMap = {
       'Available': 'Sẵn sàng',
@@ -274,7 +265,7 @@ const Vehicle = () => {
     }
   };
 
-  // HÀM MỚI: Load tất cả packages
+  // HÀM : Load tất cả packages
   const loadAllPackages = async () => {
     try {
       const response = await packageAPI.getAllPackages();
@@ -326,7 +317,7 @@ const Vehicle = () => {
     return 'N/A';
   };
 
-  // HÀM CẬP NHẬT: Lấy thông tin package từ packageDetails
+  // HÀM: Lấy thông tin package từ packageDetails
   const getPackageDisplayInfo = (vehicle) => {
     const packageId = getVehicleProperty(vehicle, 'package');
     
@@ -368,19 +359,17 @@ const Vehicle = () => {
     };
   };
 
-  // HÀM MỚI: Tính ngày hết hạn dựa trên expiredDate
+  // HÀM: Tính ngày hết hạn dựa trên expiredDate
   const calculateExpiryDate = (expiredDate) => {
     if (!expiredDate || expiredDate === 'N/A') return null;
     
     try {
-      // Nếu expiredDate là số (số ngày), tính từ ngày hiện tại
       if (typeof expiredDate === 'number') {
         const expiryDate = new Date();
         expiryDate.setDate(expiryDate.getDate() + expiredDate);
         return expiryDate;
       }
       
-      // Nếu expiredDate là chuỗi ngày tháng, parse trực tiếp
       const date = new Date(expiredDate);
       return !isNaN(date.getTime()) ? date : null;
     } catch (e) {
@@ -389,7 +378,7 @@ const Vehicle = () => {
     }
   };
 
-  // HÀM MỚI: Format ngày hết hạn
+  // HÀM: Format ngày hết hạn
   const formatExpiryDate = (expiredDate) => {
     const expiryDate = calculateExpiryDate(expiredDate);
     if (!expiryDate) return 'Không xác định';
@@ -401,7 +390,7 @@ const Vehicle = () => {
     });
   };
 
-  // HÀM MỚI: Kiểm tra gói sắp hết hạn (trong 7 ngày) với expiredDate
+  // HÀM: Kiểm tra gói sắp hết hạn (trong 7 ngày) với expiredDate
   const isExpiringSoon = (expiredDate) => {
     const expiryDate = calculateExpiryDate(expiredDate);
     if (!expiryDate) return false;
@@ -411,7 +400,7 @@ const Vehicle = () => {
     return expiryDate <= sevenDaysFromNow && expiryDate > now;
   };
 
-  // HÀM MỚI: Kiểm tra gói đã hết hạn với expiredDate
+  // HÀM: Kiểm tra gói đã hết hạn với expiredDate
   const isExpired = (expiredDate) => {
     const expiryDate = calculateExpiryDate(expiredDate);
     if (!expiryDate) return false;
@@ -481,7 +470,6 @@ const Vehicle = () => {
     }
   };
 
-  // DEBUG: Theo dõi state changes
   useEffect(() => {
     console.log('🔍 DEBUG - Current batteryDetails:', batteryDetails);
     console.log('🔍 DEBUG - Current vehicles:', vehicles);
@@ -489,7 +477,7 @@ const Vehicle = () => {
 
   useEffect(() => {
     loadVehicles();
-    loadAllPackages(); // Load all packages when component mounts
+    loadAllPackages();
   }, []);
 
   const loadVehicles = async () => {
@@ -536,11 +524,9 @@ const Vehicle = () => {
         if (activeVehicles.length > 0) {
           const vehicleTypes = {};
           activeVehicles.forEach(vehicle => {
-            // CHUẨN HÓA LOẠI XE THEO ENUM
             const rawType = vehicle.vehicle_type || vehicle.type || vehicle.vehicleType || 'other';
             let normalizedType = 'other';
             
-            // Ánh xạ các giá trị về enum chuẩn
             if (rawType.includes('electric_motorbike') || rawType.includes('motorbike')) {
               normalizedType = 'electric_motorbike';
             } else if (rawType.includes('electric_bike') || rawType.includes('e_bike')) {
@@ -548,7 +534,7 @@ const Vehicle = () => {
             } else if (rawType.includes('electric_assist_bicycle') || rawType.includes('assist_bicycle')) {
               normalizedType = 'electric_assist_bicycle';
             } else {
-              normalizedType = rawType; // Giữ nguyên nếu không khớp
+              normalizedType = rawType;
             }
             
             if (!vehicleTypes[normalizedType]) {
@@ -560,7 +546,6 @@ const Vehicle = () => {
           console.log('Grouped active vehicles:', vehicleTypes);
           setVehicles(vehicleTypes);
           
-          // Load packages, battery details, và package details song song
           await Promise.all([
             loadPackagesForVehicles(activeVehicles),
             loadBatteryDetails(activeVehicles),
@@ -595,7 +580,6 @@ const Vehicle = () => {
       setCreating(true);
       setError('');
 
-      // Validate required fields
       if (!newVehicle.vin.trim()) {
         setError('Vui lòng nhập VIN');
         return;
@@ -618,7 +602,6 @@ const Vehicle = () => {
       const response = await vehicleAPI.linkVehicle(formData);
       console.log('Create vehicle response:', response);
 
-      // Đóng modal và reset form
       setShowCreateModal(false);
       setNewVehicle({
         vin: '',
@@ -651,14 +634,12 @@ const Vehicle = () => {
       setError('');
       console.log('Deleting vehicle with ID:', vehicleId);
 
-      // Gọi API unlink_vehicle
       const formData = new FormData();
       formData.append('vehicleId', vehicleId);
 
       const response = await vehicleAPI.unlinkVehicle(formData);
       console.log('Delete vehicle response:', response);
 
-      // Load lại danh sách xe
       await loadVehicles();
 
     } catch (err) {
@@ -690,7 +671,6 @@ const Vehicle = () => {
     return icons[type] || '🚗';
   };
 
-  // Helper to safely get vehicle properties
   const getVehicleProperty = (vehicle, property) => {
     const possibleKeys = {
       vin: ['VIN', 'vin', 'vehicleId', 'id', 'vehicleID'],
@@ -776,7 +756,6 @@ const Vehicle = () => {
       </div>
 
       <div className="vehicle-container">
-        {/* Hero Section */}
         <div className="hero-section">
           <button className="back-btn" onClick={handleGoBack}>
             <span className="back-icon">←</span>
