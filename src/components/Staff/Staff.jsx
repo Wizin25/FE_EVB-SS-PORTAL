@@ -1521,16 +1521,30 @@ function StaffPage() {
               <>
                 <div className="profile-section">
                   <div className="profile-row"><div className="profile-label">Tên</div><div className="profile-value">{currentUser.name || currentUser.Name || 'N/A'}</div></div>
-                  <div className="profile-row"><div className="profile-label">Username</div><div className="profile-value">{currentUser.username || currentUser.Username || 'N/A'}</div></div>
+                  <div className="profile-row"><div className="profile-label">Tài khoản</div><div className="profile-value">{currentUser.username || currentUser.Username || 'N/A'}</div></div>
                   <div className="profile-row"><div className="profile-label">Email</div><div className="profile-value">{currentUser.email || currentUser.Email || 'N/A'}</div></div>
                   <div className="profile-row"><div className="profile-label">SĐT</div><div className="profile-value">{currentUser.phone || currentUser.Phone || 'N/A'}</div></div>
                   <div className="profile-row"><div className="profile-label">Địa chỉ</div><div className="profile-value">{currentUser.address || currentUser.Address || 'N/A'}</div></div>
                   <div className="profile-row"><div className="profile-label">Vai trò</div><div className="profile-value">{Array.isArray(currentUser.roles) ? currentUser.roles.join(', ') : (currentUser.role || currentUser.Role || 'N/A')}</div></div>
-                  <div className="profile-row"><div className="profile-label">Account ID</div><div className="profile-value">{currentUser.accountId || currentUser.accountID || currentUser.AccountId || 'N/A'}</div></div>
-                  <div className="profile-row"><div className="profile-label">Station ID</div>
+                  <div className="profile-row"><div className="profile-label">Mã tài khoản</div><div className="profile-value">{currentUser.accountId || currentUser.accountID || currentUser.AccountId || 'N/A'}</div></div>
+                  <div className="profile-row"><div className="profile-label">Mã nhân viên</div><div className="profile-value">{(Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs[0]?.staffId) || currentUser?.staffId ||  currentUser?.staffID || currentUser?.StaffId || 'N/A'}</div></div>
+                  <div className="profile-row"><div className="profile-label">Mã trạm</div><div className="profile-value">{(Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs[0]?.stationId) ||currentUser?.stationId || currentUser?.StationId || currentUser?.stationID || 'N/A'}</div></div>
+                  <div className="profile-row">
+                    <div className="profile-label">Tên trạm</div>
                     <div className="profile-value">
-                      {(Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs[0]?.stationId) ||
-                        currentUser?.stationId || currentUser?.StationId || currentUser?.stationID || 'N/A'}
+                      {
+                        (() => {let stationName = null;
+                          const stationId =
+                            (Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs[0]?.stationId) ||
+                            currentUser?.stationId ||
+                            currentUser?.StationId ||
+                            currentUser?.stationID;
+                          if (stationId && stationDetails?.byStationId && stationDetails.byStationId[stationId]) {
+                            stationName = stationDetails.byStationId[stationId];
+                          }
+                          return stationName || 'N/A';
+                        })()
+                      }
                     </div>
                   </div>
                 </div>
@@ -2208,17 +2222,7 @@ function StaffPage() {
         {isStationSchedulesView && (
           <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
             <h2 className="filters-title">Lịch trình các trạm theo ngày</h2>
-            <p style={{ marginTop: 4, color: 'rgba(15,23,42,0.7)' }}>
-              Chọn ngày để xem lịch trình của các trạm bạn phụ trách
-            </p>
-
             {/* Calendar Component */}
-            <div style={{
-              background: 'rgba(255,255,255,0.8)',
-              borderRadius: '16px',
-              padding: '20px',
-              marginBottom: '20px'
-            }}>
               <Calendar
                 onDateSelect={(selectedDate) => {
                   console.log('Date selected in Staff:', selectedDate);
@@ -2263,7 +2267,6 @@ function StaffPage() {
                   }));
                 }}
               />
-            </div>
           </section>
         )}
 
@@ -2437,7 +2440,7 @@ function StaffPage() {
               padding: '20px',
               marginBottom: '20px'
             }}>
-              <h3 style={{
+              {/* <h3 style={{
                 margin: '0 0 16px 0',
                 color: '#0f172a',
                 display: 'flex',
@@ -2446,7 +2449,7 @@ function StaffPage() {
               }}>
                 <span>🏢</span>
                 Chọn trạm để xem giao dịch đổi pin
-              </h3>
+              </h3> */}
 
               <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
                 {stationAssignments.map((assignment) => (
