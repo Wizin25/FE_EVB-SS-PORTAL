@@ -205,7 +205,7 @@ function SignIn() {
 
       <div className="sign-main-container liquid">
         <div className="sign-container">
-          <div style={{ position: 'absolute', top: -130, padding: 0 }}>
+          <div style={{ position: 'absolute', top: -90, padding: 0 }}>
             <img
               src="https://res.cloudinary.com/dzht29nkq/image/upload/v1758274139/SwapX_1_-Photoroom_wvmglm.png"
               alt="Brand Logo"
