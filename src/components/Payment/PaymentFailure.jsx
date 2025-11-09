@@ -14,7 +14,11 @@ export default function PaymentFailure() {
   });
 
   // Lấy thông tin từ URL params
+  const orderId = searchParams.get('orderId');
   const orderCode = searchParams.get('orderCode');
+  const serviceType = searchParams.get('serviceType');
+  const total = searchParams.get('total');
+  // Duy trì để backward compatibility/hiển thị cũ
   const amount = searchParams.get('amount');
   const status = searchParams.get('status');
   const paymentId = searchParams.get('paymentId');
@@ -61,7 +65,6 @@ export default function PaymentFailure() {
       navigate('/plans');
     }
   };
-  
 
   const handleGoHome = () => {
     navigate('/home');
@@ -186,10 +189,25 @@ export default function PaymentFailure() {
           </h2>
           
           <div style={{ display: 'grid', gap: '1rem' }}>
-            {orderCode && (
+            {orderId && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b', fontWeight: '500' }}>
                   Mã đơn hàng:
+                </span>
+                <span style={{ 
+                  color: theme === 'dark' ? '#f1f5f9' : '#1e293b', 
+                  fontWeight: 'bold',
+                  fontFamily: 'monospace'
+                }}>
+                  {orderId}
+                </span>
+              </div>
+            )}
+
+            {orderCode && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b', fontWeight: '500' }}>
+                  Mã thanh toán:
                 </span>
                 <span style={{ 
                   color: theme === 'dark' ? '#f1f5f9' : '#1e293b', 
@@ -200,8 +218,38 @@ export default function PaymentFailure() {
                 </span>
               </div>
             )}
+
+            {serviceType && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b', fontWeight: '500' }}>
+                  Loại dịch vụ:
+                </span>
+                <span style={{
+                  color: theme === 'dark' ? '#f1f5f9' : '#1e293b',
+                  fontWeight: 'bold'
+                }}>
+                  {serviceType}
+                </span>
+              </div>
+            )}
             
-            {amount && (
+            {total && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b', fontWeight: '500' }}>
+                  Số tiền:
+                </span>
+                <span style={{ 
+                  color: theme === 'dark' ? '#f87171' : '#dc2626', 
+                  fontWeight: 'bold',
+                  fontSize: '1.1rem'
+                }}>
+                  {parseInt(total).toLocaleString('vi-VN')} VNĐ
+                </span>
+              </div>
+            )}
+
+            {/* Backward compatibility: if 'total' không có, show 'amount' */}
+            {!total && amount && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b', fontWeight: '500' }}>
                   Số tiền:
@@ -291,7 +339,7 @@ export default function PaymentFailure() {
             marginBottom: '2rem'
           }}
         >
-          <button
+          {/* <button
             onClick={handleRetryPayment}
             style={{
               background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
@@ -315,7 +363,7 @@ export default function PaymentFailure() {
             }}
           >
             🔄 Thử lại thanh toán
-          </button>
+          </button> */}
           
           <button
             onClick={handleGoToStations}
