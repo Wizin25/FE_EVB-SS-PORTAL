@@ -314,6 +314,7 @@ const ReportManager = () => {
           <div className="reports-list">
             <div className="reports-grid">
               {filteredReports.map((report) => {
+                const isDeleteDisabled = report.status?.toLowerCase() === 'inactive';
                 const stationInfo = getStationInfo(report.stationId);
                 return (
                   <div key={report.reportId} className="report-card">
@@ -361,11 +362,15 @@ const ReportManager = () => {
                         📋 Chi tiết
                       </button>
                       <button
-                        className="btn btn-danger btn-sm"
                         onClick={() => handleDeleteReport(report.reportId)}
-                        disabled={loading}
+                        disabled={loading || isDeleteDisabled}
+                        className={`flex-1 px-4 py-3 text-sm font-semibold text-white transition-all transform rounded-lg shadow-lg lg:flex-none ${
+                          isDeleteDisabled 
+                            ? 'bg-gradient-to-r from-gray-400 to-gray-500 cursor-not-allowed' 
+                            : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 hover:scale-105'
+                        } disabled:opacity-50`}
                       >
-                        🗑️ Xóa
+                        {isDeleteDisabled ? '❌ Đã xóa' : '🗑️ Xóa'}
                       </button>
                     </div>
                   </div>
@@ -467,16 +472,6 @@ const ReportManager = () => {
             </div>
 
             <div className="popup-actions-report">
-              <button 
-                className="btn btn-danger"
-                onClick={() => {
-                  handleCloseDetail();
-                  handleDeleteReport(selectedReport.reportId);
-                }}
-                disabled={loading}
-              >
-                🗑️ Xóa báo cáo
-              </button>
               <button 
                 className="btn btn-secondary"
                 onClick={handleCloseDetail}
