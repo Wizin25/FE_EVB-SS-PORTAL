@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/authAPI';
 import './sign.css';
@@ -16,6 +17,10 @@ function SignUp() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -78,7 +83,9 @@ function SignUp() {
     return newErrors;
   };
 
-  const mapBackendErrorsToFields = (errObj) => {
+  // Extended error mapping to handle Otp error returned by the backend for OTP modal
+  const mapBackendErrorsToFields = (errObj, forOtpModal = false) => {
+    // This mapping will extract Otp/Email backend errors (per prompt) into 'otp' and 'email' fields
     const fieldMap = {
       Username: 'username',
       Password: 'password',
@@ -87,6 +94,7 @@ function SignUp() {
       Phone: 'phone',
       Address: 'address',
       Email: 'email',
+      Otp: 'otp',
     };
     const mapped = {};
     if (errObj && typeof errObj === 'object') {
@@ -96,6 +104,7 @@ function SignUp() {
         if (field && messages.length > 0) mapped[field] = messages[0];
       });
     }
+    if (!forOtpModal) delete mapped.otp;
     return mapped;
   };
 
@@ -119,8 +128,8 @@ function SignUp() {
         address: formData.address.trim(),
         email: formData.email.trim()
       });
-      alert('Sign up successful! Please sign in.');
-      navigate('/signin');
+      alert('Đăng ký thành công! Một mã OTP đã được gửi đến email của bạn.');
+      setShowOtpModal(true);
     } catch (error) {
       if (error?.errors && typeof error.errors === 'object') {
         const mapped = mapBackendErrorsToFields(error.errors);
@@ -141,6 +150,110 @@ function SignUp() {
     }
   };
 
+  // Add OTP-specific error handling (frontend + backend errors)
+  const [otpError, setOtpError] = useState('');
+
+  const [otpSuccessCountdown, setOtpSuccessCountdown] = useState(null);
+  const [otpSuccessMessage, setOtpSuccessMessage] = useState('');
+
+  const handleVerifyOtp = async () => {
+    setOtpError('');
+    setOtpSuccessCountdown(null);
+    setOtpSuccessMessage('');
+    if (!otp.trim()) {
+      setOtpError('Mã OTP là bắt buộc.');
+      return;
+    }
+    setIsVerifying(true);
+    try {
+      const res = await authAPI.verifyRegisterOtp({
+        email: formData.email.trim(),
+        otp: otp.trim(),
+      });
+      if (res?.isSuccess) {
+        let seconds = 5;
+        setOtpSuccessMessage(
+          (res.message || 'Xác thực OTP thành công!') + `\nChuyển về trang đăng nhập sau ${seconds} giây...`
+        );
+        setOtpSuccessCountdown(seconds);
+        const intervalId = setInterval(() => {
+          seconds = seconds - 1;
+          if (seconds > 0) {
+            setOtpSuccessCountdown(seconds);
+            setOtpSuccessMessage(
+              (res.message || 'Xác thực OTP thành công!') + `\nChuyển về trang đăng nhập sau ${seconds} giây...`
+            );
+          } else {
+            clearInterval(intervalId);
+            setOtpSuccessCountdown(null);
+            setOtpSuccessMessage('');
+            navigate('/signin');
+          }
+        }, 1000);
+      } else {
+        setOtpError('Mã OTP không hợp lệ.');
+      }
+    } catch (err) {
+      if (err?.errors) {
+        const emailErr = err.errors.Email?.[0];
+        const otpErr = err.errors.Otp?.[0];
+        setOtpError(otpErr || emailErr || err.message || 'Xác thực OTP thất bại.');
+      } else {
+        setOtpError(err.message || 'Xác thực OTP thất bại.');
+      }
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+
+  // Đếm ngược 60 giây cho nút gửi lại OTP
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const resendIntervalRef = useRef(null);
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return; // không cho bấm nếu chưa hết cooldown
+
+    setResendLoading(true);
+    setOtpError('');
+    try {
+      await authAPI.resendRegisterOtp({ email: formData.email.trim() });
+      alert('Đã gửi lại OTP. Vui lòng kiểm tra email của bạn.');
+      setResendCooldown(60); // bắt đầu 60 giây cooldown
+      // Thiết lập interval đếm ngược
+      if (resendIntervalRef.current) clearInterval(resendIntervalRef.current);
+      resendIntervalRef.current = setInterval(() => {
+        setResendCooldown(prev => {
+          if (prev <= 1) {
+            clearInterval(resendIntervalRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err) {
+      if (err?.errors) {
+        const emailErr = err.errors.Email?.[0];
+        setOtpError(emailErr || err.message || 'Gửi lại OTP thất bại.');
+      } else {
+        setOtpError(err.message || 'Gửi lại OTP thất bại.');
+      }
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  // Dọn dẹp interval khi unmount hoặc khi OTP modal đóng
+  useEffect(() => {
+    if (!showOtpModal && resendIntervalRef.current) {
+      clearInterval(resendIntervalRef.current);
+      setResendCooldown(0);
+    }
+    return () => {
+      if (resendIntervalRef.current) clearInterval(resendIntervalRef.current);
+    }
+  }, [showOtpModal]);
+
   return (
     <div className="sign-page">
       <video
@@ -150,9 +263,13 @@ function SignUp() {
         playsInline
         style={{
           position: "fixed",
-          top: 0, left: 0,
-          width: "100vw", height: "100vh",
-          objectFit: "cover", zIndex: -2, pointerEvents: "none"
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          objectFit: "cover",
+          zIndex: -2,
+          pointerEvents: "none"
         }}
       >
         <source src="https://res.cloudinary.com/dscvguyvb/video/upload/v1761766142/15107541-uhd_3840_2160_30fps_mt03rn.mp4" type="video/mp4" />
@@ -212,6 +329,52 @@ function SignUp() {
           </p>
         </div>
       </div>
+
+      {/* OTP Modal */}
+      {showOtpModal && (
+        <div className="otp-modal">
+          <div className="otp-box">
+            <h2>Xác thực OTP</h2>
+            <p>Nhập mã OTP đã được gửi đến email <b>{formData.email}</b></p>
+            <input
+              type="text"
+              placeholder="Nhập OTP..."
+              value={otp}
+              onChange={(e) => {
+                setOtp(e.target.value);
+                setOtpError('');
+              }}
+              maxLength={6}
+              disabled={isVerifying || !!otpSuccessCountdown}
+              autoComplete="one-time-code"
+            />
+            {/* Hiển thị lỗi OTP nếu có */}
+            {otpError && <div className="input-error" style={{ marginTop: 8 }}>{otpError}</div>}
+            {/* Hiển thị thông báo thành công và đếm ngược khi xác thực OTP thành công */}
+            {otpSuccessMessage && (
+              <div className="otp-success" style={{ marginTop: 8, whiteSpace: "pre-line", color: "#36b37e", fontWeight: 500 }}>
+                {otpSuccessMessage}
+              </div>
+            )}
+            <div className="otp-actions">
+              <button
+                className="btn small"
+                onClick={handleVerifyOtp}
+                disabled={isVerifying || !!otpSuccessCountdown}
+              >
+                {isVerifying ? 'Đang xác thực...' : 'Xác thực'}
+              </button>
+              <button
+                className="btn small"
+                onClick={handleResendOtp}
+                disabled={resendLoading || resendCooldown > 0}
+              >
+                {resendLoading ? 'Đang gửi lại...' : resendCooldown > 0 ? `Gửi lại OTP (${resendCooldown}s)` : 'Gửi lại OTP'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

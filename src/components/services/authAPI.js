@@ -48,6 +48,41 @@ export const authAPI = {
     }
   },
 
+  verifyRegisterOtp: async ({ email, otp }) => {
+    try {
+      if (!email || !otp) throw new Error("Email và OTP là bắt buộc.");
+      const form = new FormData();
+      form.append('Email', email); // <-- PascalCase đúng như BE báo lỗi
+      form.append('Otp', otp);     // <-- PascalCase đúng như BE báo lỗi
+  
+      const res = await api.post('/api/Account/register-verify-otp', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return res.data; // { isSuccess, message, data: { accessToken } }
+    } catch (error) {
+      const msg = error?.response?.data?.message || error?.message || 'Xác thực OTP thất bại';
+      throw error?.response?.data || new Error(msg);
+    }
+  },
+  
+  resendRegisterOtp: async ({ email }) => {
+    try {
+      if (!email) throw new Error("Email là bắt buộc.");
+      // BE nhận email qua query: ?email=...
+      const res = await api.post(
+        `/api/Account/resend-register-otp?email=${encodeURIComponent(email)}`
+      );
+      return res.data; // { isSuccess, message }
+    } catch (error) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Gửi lại OTP thất bại";
+      throw error?.response?.data || new Error(msg);
+    }
+  },
+  
+
   // Trong authAPI object, cập nhật hàm updateProfile:
   updateProfile: async (profileData) => {
     try {
@@ -1183,32 +1218,32 @@ export const authAPI = {
     }
   },
 
- // =================== GOOGLE LOGIN FLOW ===================
-getGoogleLoginUrl: async () => {
-  try {
-    const res = await api.get('/api/Account/login-google');
-    // backend có thể trả { requestUrl: "..."} hoặc string trực tiếp
-    return res.data?.requestUrl || res.data || null;
-  } catch (error) {
-    console.error('Error getting Google login URL:', error);
-    throw new Error('Không lấy được đường dẫn đăng nhập Google');
-  }
-},
+  // =================== GOOGLE LOGIN FLOW ===================
+  getGoogleLoginUrl: async () => {
+    try {
+      const res = await api.get('/api/Account/login-google');
+      // backend có thể trả { requestUrl: "..."} hoặc string trực tiếp
+      return res.data?.requestUrl || res.data || null;
+    } catch (error) {
+      console.error('Error getting Google login URL:', error);
+      throw new Error('Không lấy được đường dẫn đăng nhập Google');
+    }
+  },
 
-getGoogleAccessToken: async () => {
-  try {
-    const res = await api.get('/api/Account/google-response');
-    return (
-      res?.data?.accessToken ||
-      res?.data?.token ||
-      res?.accessToken ||
-      res?.token ||
-      null
-    );
-  } catch (error) {
-    console.error('Error getting Google access token:', error);
-    throw new Error('Không lấy được access token từ Google');
-  }
-},
+  getGoogleAccessToken: async () => {
+    try {
+      const res = await api.get('/api/Account/google-response');
+      return (
+        res?.data?.accessToken ||
+        res?.data?.token ||
+        res?.accessToken ||
+        res?.token ||
+        null
+      );
+    } catch (error) {
+      console.error('Error getting Google access token:', error);
+      throw new Error('Không lấy được access token từ Google');
+    }
+  },
 
 };

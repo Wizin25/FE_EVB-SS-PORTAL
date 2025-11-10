@@ -241,7 +241,7 @@
 
 /* Primary gradient button with floating animation */
 .btn.primary {
-  background: linear-gradient(90deg, #2563eb, #7c3aed);
+  background: linear-gradient(90deg, #22c55e 0%, #f59e42 100%);
   color: white;
   box-shadow: 0 10px 30px rgba(79, 70, 229, 0.2), 0 1px 0 rgba(255, 255, 255, 0.08) inset;
   transform-origin: center;
@@ -544,7 +544,7 @@
   margin: 0;
   font-size: 16px;
   font-weight: 800;
-  color: #07103a;
+  color: #ff6200f8;
   letter-spacing: .2px;
 }
 
@@ -554,13 +554,13 @@
   display: flex;
   gap: 8px;
   align-items: center;
-  color: #475569;
+  color: #ffffff;
   font-size: 13px;
 }
 
 .sub-location {
   font-weight: 600;
-  color: #0b1220;
+  color: #ff5601;
 }
 
 .sub-rating {
@@ -1137,8 +1137,10 @@
 /* Left block inside header */
 .head-left {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row;
+  gap: 28px;
+  align-items: center;
+  justify-content: space-evenly;
 }
 
 /* Right block contains tiny dates then actions */
@@ -1177,7 +1179,7 @@
 
 .sub-location {
   font-weight: 600;
-  color: #0b1220;
+  color: #fefeff;
 }
 
 .sub-rating {

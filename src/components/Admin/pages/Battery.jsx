@@ -111,8 +111,8 @@ export default function BatteryManagementPage() {
       // default values for create form if empty
       setCreateForm((prev) => ({
         ...prev,
-        batteryType: prev.batteryType || (nt[0] || "Lithium"),
-        specification: prev.specification || (ns[0] || "V48_Ah12"),
+        batteryType: prev.batteryType || (nt[0] || ""),
+        specification: prev.specification || (ns[0] || ""),
       }));
     } catch (err) {
       // fallback defaults

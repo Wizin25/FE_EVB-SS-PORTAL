@@ -906,3 +906,52 @@ body {
 .google-signin-button:active:not(:disabled) {
   background: #f1f3f4;
 }
+
+.otp-modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 999;
+}
+
+.otp-box {
+  background: rgba(87, 204, 153, 0.3); /* xanh lá ánh cam, độ trong suốt 30% */
+  background: linear-gradient(120deg, rgba(87, 204, 153, 0.3), rgba(252, 180, 64, 0.3)); /* green-orange blend */
+  backdrop-filter: blur(8px);
+  padding: 30px;
+  border-radius: 16px;
+  text-align: center;
+  width: 320px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.3);
+}
+
+.otp-box h2 { margin-bottom: 10px; }
+.otp-box input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  text-align: center;
+  font-size: 18px;
+}
+.otp-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.otp-actions button {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  background-color: #0c8ce9;
+  color: white;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.otp-actions button:hover {
+  background-color: #0077cc;
+}
