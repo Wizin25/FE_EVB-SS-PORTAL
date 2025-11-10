@@ -319,6 +319,8 @@ function StaffPage() {
   const [stationInv, setStationInv] = useState(null); // { stationId, stationName, slots: [...], batteries: [...] }
   const [loadingStationInv, setLoadingStationInv] = useState(false);
   const [slotModal, setSlotModal] = useState({ open: false, battery: null, slot: null });
+  const [batteryStatusChoice, setBatteryStatusChoice] = useState(''); // Status mới được chọn cho battery
+  const [updatingBatteryStatus, setUpdatingBatteryStatus] = useState(false); // Loading state khi update status
 
 
   const filteredSortedBatteryReports = useMemo(() => {
@@ -1229,7 +1231,80 @@ function StaffPage() {
       battery = stationInv.batteries.find(b => b.batteryId === slot.batteryId) || null;
     }
     setSlotModal({ open: true, battery, slot });
+    // Reset status choice khi mở modal
+    setBatteryStatusChoice(battery?.status || '');
   }, [stationInv]);
+
+  // Hàm xử lý update battery status
+  const handleUpdateBatteryStatus = useCallback(async () => {
+    if (!slotModal.battery?.batteryId) {
+      toast.error('Không tìm thấy Battery ID');
+      return;
+    }
+    if (!batteryStatusChoice || batteryStatusChoice === slotModal.battery.status) {
+      toast.warning('Vui lòng chọn trạng thái mới khác với trạng thái hiện tại');
+      return;
+    }
+
+    setUpdatingBatteryStatus(true);
+    try {
+      await authAPI.updateBatteryStatus(slotModal.battery.batteryId, batteryStatusChoice);
+      
+      // Cập nhật local state
+      const updatedBattery = { ...slotModal.battery, status: batteryStatusChoice };
+      setSlotModal(prev => ({ ...prev, battery: updatedBattery }));
+      
+      // Cập nhật trong stationInv.batteries
+      if (stationInv?.batteries) {
+        setStationInv(prev => ({
+          ...prev,
+          batteries: prev.batteries.map(b => 
+            b.batteryId === slotModal.battery.batteryId 
+              ? { ...b, status: batteryStatusChoice }
+              : b
+          )
+        }));
+      }
+      
+      // Cập nhật trong stationInv.slots nếu có battery trong slot
+      if (stationInv?.slots) {
+        setStationInv(prev => ({
+          ...prev,
+          slots: prev.slots.map(slot => {
+            if (Array.isArray(slot)) {
+              // Nếu là mảng 2D
+              return slot.map(s => {
+                if (s?.batteryId === slotModal.battery.batteryId || s?.battery?.batteryId === slotModal.battery.batteryId) {
+                  return {
+                    ...s,
+                    battery: s.battery ? { ...s.battery, status: batteryStatusChoice } : s.battery
+                  };
+                }
+                return s;
+              });
+            } else {
+              // Nếu là mảng 1D
+              if (slot?.batteryId === slotModal.battery.batteryId || slot?.battery?.batteryId === slotModal.battery.batteryId) {
+                return {
+                  ...slot,
+                  battery: slot.battery ? { ...slot.battery, status: batteryStatusChoice } : slot.battery
+                };
+              }
+              return slot;
+            }
+          })
+        }));
+      }
+
+      toast.success(`Đã cập nhật trạng thái pin thành: ${batteryStatusChoice}`);
+      setBatteryStatusChoice(''); // Reset sau khi update thành công
+    } catch (error) {
+      console.error('Error updating battery status:', error);
+      toast.error('Cập nhật trạng thái pin thất bại: ' + (error?.message || 'Lỗi không xác định'));
+    } finally {
+      setUpdatingBatteryStatus(false);
+    }
+  }, [slotModal.battery, batteryStatusChoice, stationInv, toast]);
 
 
   /* ======== Filters / Sort ======== */
@@ -2935,6 +3010,63 @@ function StaffPage() {
                             <tr><td style={{ fontWeight: 600, paddingRight: 8 }}>Spec:</td><td>{slotModal.battery.specification || 'N/A'}</td></tr>
                           </tbody>
                         </table>
+
+                        {/* Update Battery Status Section */}
+                        <div style={{ marginTop: 16, padding: 12, background: 'rgba(59, 130, 246, 0.05)', borderRadius: 8 }}>
+                          <h4 style={{ margin: '0 0 12px 0', color: '#0f172a', fontSize: '14px', fontWeight: 600 }}>
+                            🔄 Cập nhật trạng thái pin
+                          </h4>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <select
+                              className="status-select"
+                              value={batteryStatusChoice}
+                              onChange={(e) => setBatteryStatusChoice(e.target.value)}
+                              style={{ 
+                                padding: '8px 12px', 
+                                borderRadius: '6px', 
+                                border: '1px solid rgba(15,23,42,0.2)',
+                                fontSize: '13px',
+                                minWidth: '150px'
+                              }}
+                            >
+                              <option value="">-- Chọn trạng thái --</option>
+                              <option value="Available">Available</option>
+                              <option value="Charging">Charging</option>
+                              <option value="Maintenance">Maintenance</option>
+                              <option value="Decommissioned">Delete</option>
+                            </select>
+                            <button
+                              className="status-apply-btn"
+                              onClick={handleUpdateBatteryStatus}
+                              disabled={!batteryStatusChoice || batteryStatusChoice === slotModal.battery.status || updatingBatteryStatus}
+                              style={{
+                                padding: '8px 16px',
+                                borderRadius: '6px',
+                                background: updatingBatteryStatus 
+                                  ? 'rgba(15,23,42,0.3)' 
+                                  : (batteryStatusChoice && batteryStatusChoice !== slotModal.battery.status
+                                    ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+                                    : 'rgba(15,23,42,0.2)'),
+                                color: updatingBatteryStatus || (!batteryStatusChoice || batteryStatusChoice === slotModal.battery.status)
+                                  ? '#64748b'
+                                  : 'white',
+                                border: 'none',
+                                cursor: (updatingBatteryStatus || !batteryStatusChoice || batteryStatusChoice === slotModal.battery.status)
+                                  ? 'not-allowed'
+                                  : 'pointer',
+                                fontSize: '13px',
+                                fontWeight: 500
+                              }}
+                            >
+                              {updatingBatteryStatus ? 'Đang cập nhật...' : 'Cập nhật trạng thái'}
+                            </button>
+                          </div>
+                          {batteryStatusChoice && batteryStatusChoice === slotModal.battery.status && (
+                            <div style={{ marginTop: 8, fontSize: '12px', color: '#f59e0b' }}>
+                              ⚠️ Vui lòng cập nhật trạng thái mới.
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
