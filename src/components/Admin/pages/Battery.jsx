@@ -66,6 +66,8 @@ export default function BatteryManagementPage() {
   const [selectedBatteryForAssign, setSelectedBatteryForAssign] = useState(null);
   const [stations, setStations] = useState([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  // additional state for step 2 - slot selection modal
+  const [selectedStationForAssign, setSelectedStationForAssign] = useState(null);
 
   // status update
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
@@ -290,6 +292,7 @@ export default function BatteryManagementPage() {
     }
 
     setSelectedBatteryForAssign(battery);
+    setSelectedStationForAssign(null);
     try {
       const list = await authAPI.getAllStations();
       setStations(Array.isArray(list) ? list : []);
@@ -299,26 +302,28 @@ export default function BatteryManagementPage() {
     }
   };
 
-  const handleAssign = async (stationId) => {
+  // Bước 3: Chỉnh handleAssign để thêm slotId
+  const handleAssign = async (stationId, slotId) => {
     if (!selectedBatteryForAssign) return;
     try {
-      await authAPI.addBatteryToStation(selectedBatteryForAssign.batteryId, stationId);
-      // update local list: set station with id and name if known
+      await authAPI.addBatteryToStation(selectedBatteryForAssign.batteryId, stationId, slotId);
+
       const matchedStation = stations.find((s) => s.stationId === stationId);
       const stationUpdate = {
         stationId,
         stationName: matchedStation?.stationName,
       };
-      setBatteries(prev => prev.map(b => b.batteryId === selectedBatteryForAssign.batteryId ? { ...b, station: stationUpdate } : b));
-      if (selectedBattery?.batteryId === selectedBatteryForAssign.batteryId) {
-        setSelectedBattery(prev => prev ? { ...prev, station: stationUpdate } : prev);
-      }
+      setBatteries(prev => prev.map(b => b.batteryId === selectedBatteryForAssign.batteryId
+        ? { ...b, station: stationUpdate }
+        : b));
       setShowAssignModal(false);
-      alert("Gán trạm thành công!");
+      setSelectedStationForAssign(null);
+      alert(`Gán pin vào slot ${slotId} tại trạm ${matchedStation?.stationName} thành công!`);
     } catch (err) {
-      alert("Gán trạm thất bại: " + (err?.message || err));
+      alert("Gán pin thất bại: " + (err?.message || err));
     }
   };
+
 
   // ---------- REMOVE FROM STATION ----------
   const handleRemoveFromStation = async (battery) => {
@@ -1325,21 +1330,155 @@ export default function BatteryManagementPage() {
 
       {/* Assign modal */}
       {showAssignModal && selectedBatteryForAssign && (
-        <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>
+        <div className="modal-overlay" onClick={() => { setShowAssignModal(false); setSelectedStationForAssign(null); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>Chọn trạm để gán cho {selectedBatteryForAssign.batteryName ? selectedBatteryForAssign.batteryName : selectedBatteryForAssign.batteryId}</h2>
-            <ul className="station-list">
-              {stations.map(st => (
-                <li key={st.stationId} style={{ marginBottom: 8 }}>
-                  <button className="btn small" onClick={() => handleAssign(st.stationId)}>
-                    {st.stationName || st.stationId} — {st.location}
+            {!selectedStationForAssign ? (
+              <>
+                <h2>
+                  Chọn trạm để gán cho{" "}
+                  {selectedBatteryForAssign.batteryName || selectedBatteryForAssign.batteryId}
+                </h2>
+                <ul className="station-list">
+                  {stations.map(st => (
+                    <li key={st.stationId} style={{ marginBottom: 8 }}>
+                      <button
+                        className="btn small"
+                        onClick={async () => {
+                          try {
+                            // Gọi API get_station_by_id_for_admin
+                            const stationDetail = await authAPI.getStationByIdForAdmin(st.stationId);
+
+                            // Loại bỏ slot đã có pin (battery) để không cho gán vào các slot đã có pin
+                            const availableSlots = Array.isArray(stationDetail?.slots)
+                              ? stationDetail.slots.filter(slot => !slot.battery)
+                              : [];
+
+                            setSelectedStationForAssign({
+                              ...st,
+                              slots: availableSlots,
+                            });
+                          } catch (err) {
+                            alert("Không tải được slot của trạm: " + (err?.message || err));
+                          }
+                        }}
+                      >
+                        {st.stationName || st.stationId} — {st.location}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <div style={{ marginTop: 12 }}>
+                  <button className="btn" onClick={() => setShowAssignModal(false)}>Đóng</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2>Chọn slot tại {selectedStationForAssign.stationName}</h2>
+                {/* Hiển thị THEO DẠNG GRID cordinateX là cột (hàng ngang), cordinateY là dòng (hàng dọc) */}
+                {selectedStationForAssign.slots?.length ? (() => {
+                  const slots = selectedStationForAssign.slots;
+
+                  // Nếu slot đã không dùng filter phía trên mà vẫn còn slot có pin, chỉ hiển thị slot trống
+                  const emptySlots = slots.filter(slot => !slot.battery);
+
+                  if (emptySlots.length === 0) {
+                    return <p>Không còn slot trống để gán pin.</p>;
+                  }
+
+                  // Chuẩn hóa dữ liệu slot: tìm max X và Y chỉ trên slot rỗng
+                  // Lấy max X, Y chính xác
+                  const maxX = Math.max(...slots.map(s => Number(s.cordinateX) || 0));
+                  const maxY = Math.max(...slots.map(s => Number(s.cordinateY) || 0));
+
+                  // Tạo grid từ 0 đến max, KHÔNG dư
+                  const grid = [];
+                  for (let y = 1; y <= maxY; y++) {
+                    const row = [];
+                    for (let x = 1; x <= maxX; x++) {
+                      const slot = slots.find(s => Number(s.cordinateX) === x && Number(s.cordinateY) === y);
+                      row.push(slot || null);
+                    }
+                    grid.push(row);
+                  }
+
+                  return (
+                    <div style={{ overflowX: 'auto', margin: '16px 0' }}>
+                      <table className="slot-grid-table" style={{ borderCollapse: 'separate', borderSpacing: 10 }}>
+                        <tbody>
+                          {grid.map((row, y) => (
+                            <tr key={y}>
+                              {row.map((slot, x) => (
+                                <td
+                                  key={x}
+                                  style={{
+                                    minWidth: 130,
+                                    minHeight: 80,
+                                    textAlign: 'center',
+                                    verticalAlign: 'middle',
+                                    borderRadius: 9,
+                                    border: '1px solid #d1d5db',
+                                    boxShadow: slot ? '0px 1.5px 6px #a5b4fc40' : undefined
+                                  }}
+                                >
+                                  {slot ? (
+                                    <button
+                                      className="btn small"
+                                      style={{
+                                        width: "100%",
+                                        minHeight: 80,
+                                        fontWeight: 500,
+                                        background: slot.battery ? "#dcfce7" : "#e0f2fe",
+                                        border: slot.battery ? "2px solid #86efac" : "2px solid #7dd3fc",
+                                        borderRadius: 8,
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        cursor: slot.battery ? "not-allowed" : "pointer",
+                                        opacity: slot.battery ? 0.8 : 1,
+                                      }}
+                                      onClick={() => !slot.battery && handleAssign(selectedStationForAssign.stationId, slot.slotId)}
+                                      disabled={!!slot.battery}
+                                      title={slot.slotName || slot.slotId}
+                                    >
+                                      <span style={{ fontWeight: 600, fontSize: 13 }}>
+                                        {slot.slotName || slot.slotId}
+                                      </span>
+                                      {slot.battery ? (
+                                        <div style={{ fontSize: 12, marginTop: 4 }}>
+                                          <div><b>{slot.battery.batteryName}</b></div>
+                                          <div>Dung lượng: {slot.battery.capacity}%</div>
+                                          <div>Trạng thái: {slot.battery.status}</div>
+                                        </div>
+                                      ) : (
+                                        <span style={{ marginTop: 6, color: "#65a30d", fontSize: 12 }}>Trống</span>
+                                      )}
+                                    </button>
+                                  ) : (
+                                    <div style={{ minHeight: 60, color: "#bdbdbd", fontStyle: 'italic', fontSize: 12, background: '#f1f5f9', borderRadius: 8, padding: 6 }}>-</div>
+                                  )}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })() : (
+                  <p>Trạm này chưa có slot.</p>
+                )}
+
+                <div style={{ marginTop: 12 }}>
+                  <button className="btn" onClick={() => setSelectedStationForAssign(null)}>
+                    Quay lại
                   </button>
-                </li>
-              ))}
-            </ul>
-            <div style={{ marginTop: 12 }}>
-              <button className="btn" onClick={() => setShowAssignModal(false)}>Đóng</button>
-            </div>
+                  <button className="btn" onClick={() => setShowAssignModal(false)}>
+                    Đóng
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

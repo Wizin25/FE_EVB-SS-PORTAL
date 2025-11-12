@@ -420,20 +420,22 @@ export const authAPI = {
     }
   },
 
-  addBatteryToStation: async (batteryId, stationId) => {
+  addBatteryToStation: async (batteryId, stationId, slotId) => {
     try {
       const formData = new FormData();
       formData.append("BatteryId", batteryId);
       formData.append("StationId", stationId);
+      if (slotId) formData.append("SlotId", slotId);
+  
       const res = await api.put("/api/Battery/add-battery-in-station", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
+        headers: { "Content-Type": "multipart/form-data" },
       });
       return res.data;
     } catch (err) {
       throw new Error(err?.message || "Gán pin vào trạm thất bại");
     }
   },
-
+  
   deleteBatteryInStation: async (batteryId) => {
     try {
       const formData = new FormData();

@@ -1769,7 +1769,7 @@ function StaffPage() {
               }}>
                 <div style={{ fontSize: '2rem', marginBottom: '8px' }}>⏳</div>
                 <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
-                  {forms.filter(f => f.status?.toLowerCase() === 'pending').length}
+                  {forms.filter(f => f.status?.toLowerCase() === 'submitted').length}
                 </div>
                 <div style={{ fontSize: '14px', opacity: 0.9 }}>Chờ xác nhận</div>
               </div>
@@ -2966,12 +2966,12 @@ function StaffPage() {
             {/* Modal chi tiết pin trong slot */}
             {slotModal.open && (
               <div className="modal-root">
-                <div className="modal-card liquid" style={{ borderRadius: 10, maxWidth: 560 }}>
+                <div className="modal-card" style={{ borderRadius: 10, maxWidth: 560 }}>
                   <div className="modal-head">
                     <h2>Chi tiết pin trong slot</h2>
                     <button className="btn-close" onClick={() => setSlotModal({ open: false, battery: null, slot: null })}>Đóng</button>
                   </div>
-                  <div className="modal-body liquid" style={{ borderRadius: 6 }}>
+                  <div className="modal-body" style={{ borderRadius: 6 }}>
                     {/* Thông tin Slot */}
                     <div style={{ marginBottom: 16, padding: 12, background: 'rgba(15,23,42,0.05)', borderRadius: 8 }}>
                       <h4 style={{ margin: '0 0 8px 0', color: '#0f172a' }}>📍 Thông tin Slot</h4>
