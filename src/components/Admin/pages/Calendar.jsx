@@ -1629,7 +1629,7 @@ function ScheduleItem({ schedule, onViewFormDetail }) {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-              <h3 style={{ margin: 0, color: '#0f172a' }}>💵 Thanh toán tiền mặt tại trạm</h3>
+              <h3 style={{ margin: 0, color: '#0f172a' }}>💵 Thanh toán tiền mặt</h3>
               <button
                 onClick={() => setShowCashModal(false)}
                 style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#64748b' }}
