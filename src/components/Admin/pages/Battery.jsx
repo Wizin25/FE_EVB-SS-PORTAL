@@ -1316,7 +1316,7 @@ export default function BatteryManagementPage() {
                     </div>
 
                     {/* Ngày tạo, cập nhật nằm dưới cuối cùng */}
-                    <p className="date-info" style={{ color: "#64748b", fontSize: 13, marginTop: 16 }}>
+                    <p className="date-info" style={{ color: "white", fontSize: 13, marginTop: 16 }}>
                       Ngày tạo: {selectedBattery.startDate ? new Date(selectedBattery.startDate).toLocaleString() : "-"} <br />
                       Cập nhật: {selectedBattery.updateDate ? new Date(selectedBattery.updateDate).toLocaleString() : "-"}
                     </p>
@@ -1342,7 +1342,7 @@ export default function BatteryManagementPage() {
                   {stations.map(st => (
                     <li key={st.stationId} style={{ marginBottom: 8 }}>
                       <button
-                        className="btn small"
+                        className="btn small" style={{ width: '100%' }}
                         onClick={async () => {
                           try {
                             // Gọi API get_station_by_id_for_admin
@@ -1390,7 +1390,7 @@ export default function BatteryManagementPage() {
                   const maxX = Math.max(...slots.map(s => Number(s.cordinateX) || 0));
                   const maxY = Math.max(...slots.map(s => Number(s.cordinateY) || 0));
 
-                  // Tạo grid từ 0 đến max, KHÔNG dư
+                  // Tạo grid từ 1 đến max, KHÔNG dư
                   const grid = [];
                   for (let y = 1; y <= maxY; y++) {
                     const row = [];
@@ -1400,7 +1400,6 @@ export default function BatteryManagementPage() {
                     }
                     grid.push(row);
                   }
-
                   return (
                     <div style={{ overflowX: 'auto', margin: '16px 0' }}>
                       <table className="slot-grid-table" style={{ borderCollapse: 'separate', borderSpacing: 10 }}>
@@ -1416,46 +1415,77 @@ export default function BatteryManagementPage() {
                                     textAlign: 'center',
                                     verticalAlign: 'middle',
                                     borderRadius: 9,
-                                    border: '1px solid #d1d5db',
-                                    boxShadow: slot ? '0px 1.5px 6px #a5b4fc40' : undefined
+                                    border: '1.5px solid #86efac', // green border (dominant)
+                                    boxShadow: slot
+                                      ? '0px 2px 10px 0 #bbf7d0c0, 0 0 0 1.5px #fdba7433'
+                                      : undefined // green glow, subtle orange glow
                                   }}
                                 >
                                   {slot ? (
-                                    <button
-                                      className="btn small"
-                                      style={{
-                                        width: "100%",
-                                        minHeight: 80,
-                                        fontWeight: 500,
-                                        background: slot.battery ? "#dcfce7" : "#e0f2fe",
-                                        border: slot.battery ? "2px solid #86efac" : "2px solid #7dd3fc",
-                                        borderRadius: 8,
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        cursor: slot.battery ? "not-allowed" : "pointer",
-                                        opacity: slot.battery ? 0.8 : 1,
-                                      }}
-                                      onClick={() => !slot.battery && handleAssign(selectedStationForAssign.stationId, slot.slotId)}
-                                      disabled={!!slot.battery}
-                                      title={slot.slotName || slot.slotId}
-                                    >
-                                      <span style={{ fontWeight: 600, fontSize: 13 }}>
-                                        {slot.slotName || slot.slotId}
-                                      </span>
-                                      {slot.battery ? (
-                                        <div style={{ fontSize: 12, marginTop: 4 }}>
-                                          <div><b>{slot.battery.batteryName}</b></div>
-                                          <div>Dung lượng: {slot.battery.capacity}%</div>
-                                          <div>Trạng thái: {slot.battery.status}</div>
-                                        </div>
-                                      ) : (
-                                        <span style={{ marginTop: 6, color: "#65a30d", fontSize: 12 }}>Trống</span>
-                                      )}
-                                    </button>
+                                    slot.battery ? (
+                                      // Slot có pin: hiển thị tên pin, capacity, status
+                                      <div
+                                        style={{
+                                          minHeight: 80,
+                                          display: "flex",
+                                          flexDirection: "column",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          background: "linear-gradient(115deg, #bbf7d0 82%, #fdba7477 100%)", // xanh lá chủ đạo, chút cam cuối
+                                          border: "2px solid #4ade80", // border xanh lá chủ đạo
+                                          borderRadius: 8,
+                                          padding: 10,
+                                          boxShadow: "0 4px 10px #bbf7d088, 0px 0px 10px #fdba7422"
+                                        }}
+                                        title={slot.slotId}
+                                      >
+                                      </div>
+                                    ) : (
+                                      // Slot không có pin: cho phép gán pin vào slot này
+                                      <button
+                                        className="btn small"
+                                        style={{
+                                          width: "100%",
+                                          minHeight: 80,
+                                          fontWeight: 500,
+                                          background: "linear-gradient(115deg, #dcfce7 90%, #fed7aa 100%)", // chủ yếu xanh, cam chỉ 1 chút
+                                          border: "2.5px solid #65a30d", // border xanh lá
+                                          borderRadius: 8,
+                                          display: "flex",
+                                          flexDirection: "column",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          cursor: "pointer",
+                                          opacity: 1,
+                                          boxShadow: "0 2px 8px #bbf7d0a0, 0 0 0 1px #fdba7420"
+                                        }}
+                                        onClick={() => handleAssign(selectedStationForAssign.stationId, slot.slotId)}
+                                        title={slot.slotName || slot.slotId}
+                                      >
+                                        <span style={{
+                                          marginTop: 6,
+                                          color: "#4ade80", // xanh lá chủ đạo
+                                          fontSize: 15,
+                                          fontWeight: 700
+                                        }}>
+                                          Trống
+                                        </span>
+                                      </button>
+                                    )
                                   ) : (
-                                    <div style={{ minHeight: 60, color: "#bdbdbd", fontStyle: 'italic', fontSize: 12, background: '#f1f5f9', borderRadius: 8, padding: 6 }}>-</div>
+                                    <div style={{
+                                      minHeight: 60,
+                                      color: "#bdbdbd",
+                                      fontStyle: 'italic',
+                                      fontSize: 15,
+                                      background: 'linear-gradient(115deg, #f1f5f9 90%, #fef3c7 100%)',
+                                      borderRadius: 8,
+                                      padding: 6,
+                                      border: '1.5px dashed #bbf7d0',
+                                      alignContent: 'center',
+                                    }}>
+                                      Đã có pin
+                                    </div>
                                   )}
                                 </td>
                               ))}

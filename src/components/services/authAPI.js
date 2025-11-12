@@ -902,6 +902,12 @@ export const authAPI = {
       }
       return null;
     } catch (err) {
+      // Nếu không trả gì thì trạm chưa có giao dịch đổi pin cho trạm này
+      const code = err?.response?.status;
+      if (code === 404 || code === 204) {
+        // Không có dữ liệu hoặc chưa có giao dịch => trả null
+        return null;
+      }
       const msg = err?.response?.data?.message || err?.message || "Lỗi khi lấy thông tin đổi pin theo trạm";
       throw new Error(msg);
     }

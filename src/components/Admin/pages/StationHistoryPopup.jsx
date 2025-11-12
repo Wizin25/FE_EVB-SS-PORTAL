@@ -69,7 +69,11 @@ export default function StationHistoryPopup({
         <div className="station-history-content">
           {error && (
             <div className="station-history-error">
-              {typeof error === "string" ? error : "Không thể tải lịch sử giao dịch."}
+              {error?.status === 204
+                ? "Chưa có giao dịch đổi pin nào cho trạm này."
+                : typeof error === "string"
+                ? error
+                : "Không thể tải lịch sử giao dịch."}
             </div>
           )}
 
@@ -79,7 +83,9 @@ export default function StationHistoryPopup({
 
           {!error && !loading && safeHistory.length === 0 && (
             <div className="station-history-empty">
-              Chưa có giao dịch đổi pin nào cho trạm này.
+              {error && error.status === 204
+                ? "Trạm này chưa từng có giao dịch đổi pin (mã 204)."
+                : "Chưa có giao dịch đổi pin nào cho trạm này."}
             </div>
           )}
 
