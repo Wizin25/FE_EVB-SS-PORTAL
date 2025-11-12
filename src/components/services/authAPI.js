@@ -1105,6 +1105,27 @@ export const authAPI = {
     const res = await api.get(`/api/Order/get_order_by_${safeId}`);
     return res.data; // kỳ vọng { data: { orderId, status, total, ... } } hoặc object trực tiếp
   },
+  /**
+   * Thanh toán tiền mặt tại trạm.*/
+  payInCashAtStation: async ({ ExchangeBatteryId, FormId, Total }) => {
+    if (!ExchangeBatteryId || !FormId || typeof Total !== 'number') {
+      throw new Error('ExchangeBatteryId, FormId và Total là bắt buộc');
+    }
+    try {
+      const form = new FormData();
+      form.append('ExchangeBatteryId', ExchangeBatteryId);
+      form.append('FormId', FormId);
+      form.append('Total', Total);
+
+      const res = await api.post('/api/Order/paid_in_cash_at_station', form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return res.data;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Thanh toán tiền mặt tại trạm thất bại';
+      throw new Error(msg);
+    }
+  },
 
   /**
    * Gọi PayOS để tạo link thanh toán

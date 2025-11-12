@@ -668,6 +668,9 @@ function ScheduleItem({ schedule, onViewFormDetail }) {
   const [updatingStatus, setUpdatingStatus] = useState({}); // Track which exchange is being updated
   const [paying, setPaying] = useState({});
   const [showPayModal, setShowPayModal] = useState(false);
+  const [showCashModal, setShowCashModal] = useState(false);
+  const [cashPayment, setCashPayment] = useState({ ExchangeBatteryId: '', FormId: '', Total: 0 });
+  const [cashLoading, setCashLoading] = useState(false);
   const [orderDraft, setOrderDraft] = useState(null); // { accountId, total, batteryId, serviceId, serviceType, exchangeBatteryId, customerName }
   const [creatingPayment, setCreatingPayment] = useState(false);
   const [payError, setPayError] = useState('');
@@ -879,7 +882,7 @@ function ScheduleItem({ schedule, onViewFormDetail }) {
       console.log('Creating order with payload:', payload);
       const orderRes = await authAPI.createOrder(payload);
       console.log('Create order response:', orderRes);
-      
+
       const orderId =
         orderRes?.data?.orderId ||
         orderRes?.data?.OrderId ||
@@ -926,7 +929,7 @@ function ScheduleItem({ schedule, onViewFormDetail }) {
           total: orderDraft.total,
           exchangeBatteryId: orderDraft.exchangeBatteryId,
         }));
-      } catch {}
+      } catch { }
 
       setShowPayModal(false);
       window.location.href = redirectUrl;
@@ -948,10 +951,10 @@ function ScheduleItem({ schedule, onViewFormDetail }) {
 
     try {
       setRetryingPayment(prev => ({ ...prev, [exchangeBatteryId]: true }));
-      
+
       const description = `Thanh toan lai Order ${orderId}`;
       console.log('Retrying payment for orderId:', orderId);
-      
+
       const payRes = await authAPI.createPayOSPayment({ orderId, description });
       const redirectUrl =
         payRes?.data?.paymentUrl ||
@@ -975,7 +978,7 @@ function ScheduleItem({ schedule, onViewFormDetail }) {
           total: 10000,
           exchangeBatteryId,
         }));
-      } catch {}
+      } catch { }
 
       window.location.href = redirectUrl;
     } catch (err) {
@@ -1297,8 +1300,34 @@ function ScheduleItem({ schedule, onViewFormDetail }) {
                               {updatingStatus[exchange.exchangeBatteryId || exchange.id] ? '⏳' : '❌'}
                             </button>
 
+                            <button
+                              onClick={() => {
+                                const ExchangeBatteryId = exchange.exchangeBatteryId || exchange.id;
+                                const FormId = schedule.formId;
+                                setCashPayment({ ExchangeBatteryId, FormId, Total: 0 });
+                                setShowCashModal(true);
+                              }}
+                              style={{
+                                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                padding: '2px 8px',
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                minWidth: '78px'
+                              }}
+                              onMouseEnter={e => e.target.style.transform = 'scale(1.05)'}
+                              onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+                            >
+                              💵 Tiền mặt
+                            </button>
+
                             {/* Nút Thanh toán - chỉ hiện khi chưa có orderId */}
                             {!savedOrders[exchange.exchangeBatteryId || exchange.id] && (
+
                               <button
                                 onClick={() => handlePayForExchange(exchange)}
                                 disabled={paying[exchange.exchangeBatteryId || exchange.id]}
@@ -1329,6 +1358,7 @@ function ScheduleItem({ schedule, onViewFormDetail }) {
                               >
                                 {paying[exchange.exchangeBatteryId || exchange.id] ? '⏳' : '💳 Thanh toán'}
                               </button>
+
                             )}
 
                             {/* Nút Thanh toán lại - Hiện khi đã có orderId trong savedOrders HOẶC trong sessionStorage*/}
@@ -1347,90 +1377,90 @@ function ScheduleItem({ schedule, onViewFormDetail }) {
                                       if (found) return true;
                                     }
                                   }
-                                } catch {}
+                                } catch { }
                                 return false;
                               })()
                             ) && (
-                              <button
-                                onClick={async () => {
-                                  const key = exchange.exchangeBatteryId || exchange.id;
-                                  setRetryingPayment(prev => ({ ...prev, [key]: true }));
+                                <button
+                                  onClick={async () => {
+                                    const key = exchange.exchangeBatteryId || exchange.id;
+                                    setRetryingPayment(prev => ({ ...prev, [key]: true }));
 
-                                  try {
-                                    // Lấy orderId từ sessionStorage
-                                    let orderId = null;
                                     try {
-                                      const paymentCtxRaw = sessionStorage.getItem('paymentCtx');
-                                      if (paymentCtxRaw) {
-                                        const ctx = JSON.parse(paymentCtxRaw);
-                                        if (ctx && typeof ctx === 'object' && !Array.isArray(ctx)) {
-                                          if (ctx.exchangeBatteryId === key) {
-                                            orderId = ctx.orderId;
+                                      // Lấy orderId từ sessionStorage
+                                      let orderId = null;
+                                      try {
+                                        const paymentCtxRaw = sessionStorage.getItem('paymentCtx');
+                                        if (paymentCtxRaw) {
+                                          const ctx = JSON.parse(paymentCtxRaw);
+                                          if (ctx && typeof ctx === 'object' && !Array.isArray(ctx)) {
+                                            if (ctx.exchangeBatteryId === key) {
+                                              orderId = ctx.orderId;
+                                            }
+                                          } else if (Array.isArray(ctx)) {
+                                            const found = ctx.find(c => c.exchangeBatteryId === key);
+                                            if (found) orderId = found.orderId;
                                           }
-                                        } else if (Array.isArray(ctx)) {
-                                          const found = ctx.find(c => c.exchangeBatteryId === key);
-                                          if (found) orderId = found.orderId;
                                         }
+                                      } catch { }
+                                      // Fallback: lấy orderId từ savedOrders, như cũ nếu ko tìm ra trong sessionStorage
+                                      orderId = orderId || savedOrders[key];
+                                      if (!orderId) {
+                                        alert('Không tìm thấy OrderId trong sessionStorage hoặc savedOrders');
+                                        return;
                                       }
-                                    } catch {}
-                                    // Fallback: lấy orderId từ savedOrders, như cũ nếu ko tìm ra trong sessionStorage
-                                    orderId = orderId || savedOrders[key];
-                                    if (!orderId) {
-                                      alert('Không tìm thấy OrderId trong sessionStorage hoặc savedOrders');
-                                      return;
-                                    }
-                                    const description = 'Thanh toán lại';
-                                    const payRes = await authAPI.createPayOSPayment({ orderId, description });
-                                    const redirectUrl =
-                                      payRes?.data?.paymentUrl ||
-                                      payRes?.data?.checkoutUrl ||
-                                      payRes?.data?.payUrl ||
-                                      payRes?.data?.shortLink ||
-                                      payRes?.paymentUrl ||
-                                      payRes?.checkoutUrl ||
-                                      payRes?.payUrl ||
-                                      payRes?.shortLink;
+                                      const description = 'Thanh toán lại';
+                                      const payRes = await authAPI.createPayOSPayment({ orderId, description });
+                                      const redirectUrl =
+                                        payRes?.data?.paymentUrl ||
+                                        payRes?.data?.checkoutUrl ||
+                                        payRes?.data?.payUrl ||
+                                        payRes?.data?.shortLink ||
+                                        payRes?.paymentUrl ||
+                                        payRes?.checkoutUrl ||
+                                        payRes?.payUrl ||
+                                        payRes?.shortLink;
 
-                                    if (!redirectUrl) {
-                                      throw new Error('Không nhận được link thanh toán từ PayOS.');
+                                      if (!redirectUrl) {
+                                        throw new Error('Không nhận được link thanh toán từ PayOS.');
+                                      }
+                                      window.location.href = redirectUrl;
+                                    } catch (err) {
+                                      console.error('Error retry PayOS payment:', err);
+                                      alert('Lỗi khi thanh toán lại: ' + (err?.message || 'Unknown error'));
+                                    } finally {
+                                      setRetryingPayment(prev => ({ ...prev, [key]: false }));
                                     }
-                                    window.location.href = redirectUrl;
-                                  } catch (err) {
-                                    console.error('Error retry PayOS payment:', err);
-                                    alert('Lỗi khi thanh toán lại: ' + (err?.message || 'Unknown error'));
-                                  } finally {
-                                    setRetryingPayment(prev => ({ ...prev, [key]: false }));
-                                  }
-                                }}
-                                disabled={retryingPayment[exchange.exchangeBatteryId || exchange.id]}
-                                style={{
-                                  background: retryingPayment[exchange.exchangeBatteryId || exchange.id]
-                                    ? '#9ca3af'
-                                    : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  padding: '2px 8px',
-                                  fontSize: '10px',
-                                  fontWeight: '700',
-                                  cursor: retryingPayment[exchange.exchangeBatteryId || exchange.id] ? 'not-allowed' : 'pointer',
-                                  transition: 'all 0.2s',
-                                  minWidth: '90px'
-                                }}
-                                onMouseEnter={(e) => {
-                                  if (!retryingPayment[exchange.exchangeBatteryId || exchange.id]) {
-                                    e.target.style.transform = 'scale(1.05)';
-                                  }
-                                }}
-                                onMouseLeave={(e) => {
-                                  if (!retryingPayment[exchange.exchangeBatteryId || exchange.id]) {
-                                    e.target.style.transform = 'scale(1)';
-                                  }
-                                }}
-                              >
-                                {retryingPayment[exchange.exchangeBatteryId || exchange.id] ? '⏳' : '🔄 Thanh toán lại'}
-                              </button>
-                            )}
+                                  }}
+                                  disabled={retryingPayment[exchange.exchangeBatteryId || exchange.id]}
+                                  style={{
+                                    background: retryingPayment[exchange.exchangeBatteryId || exchange.id]
+                                      ? '#9ca3af'
+                                      : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    padding: '2px 8px',
+                                    fontSize: '10px',
+                                    fontWeight: '700',
+                                    cursor: retryingPayment[exchange.exchangeBatteryId || exchange.id] ? 'not-allowed' : 'pointer',
+                                    transition: 'all 0.2s',
+                                    minWidth: '90px'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (!retryingPayment[exchange.exchangeBatteryId || exchange.id]) {
+                                      e.target.style.transform = 'scale(1.05)';
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (!retryingPayment[exchange.exchangeBatteryId || exchange.id]) {
+                                      e.target.style.transform = 'scale(1)';
+                                    }
+                                  }}
+                                >
+                                  {retryingPayment[exchange.exchangeBatteryId || exchange.id] ? '⏳' : '🔄 Thanh toán lại'}
+                                </button>
+                              )}
                           </div>
                         )}
 
@@ -1508,7 +1538,26 @@ function ScheduleItem({ schedule, onViewFormDetail }) {
                 <tr><td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>ServiceId (FormId)</td><td>{orderDraft.serviceId}</td></tr>
                 <tr><td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>BatteryId (New)</td><td>{orderDraft.batteryId || 'N/A'}</td></tr>
                 <tr><td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>ExchangeBatteryId</td><td>{orderDraft.exchangeBatteryId}</td></tr>
-                <tr><td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>Total</td><td>{orderDraft.total}₫</td></tr>
+                <tr>
+                  <td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>Total</td>
+                  <td>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1000}
+                      value={orderDraft.total}
+                      onChange={e => setOrderDraft({ ...orderDraft, total: Number(e.target.value) })}
+                      style={{
+                        width: 120,
+                        padding: '3px 8px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: 6,
+                        fontSize: 14
+                      }}
+                      placeholder="Nhập số tiền"
+                    />₫
+                  </td>
+                </tr>
               </tbody>
             </table>
 
@@ -1552,6 +1601,132 @@ function ScheduleItem({ schedule, onViewFormDetail }) {
           </div>
         </div>
       )}
+
+      {/* Modal Thanh toán tiền mặt */}
+      {showCashModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 3000,
+          }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 12,
+              padding: 20,
+              width: '90%',
+              maxWidth: 500,
+              boxShadow: '0 10px 20px rgba(0,0,0,0.15)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+              <h3 style={{ margin: 0, color: '#0f172a' }}>💵 Thanh toán tiền mặt tại trạm</h3>
+              <button
+                onClick={() => setShowCashModal(false)}
+                style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#64748b' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <table style={{ width: '100%', fontSize: 13, marginBottom: 12 }}>
+              <tbody>
+                <tr>
+                  <td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>ExchangeBatteryId</td>
+                  <td>{cashPayment.ExchangeBatteryId}</td>
+                </tr>
+                <tr>
+                  <td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>FormId</td>
+                  <td>{cashPayment.FormId}</td>
+                </tr>
+                <tr>
+                  <td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>Total</td>
+                  <td>
+                    <input
+                      type="number"
+                      value={cashPayment.Total}
+                      onChange={e => setCashPayment(prev => ({ ...prev, Total: Number(e.target.value) }))}
+                      placeholder="Nhập số tiền"
+                      min={0}
+                      step={1000}
+                      style={{
+                        width: 120,
+                        padding: '3px 8px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: 6,
+                        fontSize: 14,
+                      }}
+                    />₫
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button
+                onClick={() => setShowCashModal(false)}
+                style={{
+                  background: 'rgba(15,23,42,0.06)',
+                  color: '#0f172a',
+                  border: '1px solid rgba(15,23,42,0.12)',
+                  borderRadius: 8,
+                  padding: '8px 12px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Hủy
+              </button>
+
+              <button
+                onClick={async () => {
+                  if (!cashPayment.ExchangeBatteryId || !cashPayment.FormId || cashPayment.Total <= 0) {
+                    alert('Vui lòng nhập đủ thông tin và số tiền hợp lệ!');
+                    return;
+                  }
+                  setCashLoading(true);
+                  try {
+                    const res = await authAPI.payInCashAtStation(cashPayment);
+                    console.log('Cash payment response:', res);
+                    alert('💵 Thanh toán tiền mặt thành công tại trạm!');
+                    setShowCashModal(false);
+                  } catch (err) {
+                    alert('Lỗi khi thanh toán tiền mặt: ' + (err?.message || 'Unknown error'));
+                  } finally {
+                    setCashLoading(false);
+                  }
+                }}
+                disabled={cashLoading}
+                style={{
+                  background: cashLoading
+                    ? '#9ca3af'
+                    : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '8px 14px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: cashLoading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {cashLoading ? '⏳ Đang xử lý...' : '✅ Xác nhận thanh toán'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
@@ -1580,7 +1755,7 @@ export default function Calendar({ onDateSelect }) {
     const fetchAllSchedules = async () => {
       // Get stationId from localStorage
       const stationId = localStorage.getItem('stationId');
-      
+
       if (!stationId) {
         console.error('No stationId found in localStorage');
         setLoading(false);
@@ -1590,10 +1765,10 @@ export default function Calendar({ onDateSelect }) {
       try {
         setLoading(true);
         console.log('Fetching schedules for station ID:', stationId);
-        
+
         const response = await authAPI.getStationSchedulesByStationId(stationId);
         console.log('Station schedules response:', response);
-        
+
         const schedules = Array.isArray(response?.data) ? response.data : [];
         setAllSchedules(schedules);
       } catch (error) {
@@ -1866,7 +2041,7 @@ export default function Calendar({ onDateSelect }) {
             e.target.style.boxShadow = "0 2px 8px 0 #38bdf852";
           }}
         >
-          <span aria-label="prev month" role="img" style={{marginRight: 7}}>←</span> Tháng trước
+          <span aria-label="prev month" role="img" style={{ marginRight: 7 }}>←</span> Tháng trước
         </button>
 
         <button
@@ -1895,7 +2070,7 @@ export default function Calendar({ onDateSelect }) {
             e.target.style.boxShadow = "0 2px 8px 0 #38bdf852";
           }}
         >
-          Tháng sau <span aria-label="next month" role="img" style={{marginLeft: 7}}>→</span>
+          Tháng sau <span aria-label="next month" role="img" style={{ marginLeft: 7 }}>→</span>
         </button>
       </div>
 

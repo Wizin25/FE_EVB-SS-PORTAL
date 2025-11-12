@@ -25,6 +25,14 @@ export default function PaymentFailure() {
   const errorCode = searchParams.get('errorCode');
   const errorMessage = searchParams.get('errorMessage');
 
+  // Xác định có phải staff (bsstaff) không?
+  // Có thể lấy qua localStorage, sessionStorage hoặc URL param, ở đây ưu tiên URL param cho đơn giản/dễ test
+  // Vd: ?bsstaff=1 sẽ là staff
+  const isBsstaff =
+    searchParams.get('bsstaff') === '1' ||
+    (typeof window !== 'undefined' &&
+      (localStorage.getItem('bsstaff') === '1' || sessionStorage.getItem('bsstaff') === '1'));
+
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "light";
     setTheme(savedTheme);
@@ -77,6 +85,11 @@ export default function PaymentFailure() {
   const handleContactSupport = () => {
     // Có thể mở modal liên hệ hoặc redirect đến trang contact
     window.open('/contact');
+  };
+
+  // Nút dành cho BSStaff: về trang /staff
+  const handleGoToStaff = () => {
+    navigate('/staff');
   };
 
   return (
@@ -439,6 +452,33 @@ export default function PaymentFailure() {
           >
             🏠 Về trang chủ
           </button>
+          {isBsstaff && (
+            <button
+              onClick={handleGoToStaff}
+              style={{
+                background: 'linear-gradient(135deg, #f59e42 0%, #eab308 100%)',
+                color: '#713f12',
+                padding: '12px 24px',
+                borderRadius: '12px',
+                border: 'none',
+                fontWeight: 'bold',
+                fontSize: '1rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 4px 15px rgba(245, 158, 66, 0.15)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(245, 158, 66, 0.25)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 15px rgba(245, 158, 66, 0.15)';
+              }}
+            >
+              🧑‍💼 Về trang staff
+            </button>
+          )}
         </div>
 
         {/* Help Information */}
