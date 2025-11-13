@@ -1,7 +1,23 @@
 // src/components/HistoryOrder.jsx
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { authAPI } from '../services/authAPI';
 import './ProfileStyle.css';
+
+// Ưu tiên status: "pending" > "processing" > "success"/"completed" > "failed"/"cancelled" > others
+const statusSortOrder = [
+  'pending',
+  'processing',
+  'success',
+  'completed',
+  'failed',
+  'cancelled'
+];
+function getStatusOrderIndex(status) {
+  if (!status) return statusSortOrder.length;
+  const lower = status.toLowerCase();
+  const idx = statusSortOrder.indexOf(lower);
+  return idx !== -1 ? idx : statusSortOrder.length;
+}
 
 function HistoryOrder({ user, theme = "light" }) {
   const [orders, setOrders] = useState([]);
@@ -11,6 +27,9 @@ function HistoryOrder({ user, theme = "light" }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 800);
   const [expandedOrders, setExpandedOrders] = useState({});
   const [loadingBatteries, setLoadingBatteries] = useState({});
+  const [processingPayments, setProcessingPayments] = useState({});
+  // State cho việc lựa chọn sắp xếp
+  const [sortBy, setSortBy] = useState('status'); // status | date
 
   // Format currency (VND)
   const formatCurrency = useCallback((amount) => {
@@ -142,6 +161,77 @@ function HistoryOrder({ user, theme = "light" }) {
     }
   };
 
+  // Xử lý thanh toán lại cho đơn hàng Pending hoặc Failed
+  const handleRetryPayment = useCallback(async (orderId) => {
+    if (!orderId || !user?.name) {
+      setError('Thiếu thông tin cần thiết để thanh toán');
+      return;
+    }
+
+    setProcessingPayments(prev => ({ ...prev, [orderId]: true }));
+
+    try {
+      const description = `${user.name} CHUYEN TIEN`;
+      const payRes = await authAPI.createPayOSPayment({
+        orderId,
+        description
+      });
+
+      console.log('PayOS Payment Response:', payRes);
+
+      // Kiểm tra tất cả các trường hợp có thể có paymentUrl (giống các file khác)
+      const redirectUrl =
+        payRes?.data?.paymentUrl ||
+        payRes?.data?.checkoutUrl ||
+        payRes?.data?.payUrl ||
+        payRes?.data?.shortLink ||
+        payRes?.paymentUrl ||
+        payRes?.checkoutUrl ||
+        payRes?.payUrl ||
+        payRes?.shortLink;
+
+      if (!redirectUrl) {
+        console.error('No payment URL found in response:', payRes);
+        throw new Error('Không nhận được link thanh toán từ PayOS.');
+      }
+
+      console.log('Redirecting to payment URL:', redirectUrl);
+      
+      // Redirect đến trang thanh toán PayOS
+      window.location.href = redirectUrl;
+    } catch (err) {
+      console.error('Error creating payment:', err);
+      setError(err?.message || 'Lỗi khi tạo thanh toán. Vui lòng thử lại.');
+      setProcessingPayments(prev => ({ ...prev, [orderId]: false }));
+    }
+  }, [user?.name]);
+
+  // Sắp xếp đơn hàng theo tùy chọn sortBy
+  const sortedOrders = useMemo(() => {
+    if (!Array.isArray(orders)) return [];
+    let result = [...orders];
+    if (sortBy === 'status') {
+      // Sắp xếp theo trạng thái ưu tiên, rồi tới ngày mới nhất
+      result.sort((a, b) => {
+        const statusA = getStatusOrderIndex(a.status);
+        const statusB = getStatusOrderIndex(b.status);
+        if (statusA !== statusB) return statusA - statusB;
+        // Ưu tiên ngày mới trước (startDate, fallback sang date)
+        const dateA = new Date(a.startDate || a.date || 0);
+        const dateB = new Date(b.startDate || b.date || 0);
+        return dateB - dateA;
+      });
+    } else if (sortBy === 'date') {
+      // Sắp xếp chỉ theo ngày mới nhất
+      result.sort((a, b) => {
+        const dateA = new Date(a.startDate || a.date || 0);
+        const dateB = new Date(b.startDate || b.date || 0);
+        return dateB - dateA;
+      });
+    }
+    return result;
+  }, [orders, sortBy]);
+
   if (loading) {
     return (
       <div style={{ padding: isMobile ? 16 : 24 }}>
@@ -196,7 +286,42 @@ function HistoryOrder({ user, theme = "light" }) {
         </div>
       </div>
 
-      {orders.length === 0 ? (
+      {/* --- Sort Buttons Start --- */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+        <button
+          onClick={() => setSortBy('status')}
+          className={`profile-btn-secondary${sortBy === 'status' ? ' profile-btn-active' : ''}`}
+          style={{
+            fontSize: 13,
+            padding: '8px 16px',
+            fontWeight: 600,
+            background: sortBy === 'status' ? (theme === 'dark' ? '#1e293b' : '#f1f5f9') : undefined,
+            border: sortBy === 'status' ? '1.5px solid #0ea5e9' : undefined,
+            color: sortBy === 'status' ? '#0ea5e9' : undefined,
+          }}
+          type="button"
+        >
+          Sắp xếp theo trạng thái
+        </button>
+        <button
+          onClick={() => setSortBy('date')}
+          className={`profile-btn-secondary${sortBy === 'date' ? ' profile-btn-active' : ''}`}
+          style={{
+            fontSize: 13,
+            padding: '8px 16px',
+            fontWeight: 600,
+            background: sortBy === 'date' ? (theme === 'dark' ? '#1e293b' : '#f1f5f9') : undefined,
+            border: sortBy === 'date' ? '1.5px solid #0ea5e9' : undefined,
+            color: sortBy === 'date' ? '#0ea5e9' : undefined,
+          }}
+          type="button"
+        >
+          Sắp xếp theo ngày tạo
+        </button>
+      </div>
+      {/* --- Sort Buttons End --- */}
+
+      {sortedOrders.length === 0 ? (
         <div className="profile-empty liquid-glass" style={{ margin: 20 }}>
           <p>📭 Bạn chưa có đơn hàng nào.</p>
         </div>
@@ -204,11 +329,10 @@ function HistoryOrder({ user, theme = "light" }) {
         <div style={{ display: 'grid', gap: '16px' }}>
           <div className="liquid-glass" style={{ padding: '12px 20px' }}>
             <p style={{ fontSize: '14px', color: theme === 'dark' ? '#94a3b8' : '#64748b', margin: 0 }}>
-              📊 Hiển thị {orders.length} đơn hàng của bạn
+              📊 Hiển thị {sortedOrders.length} đơn hàng của bạn
             </p>
           </div>
-          
-          {orders.map((order) => (
+          {sortedOrders.map((order) => (
             <div key={order.orderId} className="profile-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
                 <div style={{ flex: 1 }}>
@@ -273,6 +397,23 @@ function HistoryOrder({ user, theme = "light" }) {
                   }}>
                     {order.status || 'Chưa xác định'}
                   </div>
+                  
+                  {/* Nút thanh toán lại cho Pending hoặc Failed */}
+                  {(order.status?.toLowerCase() === 'pending' || order.status?.toLowerCase() === 'failed') && (
+                    <button
+                      onClick={() => handleRetryPayment(order.orderId)}
+                      disabled={processingPayments[order.orderId]}
+                      className="profile-btn-primary"
+                      style={{ 
+                        fontSize: '12px', 
+                        padding: '6px 12px',
+                        opacity: processingPayments[order.orderId] ? 0.6 : 1,
+                        cursor: processingPayments[order.orderId] ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {processingPayments[order.orderId] ? '⏳ Đang xử lý...' : '💳 Thanh toán lại'}
+                    </button>
+                  )}
                   
                   {/* Nút chi tiết */}
                   <button

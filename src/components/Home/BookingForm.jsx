@@ -13,6 +13,12 @@ const SERVICE_TYPES = {
   PAID_AT_STATION: "PaidAtStation",
 };
 
+const PAYMENT_METHOD_OPTIONS = [
+  { value: SERVICE_TYPES.PREPAID, label: "💳 PrePaid — thanh toán trước" },
+  { value: SERVICE_TYPES.USE_PACKAGE, label: "📦 UsePackage — dùng gói đã mua" },
+  { value: SERVICE_TYPES.PAID_AT_STATION, label: "🏪 PaidAtStation — thanh toán tại trạm" },
+];
+
 // Toggle nhanh sang Cách 1 (chọn phương thức ngay trong form)
 const INLINE_METHOD = false;
 
@@ -190,6 +196,76 @@ export default function BookingForm() {
     run();
   }, []);
 
+  const selectedVehicle = useMemo(() => {
+    if (!vin) return null;
+    const normalizedVin = vin.toString().toLowerCase();
+    return myVehicles.find((vehicle) => {
+      const candidateVin =
+        (vehicle?.VIN ||
+          vehicle?.vin ||
+          vehicle?.vehicleId ||
+          vehicle?.id ||
+          vehicle?.vehicleVIN ||
+          vehicle?.VehicleVIN ||
+          "").toString().toLowerCase();
+      return candidateVin === normalizedVin;
+    }) || null;
+  }, [vin, myVehicles]);
+
+  const vehicleHasPackage = useMemo(() => {
+    if (!selectedVehicle) return false;
+    const packageCandidateKeys = [
+      "packageId",
+      "PackageId",
+      "packageID",
+      "PackageID",
+      "package",
+      "Package",
+      "package_id",
+      "Package_Id",
+      "packageIdCurrent",
+      "currentPackageId",
+      "packageCurrentId",
+    ];
+
+    for (const key of packageCandidateKeys) {
+      if (Object.prototype.hasOwnProperty.call(selectedVehicle, key)) {
+        const raw = selectedVehicle[key];
+        if (raw !== undefined && raw !== null) {
+          const value = String(raw).trim();
+          if (value && value !== "N/A" && value.toLowerCase() !== "null" && value !== "0") {
+            return true;
+          }
+        }
+      }
+    }
+
+    if (Array.isArray(selectedVehicle?.packages) && selectedVehicle.packages.length > 0) {
+      return true;
+    }
+
+    const packageName =
+      selectedVehicle?.packageName ||
+      selectedVehicle?.PackageName ||
+      selectedVehicle?.package_name ||
+      selectedVehicle?.packageLabel;
+
+    if (packageName && String(packageName).trim() && String(packageName).trim() !== "N/A") {
+      return true;
+    }
+
+    return false;
+  }, [selectedVehicle]);
+
+  const availablePaymentOptions = useMemo(() => {
+    if (vehicleHasPackage) {
+      return PAYMENT_METHOD_OPTIONS.filter(
+        (option) => option.value === SERVICE_TYPES.USE_PACKAGE
+      );
+    }
+    return PAYMENT_METHOD_OPTIONS;
+  }, [vehicleHasPackage]);
+
   // ========== SUBMIT BOOKING ==========
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -266,6 +342,13 @@ export default function BookingForm() {
     }
     if (!user) {
       setPayError("Thiếu thông tin người dùng.");
+      return;
+    }
+    const isMethodAllowed = availablePaymentOptions.some(
+      (option) => option.value === serviceType
+    );
+    if (!isMethodAllowed) {
+      setPayError("Phương thức thanh toán không khả dụng cho xe này.");
       return;
     }
     const accountId = user.accountId || user.accountID || user.AccountId;
@@ -571,7 +654,8 @@ export default function BookingForm() {
           onConfirm={handleCreatePayment}
           paying={paying}
           error={payError}
-          serviceTypes={SERVICE_TYPES}
+          paymentOptions={availablePaymentOptions}
+          vehicleHasPackage={vehicleHasPackage}
         />
       )}
 
@@ -581,13 +665,26 @@ export default function BookingForm() {
 }
 
 /** Payment modal component */
-function PaymentMethodModal({ onClose, onConfirm, paying, error, serviceTypes }) {
-  const [method, setMethod] = useState(serviceTypes.PREPAID);
-  const [exchangeId, setExchangeId] = useState("");
+function PaymentMethodModal({ onClose, onConfirm, paying, error, paymentOptions, vehicleHasPackage }) {
+  const defaultMethod = paymentOptions?.[0]?.value || "";
+  const [method, setMethod] = useState(defaultMethod);
 
-  // Remove the requireExchange logic since we don't need ExchangeId anymore
+  useEffect(() => {
+    const nextDefault = paymentOptions?.[0]?.value || "";
+    if (!paymentOptions?.length) {
+      if (method !== "") {
+        setMethod("");
+      }
+      return;
+    }
+    const methodAvailable = paymentOptions.some((option) => option.value === method);
+    if (!methodAvailable) {
+      setMethod(nextDefault);
+    }
+  }, [paymentOptions, method]);
+
   const canSubmit = () => {
-    return true; // Always allow submission since no fields are required
+    return Boolean(paymentOptions?.length) && paymentOptions.some((option) => option.value === method);
   };
 
   return (
@@ -654,13 +751,22 @@ function PaymentMethodModal({ onClose, onConfirm, paying, error, serviceTypes })
                 backgroundColor: 'white'
               }}
             >
-              <option value={serviceTypes.PREPAID}>💳 PrePaid — thanh toán trước</option>
-              <option value={serviceTypes.USE_PACKAGE}>📦 UsePackage — dùng gói đã mua</option>
-              <option value={serviceTypes.PAID_AT_STATION}>🏪 PaidAtStation — thanh toán tại trạm</option>
+              {!paymentOptions?.length && (
+                <option value="">Không có phương thức khả dụng</option>
+              )}
+              {paymentOptions?.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </label>
 
-          {/* Remove the ExchangeId input field completely */}
+          {vehicleHasPackage && (
+            <div style={{ fontSize: '13px', color: '#16a34a', marginBottom: '12px' }}>
+              Xe này đang có gói dịch vụ nên chỉ hỗ trợ dùng gói hiện tại.
+            </div>
+          )}
 
           {error && (
             <div className="form-error" style={{
@@ -682,7 +788,7 @@ function PaymentMethodModal({ onClose, onConfirm, paying, error, serviceTypes })
           <button
             className="btn primary"
             disabled={paying || !canSubmit()}
-            onClick={() => onConfirm({ serviceType: method, exchangeId })}
+            onClick={() => method && onConfirm({ serviceType: method, exchangeId: "" })}
             style={{
               flex: 2,
               padding: '12px 16px',

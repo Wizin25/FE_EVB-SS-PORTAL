@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/authAPI';
+
 import { decodeJwt, extractRolesFromPayload } from '../services/jwt';
 import './sign.css';
 
@@ -15,11 +16,9 @@ function SignIn() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const googleToken = urlParams.get('token');
-    
-    if (googleToken) {
-      handleGoogleToken(googleToken);
-    }
+    if (googleToken) handleGoogleToken(googleToken);
   }, []);
+  
 
   const handleGoogleToken = async (token) => {
     try {
@@ -120,10 +119,37 @@ function SignIn() {
     }
   };
 
-  const handleGoogleLogin = () => {
-    authAPI.loginGoogle();
+  const handleGoogleLogin = async () => {
+    try {
+      // 1️⃣ Gọi API login-google bằng redirect thực, không phải axios
+      // => cho phép browser follow redirect tới Google mà không bị CORS
+      // gọi thẳng không popup
+      window.location.href = 'https://localhost:5001/api/Account/login-google';
+  
+      // 2️⃣ Theo dõi popup
+      const timer = setInterval(async () => {
+        if (popup.closed) {
+          clearInterval(timer);
+          try {
+            // 3️⃣ Khi popup đóng, lấy token từ BE
+            const token = await authAPI.getGoogleAccessToken();
+            if (token) {  
+              await handleGoogleToken(token);
+            } else {
+              setFormError('Google login failed: no token returned');
+            }
+          } catch (error) {
+            console.error('Error getting access token:', error);
+            setFormError('Google authentication failed.');
+          }
+        }
+      }, 1200);
+    } catch (error) {
+      console.error('Error initiating Google login:', error);
+      setFormError('Không khởi tạo được đăng nhập Google');
+    }
   };
-
+  
   return (
     <div className="sign-page">
       <video
@@ -179,7 +205,7 @@ function SignIn() {
 
       <div className="sign-main-container liquid">
         <div className="sign-container">
-          <div style={{ position: 'absolute', top: -130, padding: 0 }}>
+          <div style={{ position: 'absolute', top: -90, padding: 0 }}>
             <img
               src="https://res.cloudinary.com/dzht29nkq/image/upload/v1758274139/SwapX_1_-Photoroom_wvmglm.png"
               alt="Brand Logo"

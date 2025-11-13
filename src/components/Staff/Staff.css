@@ -277,7 +277,7 @@
   display: flex; align-items: center; justify-content: center; z-index: 10000; overflow-y: auto;
 }
 .modal-card {
-  border-radius: 16px; max-width: 680px; width: 92%; max-height: 90vh; overflow: auto; margin: 20px;
+  border-radius: 16px; max-width: 680px; width: 92%; max-height: 90vh; overflow: auto; margin: 20px;background: linear-gradient(135deg, #adf257 0%, #ffb47f 100%);
 }
 .modal-head { 
   display: flex; 
@@ -296,7 +296,11 @@
   letter-spacing: .1px;
 }
 .btn-close { padding: 8px 12px; background: #6b7280; color: #fff; border-radius: 10px; border: none; cursor: pointer; }
-.modal-body { padding: 16px; border-radius: 12px; }
+.modal-body { 
+  padding: 16px; 
+  border-radius: 12px; 
+  background: linear-gradient(135deg, #adf257 0%, #ffb47f 100%);
+}
 .modal-pre { white-space: pre-wrap; font-size: 14px; margin: 0; word-break: break-word; }
 
 /* ========== PROFILE DRAWER (giữ logic cũ, nhưng làm kính) ========== */

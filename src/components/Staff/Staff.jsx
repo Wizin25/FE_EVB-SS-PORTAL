@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { message } from 'antd';
 import { authAPI } from '../services/authAPI';
 import { formAPI } from '../services/formAPI';
-import Calendar from '../Staff/StaffCalendar';
+import Calendar from '../Admin/pages/Calendar';
 import './Staff.css';
 import { decodeJwt, extractRolesFromPayload } from '../services/jwt';
 
@@ -15,6 +15,7 @@ const VIEW_NAV = [
   { key: 'station-schedules', label: 'Lịch trình trạm', icon: '🗓️' },
   { key: 'battery-report', label: 'Báo cáo pin', icon: '📝' },
   { key: 'exchange-battery', label: 'Xác nhận giao dịch', icon: '✅' },
+  { key: 'station-for-staff', label: 'Quản lý trạm', icon: '🔋' },
 ];
 
 const VIEW_CONFIG = VIEW_NAV.reduce((acc, item) => {
@@ -314,6 +315,14 @@ function StaffPage() {
   const [batteryReportSearch, setBatteryReportSearch] = useState('');
   const [batteryReportSortDir, setBatteryReportSortDir] = useState('desc'); // 'asc' | 'desc'
 
+  // === Station Inventory (slot/pin) for Staff ===
+  const [stationInv, setStationInv] = useState(null); // { stationId, stationName, slots: [...], batteries: [...] }
+  const [loadingStationInv, setLoadingStationInv] = useState(false);
+  const [slotModal, setSlotModal] = useState({ open: false, battery: null, slot: null });
+  const [batteryStatusChoice, setBatteryStatusChoice] = useState(''); // Status mới được chọn cho battery
+  const [updatingBatteryStatus, setUpdatingBatteryStatus] = useState(false); // Loading state khi update status
+
+
   const filteredSortedBatteryReports = useMemo(() => {
     let list = Array.isArray(batteryReports) ? [...batteryReports] : [];
     const term = batteryReportSearch?.trim()?.toLowerCase();
@@ -444,6 +453,7 @@ function StaffPage() {
   const isStationSchedulesView = activeViewKey === 'station-schedules';
   const isBatteryReportView = activeViewKey === 'battery-report';
   const isExchangeBatteryView = activeViewKey === 'exchange-battery';
+  const isStationInventoryView = activeViewKey === 'station-for-staff';
   const pageTitle = activeView?.label || VIEW_CONFIG[DEFAULT_VIEW_KEY].label;
 
   const handleSwitchView = useCallback((nextView) => {
@@ -839,11 +849,11 @@ function StaffPage() {
         setCurrentUser(user);
 
         // Lưu accountId vào localStorage
-        const accountIdLocal = user?.accountId || 
-          (Array.isArray(user?.bssStaffs) && user.bssStaffs.length > 0 
-            ? user.bssStaffs[0]?.accountId 
+        const accountIdLocal = user?.accountId ||
+          (Array.isArray(user?.bssStaffs) && user.bssStaffs.length > 0
+            ? user.bssStaffs[0]?.accountId
             : null);
-        
+
         // Lấy stationId để lưu vào localStorage
         let stationId = user?.stationId || user?.StationId || user?.stationID;
         if (!stationId && Array.isArray(user?.bssStaffs) && user.bssStaffs.length > 0) {
@@ -926,7 +936,44 @@ function StaffPage() {
       window.location.href = '/signin';
     }
   }, []);
-  
+
+
+  useEffect(() => {
+    const run = async () => {
+      if (!isStationInventoryView) return;
+      // Lấy staffId hiện tại
+      const staffId =
+        (Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs[0]?.staffId) ||
+        currentUser?.staffId || currentUser?.StaffId || currentUser?.staffID;
+
+      if (!staffId) {
+        message.error('Không tìm thấy StaffId để tải trạm/slot');
+        return;
+      }
+      setLoadingStationInv(true);
+      try {
+        const station = await authAPI.getStationByStaffId(staffId);
+        // Chuẩn hoá tối thiểu
+        const normalized = {
+          stationId: station?.stationId || station?.id || station?.StationId || '',
+          stationName: station?.stationName || station?.name || station?.StationName || '',
+          // Hỗ trợ cả dạng slots 1D/2D
+          slots: Array.isArray(station?.slots) ? station.slots : [],
+          // Nếu BE không nhúng batteries riêng, mình vẫn đọc pin từ slot
+          batteries: Array.isArray(station?.batteries) ? station.batteries : [],
+        };
+        setStationInv(normalized);
+      } catch (e) {
+        message.error(e?.message || 'Lỗi khi tải Station/Slot');
+        setStationInv(null);
+      } finally {
+        setLoadingStationInv(false);
+      }
+    };
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStationInventoryView, currentUser]);
+
 
   /* ======== API calls ======== */
   // Gửi staffId và lưu về stationName
@@ -1175,6 +1222,90 @@ function StaffPage() {
       // Có thể thêm thông báo lỗi nếu cần
     }
   }, [orderDetails]);
+
+
+  const openSlotDetail = useCallback((slot) => {
+    // slot kỳ vọng có battery hoặc batteryId; nếu chỉ có batteryId thì đọc từ stationInv.batteries
+    let battery = slot?.battery || null;
+    if (!battery && slot?.batteryId && Array.isArray(stationInv?.batteries)) {
+      battery = stationInv.batteries.find(b => b.batteryId === slot.batteryId) || null;
+    }
+    setSlotModal({ open: true, battery, slot });
+    // Reset status choice khi mở modal
+    setBatteryStatusChoice(battery?.status || '');
+  }, [stationInv]);
+
+  // Hàm xử lý update battery status
+  const handleUpdateBatteryStatus = useCallback(async () => {
+    if (!slotModal.battery?.batteryId) {
+      toast.error('Không tìm thấy Battery ID');
+      return;
+    }
+    if (!batteryStatusChoice || batteryStatusChoice === slotModal.battery.status) {
+      toast.warning('Vui lòng chọn trạng thái mới khác với trạng thái hiện tại');
+      return;
+    }
+
+    setUpdatingBatteryStatus(true);
+    try {
+      await authAPI.updateBatteryStatus(slotModal.battery.batteryId, batteryStatusChoice);
+      
+      // Cập nhật local state
+      const updatedBattery = { ...slotModal.battery, status: batteryStatusChoice };
+      setSlotModal(prev => ({ ...prev, battery: updatedBattery }));
+      
+      // Cập nhật trong stationInv.batteries
+      if (stationInv?.batteries) {
+        setStationInv(prev => ({
+          ...prev,
+          batteries: prev.batteries.map(b => 
+            b.batteryId === slotModal.battery.batteryId 
+              ? { ...b, status: batteryStatusChoice }
+              : b
+          )
+        }));
+      }
+      
+      // Cập nhật trong stationInv.slots nếu có battery trong slot
+      if (stationInv?.slots) {
+        setStationInv(prev => ({
+          ...prev,
+          slots: prev.slots.map(slot => {
+            if (Array.isArray(slot)) {
+              // Nếu là mảng 2D
+              return slot.map(s => {
+                if (s?.batteryId === slotModal.battery.batteryId || s?.battery?.batteryId === slotModal.battery.batteryId) {
+                  return {
+                    ...s,
+                    battery: s.battery ? { ...s.battery, status: batteryStatusChoice } : s.battery
+                  };
+                }
+                return s;
+              });
+            } else {
+              // Nếu là mảng 1D
+              if (slot?.batteryId === slotModal.battery.batteryId || slot?.battery?.batteryId === slotModal.battery.batteryId) {
+                return {
+                  ...slot,
+                  battery: slot.battery ? { ...slot.battery, status: batteryStatusChoice } : slot.battery
+                };
+              }
+              return slot;
+            }
+          })
+        }));
+      }
+
+      toast.success(`Đã cập nhật trạng thái pin thành: ${batteryStatusChoice}`);
+      setBatteryStatusChoice(''); // Reset sau khi update thành công
+    } catch (error) {
+      console.error('Error updating battery status:', error);
+      toast.error('Cập nhật trạng thái pin thất bại: ' + (error?.message || 'Lỗi không xác định'));
+    } finally {
+      setUpdatingBatteryStatus(false);
+    }
+  }, [slotModal.battery, batteryStatusChoice, stationInv, toast]);
+
 
   /* ======== Filters / Sort ======== */
   const handleSort = (field) => {
@@ -1527,13 +1658,14 @@ function StaffPage() {
                   <div className="profile-row"><div className="profile-label">Địa chỉ</div><div className="profile-value">{currentUser.address || currentUser.Address || 'N/A'}</div></div>
                   <div className="profile-row"><div className="profile-label">Vai trò</div><div className="profile-value">{Array.isArray(currentUser.roles) ? currentUser.roles.join(', ') : (currentUser.role || currentUser.Role || 'N/A')}</div></div>
                   <div className="profile-row"><div className="profile-label">Mã tài khoản</div><div className="profile-value">{currentUser.accountId || currentUser.accountID || currentUser.AccountId || 'N/A'}</div></div>
-                  <div className="profile-row"><div className="profile-label">Mã nhân viên</div><div className="profile-value">{(Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs[0]?.staffId) || currentUser?.staffId ||  currentUser?.staffID || currentUser?.StaffId || 'N/A'}</div></div>
-                  <div className="profile-row"><div className="profile-label">Mã trạm</div><div className="profile-value">{(Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs[0]?.stationId) ||currentUser?.stationId || currentUser?.StationId || currentUser?.stationID || 'N/A'}</div></div>
+                  <div className="profile-row"><div className="profile-label">Mã nhân viên</div><div className="profile-value">{(Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs[0]?.staffId) || currentUser?.staffId || currentUser?.staffID || currentUser?.StaffId || 'N/A'}</div></div>
+                  <div className="profile-row"><div className="profile-label">Mã trạm</div><div className="profile-value">{(Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs[0]?.stationId) || currentUser?.stationId || currentUser?.StationId || currentUser?.stationID || 'N/A'}</div></div>
                   <div className="profile-row">
                     <div className="profile-label">Tên trạm</div>
                     <div className="profile-value">
                       {
-                        (() => {let stationName = null;
+                        (() => {
+                          let stationName = null;
                           const stationId =
                             (Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs[0]?.stationId) ||
                             currentUser?.stationId ||
@@ -1637,7 +1769,7 @@ function StaffPage() {
               }}>
                 <div style={{ fontSize: '2rem', marginBottom: '8px' }}>⏳</div>
                 <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
-                  {forms.filter(f => f.status?.toLowerCase() === 'pending').length}
+                  {forms.filter(f => f.status?.toLowerCase() === 'submitted').length}
                 </div>
                 <div style={{ fontSize: '14px', opacity: 0.9 }}>Chờ xác nhận</div>
               </div>
@@ -1735,7 +1867,7 @@ function StaffPage() {
                               }}>
                                 📋 {form.title || 'Form đổi pin'}
                               </h4>
-                              
+
                               <span style={{
                                 padding: '4px 12px',
                                 borderRadius: '20px',
@@ -1892,7 +2024,7 @@ function StaffPage() {
                     <h2>Form chi tiết</h2>
                     <button className="btn-close" onClick={() => setSelectedForm(null)}>Đóng</button>
                   </div>
-                  <div className="modal-body liquid"style={{ borderRadius: 5 }}>
+                  <div className="modal-body liquid" style={{ borderRadius: 5 }}>
                     {/* <pre className="modal-pre">{JSON.stringify(selectedForm, null, 2)}</pre> */}
                     {/* Hiển thị chi tiết cục pin nếu có batteryId */}
                     {selectedForm?.batteryId && (
@@ -2223,57 +2355,57 @@ function StaffPage() {
           <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
             <h2 className="filters-title">Lịch trình các trạm theo ngày</h2>
             {/* Calendar Component */}
-              <Calendar
-                onDateSelect={(selectedDate) => {
-                  console.log('Date selected in Staff:', selectedDate);
-                  setSelectedScheduleDate(selectedDate);
+            <Calendar
+              onDateSelect={(selectedDate) => {
+                console.log('Date selected in Staff:', selectedDate);
+                setSelectedScheduleDate(selectedDate);
 
-                  // Format selected date để so sánh (YYYY-MM-DD)
-                  const selectedDateStr = `${selectedDate.year}-${String(selectedDate.month + 1).padStart(2, '0')}-${String(selectedDate.date).padStart(2, '0')}`;
+                // Format selected date để so sánh (YYYY-MM-DD)
+                const selectedDateStr = `${selectedDate.year}-${String(selectedDate.month + 1).padStart(2, '0')}-${String(selectedDate.date).padStart(2, '0')}`;
 
-                  console.log('Looking for schedules on:', selectedDateStr);
+                console.log('Looking for schedules on:', selectedDateStr);
 
-                  // Lọc lịch trình từ stationSchedules đã preload
-                  const allSchedulesForDate = [];
-                  Object.keys(stationSchedules).forEach(stationId => {
-                    const schedules = stationSchedules[stationId] || [];
-                    const assignment = stationAssignments.find(a => a.stationId === stationId);
+                // Lọc lịch trình từ stationSchedules đã preload
+                const allSchedulesForDate = [];
+                Object.keys(stationSchedules).forEach(stationId => {
+                  const schedules = stationSchedules[stationId] || [];
+                  const assignment = stationAssignments.find(a => a.stationId === stationId);
 
-                    const filteredSchedules = schedules.filter(schedule => {
-                      if (!schedule.date) return false;
+                  const filteredSchedules = schedules.filter(schedule => {
+                    if (!schedule.date) return false;
 
-                      // Sử dụng UTC để tránh vấn đề timezone
-                      const scheduleDate = new Date(schedule.date);
-                      const scheduleDateStr = `${scheduleDate.getUTCFullYear()}-${String(scheduleDate.getUTCMonth() + 1).padStart(2, '0')}-${String(scheduleDate.getUTCDate()).padStart(2, '0')}`;
+                    // Sử dụng UTC để tránh vấn đề timezone
+                    const scheduleDate = new Date(schedule.date);
+                    const scheduleDateStr = `${scheduleDate.getUTCFullYear()}-${String(scheduleDate.getUTCMonth() + 1).padStart(2, '0')}-${String(scheduleDate.getUTCDate()).padStart(2, '0')}`;
 
-                      return scheduleDateStr === selectedDateStr;
-                    });
-
-                    filteredSchedules.forEach(schedule => {
-                      allSchedulesForDate.push({
-                        ...schedule,
-                        stationName: assignment?.stationName || `Trạm ${stationId}`,
-                        stationId: stationId
-                      });
-                    });
+                    return scheduleDateStr === selectedDateStr;
                   });
 
-                  console.log('Found schedules:', allSchedulesForDate.length);
+                  filteredSchedules.forEach(schedule => {
+                    allSchedulesForDate.push({
+                      ...schedule,
+                      stationName: assignment?.stationName || `Trạm ${stationId}`,
+                      stationId: stationId
+                    });
+                  });
+                });
 
-                  // Cập nhật cache
-                  setSchedulesByDate(prev => ({
-                    ...prev,
-                    [selectedDateStr]: allSchedulesForDate
-                  }));
-                }}
-              />
+                console.log('Found schedules:', allSchedulesForDate.length);
+
+                // Cập nhật cache
+                setSchedulesByDate(prev => ({
+                  ...prev,
+                  [selectedDateStr]: allSchedulesForDate
+                }));
+              }}
+            />
           </section>
         )}
 
         {isBatteryReportView && (
           <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
             <h2 className="filters-title">Battery Report</h2>
-            
+
 
             {/* Add Battery Report Form */}
             <BatteryReportForm
@@ -2575,9 +2707,9 @@ function StaffPage() {
                           .filter(x => {
                             const kw = filters.keyword?.trim()?.toLowerCase();
                             if (!kw) return true;
-                            return (x.vin?.toLowerCase()?.includes(kw)) || 
-                                   (String(x.orderId || '').includes(kw)) ||
-                                   (String(x.exchangeBatteryId || '').toLowerCase().includes(kw));
+                            return (x.vin?.toLowerCase()?.includes(kw)) ||
+                              (String(x.orderId || '').includes(kw)) ||
+                              (String(x.exchangeBatteryId || '').toLowerCase().includes(kw));
                           })
                           .map((x) => {
                             const order = ordersMap?.[x.orderId];
@@ -2691,6 +2823,254 @@ function StaffPage() {
                     )}
                   </div>
                 )}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* PHẦN QUẢN LÝ TRẠM & SLOT */}
+        {isStationInventoryView && (
+          <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
+            <h2 className="filters-title">Trạm & Slot</h2>
+
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12 }}>
+              <div className="status-chip" style={{ padding: '6px 10px', borderRadius: 8, background: 'rgba(14, 13, 13, 0.9)' }}>
+                <b>Trạm:</b> {stationInv?.stationName || '—'}
+              </div>
+              <button
+                className="status-apply-btn"
+                onClick={async () => {
+                  // reload thủ công
+                  const staffId =
+                    (Array.isArray(currentUser?.bssStaffs) && currentUser.bssStaffs[0]?.staffId) ||
+                    currentUser?.staffId || currentUser?.StaffId || currentUser?.staffID;
+                  if (!staffId) return;
+                  setLoadingStationInv(true);
+                  try {
+                    const station = await authAPI.getStationByStaffId(staffId);
+                    const normalized = {
+                      stationId: station?.stationId || station?.id || station?.StationId || '',
+                      stationName: station?.stationName || station?.name || station?.StationName || '',
+                      slots: Array.isArray(station?.slots) ? station.slots : [],
+                      batteries: Array.isArray(station?.batteries) ? station.batteries : [],
+                    };
+                    setStationInv(normalized);
+                    message.success('Đã làm mới slot/pin');
+                  } catch (e) {
+                    message.error(e?.message || 'Lỗi khi làm mới');
+                  } finally {
+                    setLoadingStationInv(false);
+                  }
+                }}
+                disabled={loadingStationInv}
+              >
+                {loadingStationInv ? 'Đang tải…' : 'Làm mới'}
+              </button>
+            </div>
+
+            {/* Grid slot: hỗ trợ cả slots phẳng (có row/col) lẫn 2D */}
+            {loadingStationInv ? (
+              <div style={{ textAlign: 'center', padding: 32 }}>⏳ Đang tải slot…</div>
+            ) : !stationInv?.slots?.length ? (
+              <div style={{ textAlign: 'center', padding: 32, color: '#94a3b8' }}>Chưa có slot nào</div>
+            ) : (
+              <div style={{ display: 'grid', gap: 16 }}>
+                {/* Nếu là mảng 2D: render từng hàng; nếu 1D: nhóm theo row/line */}
+                {(() => {
+                  const slots = stationInv.slots;
+                  const is2D = Array.isArray(slots[0]);
+                  const groups = [];
+
+                  if (is2D) {
+                    return slots.map((row, idx) => (
+                      <div key={idx} className="slot-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 14 }}>
+                        {row.map((slot, i) => {
+                          const battery = slot?.battery || (slot?.batteryId && stationInv?.batteries?.find(b => b.batteryId === slot.batteryId)) || null;
+                          return (
+                            <button
+                              key={i}
+                              className="slot-cell"
+                              style={{ minHeight: 68, borderRadius: 10 }}
+                              onClick={() => openSlotDetail(slot)}
+                              title={battery?.batteryName || battery?.batteryId || 'Trống'}
+                            >
+                              <div className="slot-status" style={{ fontWeight: '600', marginBottom: '4px' }}>
+                                {battery?.batteryName || battery?.batteryId || '—'}
+                              </div>
+                              {battery && (
+                                <>
+                                  <div className="slot-status" style={{ fontSize: '12px', color: '#64748b', marginBottom: '2px' }}>
+                                    Capacity: {battery.capacity != null ? `${battery.capacity}%` : 'N/A'}
+                                  </div>
+                                  <div className="slot-badge">{battery.status || 'N/A'}</div>
+                                </>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ));
+                  }
+
+                  // 1D → nhóm theo coordinateY (hàng dọc), sắp xếp theo coordinateX (hàng ngang)
+                  const byCordinateY = {};
+                  slots.forEach((s) => {
+                    const y = s?.cordinateY ?? s?.cordinate_y ?? s?.row ?? s?.line ?? 0;
+                    if (!byCordinateY[y]) byCordinateY[y] = [];
+                    byCordinateY[y].push(s);
+                  });
+                  Object.keys(byCordinateY)
+                    .sort((a, b) => Number(a) - Number(b))
+                    .forEach((y) => {
+                      // Sắp xếp các slot trong cùng hàng dọc theo coordinateX (hàng ngang)
+                      const sortedList = byCordinateY[y].sort((a, b) => {
+                        const xA = a?.cordinateX ?? a?.cordinate_x ?? a?.col ?? a?.column ?? 0;
+                        const xB = b?.cordinateX ?? b?.cordinate_x ?? b?.col ?? b?.column ?? 0;
+                        return Number(xA) - Number(xB);
+                      });
+                      groups.push({ row: y, list: sortedList });
+                    });
+
+                  return groups.map((g, idx) => (
+                    <div key={g.row ?? idx} className="slot-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 14 }}>
+                      {g.list.map((slot, i) => {
+                        const battery = slot?.battery || (slot?.batteryId && stationInv?.batteries?.find(b => b.batteryId === slot.batteryId)) || null;
+                        return (
+                          <button
+                            key={slot?.slotId || i}
+                            className="slot-cell"
+                            style={{ minHeight: 68, borderRadius: 10 }}
+                            onClick={() => openSlotDetail(slot)}
+                            title={battery?.batteryName || battery?.batteryId || 'Trống'}
+                          >
+                            <div className="slot-status" style={{ fontWeight: '600', marginBottom: '4px' }}>
+                              {battery?.batteryName || battery?.batteryId || 'Empty'}
+                            </div>
+                            {battery && (
+                              <>
+                                <div className="slot-status" style={{ fontSize: '10px', color: '#64748b', marginBottom: '2px' }}>
+                                  {battery.capacity != null ? `${battery.capacity}%` : 'N/A'}
+                                </div>
+                                <div className="slot-badge">{battery.status || 'N/A'}</div>
+                              </>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ));
+                })()}
+              </div>
+            )}
+
+            {/* Modal chi tiết pin trong slot */}
+            {slotModal.open && (
+              <div className="modal-root">
+                <div className="modal-card" style={{ borderRadius: 10, maxWidth: 560 }}>
+                  <div className="modal-head">
+                    <h2>Chi tiết pin trong slot</h2>
+                    <button className="btn-close" onClick={() => setSlotModal({ open: false, battery: null, slot: null })}>Đóng</button>
+                  </div>
+                  <div className="modal-body" style={{ borderRadius: 6 }}>
+                    {/* Thông tin Slot */}
+                    <div style={{ marginBottom: 16, padding: 12, background: 'rgba(15,23,42,0.05)', borderRadius: 8 }}>
+                      <h4 style={{ margin: '0 0 8px 0', color: '#0f172a' }}>📍 Thông tin Slot</h4>
+                      <table style={{ width: '100%', fontSize: '13px' }}>
+                        <tbody>
+                          <tr>
+                            <td style={{ fontWeight: 600, paddingRight: 8, paddingBottom: 4 }}>Slot ID:</td>
+                            <td style={{ paddingBottom: 4 }}>{slotModal.slot?.slotId || slotModal.slot?.id || 'N/A'}</td>
+                          </tr>
+                          <tr>
+                            <td style={{ fontWeight: 600, paddingRight: 8, paddingBottom: 4 }}>Hàng ngang (coordinateX):</td>
+                            <td style={{ paddingBottom: 4 }}>{slotModal.slot?.cordinateX ?? slotModal.slot?.coordinate_x ?? slotModal.slot?.col ?? slotModal.slot?.column ?? 'N/A'}</td>
+                          </tr>
+                          <tr>
+                            <td style={{ fontWeight: 600, paddingRight: 8, paddingBottom: 4 }}>Hàng dọc (coordinateY):</td>
+                            <td style={{ paddingBottom: 4 }}>{slotModal.slot?.cordinateY ?? slotModal.slot?.coordinate_y ?? slotModal.slot?.row ?? slotModal.slot?.line ?? 'N/A'}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Thông tin Pin */}
+                    {!slotModal.battery ? (
+                      <div style={{ padding: 8, color: '#64748b' }}>Slot trống hoặc không tìm thấy thông tin pin.</div>
+                    ) : (
+                      <div>
+                        <h4 style={{ margin: '0 0 8px 0', color: '#0f172a' }}>🔋 Thông tin Pin</h4>
+                        <table className="battery-detail-table" style={{ width: '100%' }}>
+                          <tbody>
+                            <tr><td style={{ fontWeight: 600, paddingRight: 8, paddingBottom: 4 }}>Battery ID:</td><td style={{ paddingBottom: 4 }}>{slotModal.battery.batteryId || 'N/A'}</td></tr>
+                            <tr><td style={{ fontWeight: 600, paddingRight: 8, paddingBottom: 4 }}>Tên:</td><td style={{ paddingBottom: 4 }}>{slotModal.battery.batteryName || 'N/A'}</td></tr>
+                            <tr><td style={{ fontWeight: 600, paddingRight: 8, paddingBottom: 4 }}>Trạng thái:</td><td style={{ paddingBottom: 4 }}>{slotModal.battery.status || 'N/A'}</td></tr>
+                            <tr><td style={{ fontWeight: 600, paddingRight: 8, paddingBottom: 4 }}>Dung lượng:</td><td style={{ paddingBottom: 4 }}>{slotModal.battery.capacity != null ? `${slotModal.battery.capacity}%` : 'N/A'}</td></tr>
+                            <tr><td style={{ fontWeight: 600, paddingRight: 8, paddingBottom: 4 }}>Chất lượng:</td><td style={{ paddingBottom: 4 }}>{slotModal.battery.batteryQuality != null ? `${slotModal.battery.batteryQuality}%` : 'N/A'}</td></tr>
+                            <tr><td style={{ fontWeight: 600, paddingRight: 8, paddingBottom: 4 }}>Type:</td><td style={{ paddingBottom: 4 }}>{slotModal.battery.batteryType || 'N/A'}</td></tr>
+                            <tr><td style={{ fontWeight: 600, paddingRight: 8 }}>Spec:</td><td>{slotModal.battery.specification || 'N/A'}</td></tr>
+                          </tbody>
+                        </table>
+
+                        {/* Update Battery Status Section */}
+                        <div style={{ marginTop: 16, padding: 12, background: 'rgba(59, 130, 246, 0.05)', borderRadius: 8 }}>
+                          <h4 style={{ margin: '0 0 12px 0', color: '#0f172a', fontSize: '14px', fontWeight: 600 }}>
+                            🔄 Cập nhật trạng thái pin
+                          </h4>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <select
+                              className="status-select"
+                              value={batteryStatusChoice}
+                              onChange={(e) => setBatteryStatusChoice(e.target.value)}
+                              style={{ 
+                                padding: '8px 12px', 
+                                borderRadius: '6px', 
+                                border: '1px solid rgba(15,23,42,0.2)',
+                                fontSize: '13px',
+                                minWidth: '150px'
+                              }}
+                            >
+                              <option value="">-- Chọn trạng thái --</option>
+                              <option value="Available">Available</option>
+                              <option value="Charging">Charging</option>
+                              <option value="Maintenance">Maintenance</option>
+                              <option value="Decommissioned">Delete</option>
+                            </select>
+                            <button
+                              className="status-apply-btn"
+                              onClick={handleUpdateBatteryStatus}
+                              disabled={!batteryStatusChoice || batteryStatusChoice === slotModal.battery.status || updatingBatteryStatus}
+                              style={{
+                                padding: '8px 16px',
+                                borderRadius: '6px',
+                                background: updatingBatteryStatus 
+                                  ? 'rgba(15,23,42,0.3)' 
+                                  : (batteryStatusChoice && batteryStatusChoice !== slotModal.battery.status
+                                    ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
+                                    : 'rgba(15,23,42,0.2)'),
+                                color: updatingBatteryStatus || (!batteryStatusChoice || batteryStatusChoice === slotModal.battery.status)
+                                  ? '#64748b'
+                                  : 'white',
+                                border: 'none',
+                                cursor: (updatingBatteryStatus || !batteryStatusChoice || batteryStatusChoice === slotModal.battery.status)
+                                  ? 'not-allowed'
+                                  : 'pointer',
+                                fontSize: '13px',
+                                fontWeight: 500
+                              }}
+                            >
+                              {updatingBatteryStatus ? 'Đang cập nhật...' : 'Cập nhật trạng thái'}
+                            </button>
+                          </div>
+                          {batteryStatusChoice && batteryStatusChoice === slotModal.battery.status && (
+                            <div style={{ marginTop: 8, fontSize: '12px', color: '#f59e0b' }}>
+                              ⚠️ Vui lòng cập nhật trạng thái mới.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </section>

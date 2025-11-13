@@ -627,7 +627,7 @@ export default function StationForUser() {
 
                       <div className="summary-row" style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        // gridTemplateColumns: 'repeat(3, 1fr)',
                         gap: '16px',
                         marginBottom: '20px',
                         padding: '16px',
@@ -639,7 +639,7 @@ export default function StationForUser() {
                           ? '1px solid rgba(75, 85, 99, 0.3)'
                           : '1px solid rgba(226, 232, 240, 0.5)'
                       }}>
-                        <div className="summary-item" style={{ textAlign: 'center' }}>
+                        {/* <div className="summary-item" style={{ textAlign: 'center' }}>
                           <div className="summary-num" style={{
                             fontSize: '1.8rem',
                             fontWeight: 'bold',
@@ -654,15 +654,18 @@ export default function StationForUser() {
                           }}>
                             Số pin đăng ký
                           </div>
-                        </div>
-                        <div className="summary-item" style={{ textAlign: 'center' }}>
+                        </div> */}
+                        <div className="summary-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', justifyContent: 'center' }}>
                           <div className="summary-num" style={{
                             fontSize: '1.8rem',
                             fontWeight: 'bold',
                             color: theme === 'dark' ? '#10b981' : '#059669',
-                            marginBottom: '4px'
+                            marginBottom: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
                           }}>
-                            ⚡ {st.batteryNumber ?? 0}
+                            🔋 {st.batteryNumber ?? 0}
                           </div>
                           <div className="summary-label" style={{
                             fontSize: '0.8rem',
@@ -671,7 +674,7 @@ export default function StationForUser() {
                             Pin đang ở trạm
                           </div>
                         </div>
-                        <div className="summary-item hide-mobile" style={{ textAlign: 'center' }}>
+                        {/* <div className="summary-item hide-mobile" style={{ textAlign: 'center' }}>
                           <div className="summary-num" style={{
                             fontSize: '1.8rem',
                             fontWeight: 'bold',
@@ -686,7 +689,7 @@ export default function StationForUser() {
                           }}>
                             Lịch sử
                           </div>
-                        </div>
+                        </div> */}
                       </div>
 
                       {/* Batteries detail list - Đẹp trai, lung linh hơn */}

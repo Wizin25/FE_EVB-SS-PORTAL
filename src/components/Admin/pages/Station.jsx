@@ -670,7 +670,7 @@ export default function Station() {
                         <div className="head-left">
                           <h3 className="station-id">{station.stationName ?? "Tên trạm chưa có"}</h3>
                           <div className="station-subinfo">
-                            <span className="sub-location">{station.location ?? "-"}</span>
+                            <span className="sub-location" style={{ minWidth: 'fit-content', display: 'inline-block' }}>{station.location ?? "-"}</span>
                             <span className="sub-sep">•</span>
 
                             {/* Status Select */}

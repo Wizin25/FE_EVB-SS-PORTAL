@@ -14,12 +14,24 @@ export default function PaymentFailure() {
   });
 
   // Lấy thông tin từ URL params
+  const orderId = searchParams.get('orderId');
   const orderCode = searchParams.get('orderCode');
+  const serviceType = searchParams.get('serviceType');
+  const total = searchParams.get('total');
+  // Duy trì để backward compatibility/hiển thị cũ
   const amount = searchParams.get('amount');
   const status = searchParams.get('status');
   const paymentId = searchParams.get('paymentId');
   const errorCode = searchParams.get('errorCode');
   const errorMessage = searchParams.get('errorMessage');
+
+  // Xác định có phải staff (bsstaff) không?
+  // Có thể lấy qua localStorage, sessionStorage hoặc URL param, ở đây ưu tiên URL param cho đơn giản/dễ test
+  // Vd: ?bsstaff=1 sẽ là staff
+  const isBsstaff =
+    searchParams.get('bsstaff') === '1' ||
+    (typeof window !== 'undefined' &&
+      (localStorage.getItem('bsstaff') === '1' || sessionStorage.getItem('bsstaff') === '1'));
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "light";
@@ -61,7 +73,6 @@ export default function PaymentFailure() {
       navigate('/plans');
     }
   };
-  
 
   const handleGoHome = () => {
     navigate('/home');
@@ -74,6 +85,11 @@ export default function PaymentFailure() {
   const handleContactSupport = () => {
     // Có thể mở modal liên hệ hoặc redirect đến trang contact
     window.open('/contact');
+  };
+
+  // Nút dành cho BSStaff: về trang /staff
+  const handleGoToStaff = () => {
+    navigate('/staff');
   };
 
   return (
@@ -186,10 +202,25 @@ export default function PaymentFailure() {
           </h2>
           
           <div style={{ display: 'grid', gap: '1rem' }}>
-            {orderCode && (
+            {orderId && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b', fontWeight: '500' }}>
                   Mã đơn hàng:
+                </span>
+                <span style={{ 
+                  color: theme === 'dark' ? '#f1f5f9' : '#1e293b', 
+                  fontWeight: 'bold',
+                  fontFamily: 'monospace'
+                }}>
+                  {orderId}
+                </span>
+              </div>
+            )}
+
+            {orderCode && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b', fontWeight: '500' }}>
+                  Mã thanh toán:
                 </span>
                 <span style={{ 
                   color: theme === 'dark' ? '#f1f5f9' : '#1e293b', 
@@ -200,8 +231,38 @@ export default function PaymentFailure() {
                 </span>
               </div>
             )}
+
+            {serviceType && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b', fontWeight: '500' }}>
+                  Loại dịch vụ:
+                </span>
+                <span style={{
+                  color: theme === 'dark' ? '#f1f5f9' : '#1e293b',
+                  fontWeight: 'bold'
+                }}>
+                  {serviceType}
+                </span>
+              </div>
+            )}
             
-            {amount && (
+            {total && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b', fontWeight: '500' }}>
+                  Số tiền:
+                </span>
+                <span style={{ 
+                  color: theme === 'dark' ? '#f87171' : '#dc2626', 
+                  fontWeight: 'bold',
+                  fontSize: '1.1rem'
+                }}>
+                  {parseInt(total).toLocaleString('vi-VN')} VNĐ
+                </span>
+              </div>
+            )}
+
+            {/* Backward compatibility: if 'total' không có, show 'amount' */}
+            {!total && amount && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: theme === 'dark' ? '#94a3b8' : '#64748b', fontWeight: '500' }}>
                   Số tiền:
@@ -291,7 +352,7 @@ export default function PaymentFailure() {
             marginBottom: '2rem'
           }}
         >
-          <button
+          {/* <button
             onClick={handleRetryPayment}
             style={{
               background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
@@ -315,7 +376,7 @@ export default function PaymentFailure() {
             }}
           >
             🔄 Thử lại thanh toán
-          </button>
+          </button> */}
           
           <button
             onClick={handleGoToStations}
@@ -391,6 +452,33 @@ export default function PaymentFailure() {
           >
             🏠 Về trang chủ
           </button>
+          {isBsstaff && (
+            <button
+              onClick={handleGoToStaff}
+              style={{
+                background: 'linear-gradient(135deg, #f59e42 0%, #eab308 100%)',
+                color: '#713f12',
+                padding: '12px 24px',
+                borderRadius: '12px',
+                border: 'none',
+                fontWeight: 'bold',
+                fontSize: '1rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 4px 15px rgba(245, 158, 66, 0.15)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(245, 158, 66, 0.25)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 15px rgba(245, 158, 66, 0.15)';
+              }}
+            >
+              🧑‍💼 Về trang staff
+            </button>
+          )}
         </div>
 
         {/* Help Information */}
