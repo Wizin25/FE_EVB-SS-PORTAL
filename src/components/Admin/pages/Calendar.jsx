@@ -1,7 +1,7 @@
 // Calendar.jsx
 import React, { useState, useEffect } from "react";
 import { authAPI } from '../../../components/services/authAPI';
-import { formAPI } from '../../../components/services/formAPI'; // Thêm import formAPI
+import { formAPI } from '../../../components/services/formAPI';
 import "../../../components/Staff/Staff.jsx";
 
 
@@ -1755,21 +1755,36 @@ export default function Calendar({ onDateSelect }) {
     const fetchAllSchedules = async () => {
       // Get stationId from localStorage
       const stationId = localStorage.getItem('stationId');
-
-      if (!stationId) {
-        console.error('No stationId found in localStorage');
-        setLoading(false);
-        return;
-      }
-
+      
       try {
         setLoading(true);
-        console.log('Fetching schedules for station ID:', stationId);
+        let schedules = [];
 
-        const response = await authAPI.getStationSchedulesByStationId(stationId);
-        console.log('Station schedules response:', response);
+        if (stationId) {
+          // Nếu có stationId: lấy lịch theo stationId
+          console.log('Fetching schedules for station ID:', stationId);
+          const response = await authAPI.getStationSchedulesByStationId(stationId);
+          console.log('Station schedules response:', response);
+          schedules = Array.isArray(response?.data) ? response.data : [];
+        } else {
+          // Nếu không có stationId: lấy tất cả lịch
+          console.log('No stationId found, fetching all schedules');
+          const response = await authAPI.getAllStationSchedules();
+          console.log('All station schedules response:', response);
+          
+          // Xử lý response để lấy danh sách schedules
+          if (Array.isArray(response?.data)) {
+            schedules = response.data;
+          } else if (response?.data?.data && Array.isArray(response.data.data)) {
+            schedules = response.data.data;
+          } else if (Array.isArray(response)) {
+            schedules = response;
+          } else {
+            schedules = [];
+          }
+        }
 
-        const schedules = Array.isArray(response?.data) ? response.data : [];
+        console.log('Final schedules:', schedules);
         setAllSchedules(schedules);
       } catch (error) {
         console.error('Error fetching station schedules:', error);
