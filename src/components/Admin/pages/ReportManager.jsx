@@ -320,9 +320,6 @@ const ReportManager = () => {
                   <div key={report.reportId} className="report-card">
                     <div className="report-header">
                       <h3>{report.name || 'Không có tiêu đề'}</h3>
-                      <span className={`report-status status-${report.status?.toLowerCase() || 'pending'}`}>
-                        {report.status || 'Pending'}
-                      </span>
                     </div>
                     
                     <div className="report-content">
@@ -402,12 +399,6 @@ const ReportManager = () => {
                   <div className="detail-item">
                     <strong>Tên báo cáo</strong>
                     <span>{selectedReport.name}</span>
-                  </div>
-                  <div className="detail-item">
-                    <strong>Trạng thái</strong>
-                    <span className={`status-badge status-${selectedReport.status?.toLowerCase() || 'pending'}`}>
-                      {selectedReport.status || 'Pending'}
-                    </span>
                   </div>
                   <div className="detail-item">
                     <strong>Số điện thoại</strong>

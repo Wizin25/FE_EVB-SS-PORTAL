@@ -11,7 +11,6 @@ const monthNames = [
   "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
 ];
 
-// Helper functions (giữ nguyên)
 function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate();
 }
@@ -662,7 +661,7 @@ function FormDetailModal({ form, onClose }) {
 }
 
 // Schedule item component - CẬP NHẬT để thêm nút chi tiết Form và hiển thị exchange batteries
-function ScheduleItem({ schedule, onViewFormDetail }) {
+function ScheduleItem({ schedule, onViewFormDetail, userRole }) {
   const [exchangeBatteries, setExchangeBatteries] = useState([]);
   const [loadingExchanges, setLoadingExchanges] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState({}); // Track which exchange is being updated
@@ -1224,245 +1223,246 @@ function ScheduleItem({ schedule, onViewFormDetail }) {
                           </div>
                         )}
 
-                        {/* Action buttons - CẬP NHẬT để thêm nút thanh toán lại */}
-                        {exchange.status && !['completed', 'cancelled'].includes(exchange.status.toLowerCase()) && (
-                          <div style={{
-                            display: 'flex',
-                            gap: '6px',
-                            marginTop: '4px',
-                            flexWrap: 'wrap'
-                          }}>
-                            <button
-                              onClick={() => handleUpdateExchangeStatus(
-                                exchange.exchangeBatteryId || exchange.id,
-                                'completed'
-                              )}
-                              disabled={updatingStatus[exchange.exchangeBatteryId || exchange.id]}
-                              style={{
-                                background: updatingStatus[exchange.exchangeBatteryId || exchange.id]
-                                  ? '#9ca3af'
-                                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                padding: '2px 6px',
-                                fontSize: '9px',
-                                fontWeight: '600',
-                                cursor: updatingStatus[exchange.exchangeBatteryId || exchange.id] ? 'not-allowed' : 'pointer',
-                                transition: 'all 0.2s',
-                                minWidth: '45px'
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!updatingStatus[exchange.exchangeBatteryId || exchange.id]) {
-                                  e.target.style.transform = 'scale(1.05)';
-                                }
-                              }}
-                              onMouseLeave={(e) => {
-                                if (!updatingStatus[exchange.exchangeBatteryId || exchange.id]) {
-                                  e.target.style.transform = 'scale(1)';
-                                }
-                              }}
-                            >
-                              {updatingStatus[exchange.exchangeBatteryId || exchange.id] ? '⏳' : '✅'}
-                            </button>
-
-                            <button
-                              onClick={() => handleUpdateExchangeStatus(
-                                exchange.exchangeBatteryId || exchange.id,
-                                'cancelled'
-                              )}
-                              disabled={updatingStatus[exchange.exchangeBatteryId || exchange.id]}
-                              style={{
-                                background: updatingStatus[exchange.exchangeBatteryId || exchange.id]
-                                  ? '#9ca3af'
-                                  : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                padding: '2px 6px',
-                                fontSize: '9px',
-                                fontWeight: '600',
-                                cursor: updatingStatus[exchange.exchangeBatteryId || exchange.id] ? 'not-allowed' : 'pointer',
-                                transition: 'all 0.2s',
-                                minWidth: '45px'
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!updatingStatus[exchange.exchangeBatteryId || exchange.id]) {
-                                  e.target.style.transform = 'scale(1.05)';
-                                }
-                              }}
-                              onMouseLeave={(e) => {
-                                if (!updatingStatus[exchange.exchangeBatteryId || exchange.id]) {
-                                  e.target.style.transform = 'scale(1)';
-                                }
-                              }}
-                            >
-                              {updatingStatus[exchange.exchangeBatteryId || exchange.id] ? '⏳' : '❌'}
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                const ExchangeBatteryId = exchange.exchangeBatteryId || exchange.id;
-                                const FormId = schedule.formId;
-                                setCashPayment({ ExchangeBatteryId, FormId, Total: 0 });
-                                setShowCashModal(true);
-                              }}
-                              style={{
-                                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                padding: '2px 8px',
-                                fontSize: '10px',
-                                fontWeight: '700',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                minWidth: '78px'
-                              }}
-                              onMouseEnter={e => e.target.style.transform = 'scale(1.05)'}
-                              onMouseLeave={e => e.target.style.transform = 'scale(1)'}
-                            >
-                              💵 Tiền mặt
-                            </button>
-
-                            {/* Nút Thanh toán - chỉ hiện khi chưa có orderId */}
-                            {!savedOrders[exchange.exchangeBatteryId || exchange.id] && (
+                        {/* Ẩn button nếu role = Admin, chỉ hiển thị khi role = Staff */}
+                        {exchange.status && !['completed', 'cancelled'].includes(exchange.status.toLowerCase()) &&
+                          userRole !== 'Admin' && userRole !== 'admin' && (
+                            <div style={{
+                              display: 'flex',
+                              gap: '6px',
+                              marginTop: '4px',
+                              flexWrap: 'wrap'
+                            }}>
+                              <button
+                                onClick={() => handleUpdateExchangeStatus(
+                                  exchange.exchangeBatteryId || exchange.id,
+                                  'completed'
+                                )}
+                                disabled={updatingStatus[exchange.exchangeBatteryId || exchange.id]}
+                                style={{
+                                  background: updatingStatus[exchange.exchangeBatteryId || exchange.id]
+                                    ? '#9ca3af'
+                                    : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  padding: '2px 6px',
+                                  fontSize: '9px',
+                                  fontWeight: '600',
+                                  cursor: updatingStatus[exchange.exchangeBatteryId || exchange.id] ? 'not-allowed' : 'pointer',
+                                  transition: 'all 0.2s',
+                                  minWidth: '45px'
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!updatingStatus[exchange.exchangeBatteryId || exchange.id]) {
+                                    e.target.style.transform = 'scale(1.05)';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!updatingStatus[exchange.exchangeBatteryId || exchange.id]) {
+                                    e.target.style.transform = 'scale(1)';
+                                  }
+                                }}
+                              >
+                                {updatingStatus[exchange.exchangeBatteryId || exchange.id] ? '⏳' : '✅'}
+                              </button>
 
                               <button
-                                onClick={() => handlePayForExchange(exchange)}
-                                disabled={paying[exchange.exchangeBatteryId || exchange.id]}
+                                onClick={() => handleUpdateExchangeStatus(
+                                  exchange.exchangeBatteryId || exchange.id,
+                                  'cancelled'
+                                )}
+                                disabled={updatingStatus[exchange.exchangeBatteryId || exchange.id]}
                                 style={{
-                                  background: paying[exchange.exchangeBatteryId || exchange.id]
+                                  background: updatingStatus[exchange.exchangeBatteryId || exchange.id]
                                     ? '#9ca3af'
-                                    : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                                    : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  padding: '2px 6px',
+                                  fontSize: '9px',
+                                  fontWeight: '600',
+                                  cursor: updatingStatus[exchange.exchangeBatteryId || exchange.id] ? 'not-allowed' : 'pointer',
+                                  transition: 'all 0.2s',
+                                  minWidth: '45px'
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!updatingStatus[exchange.exchangeBatteryId || exchange.id]) {
+                                    e.target.style.transform = 'scale(1.05)';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!updatingStatus[exchange.exchangeBatteryId || exchange.id]) {
+                                    e.target.style.transform = 'scale(1)';
+                                  }
+                                }}
+                              >
+                                {updatingStatus[exchange.exchangeBatteryId || exchange.id] ? '⏳' : '❌'}
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  const ExchangeBatteryId = exchange.exchangeBatteryId || exchange.id;
+                                  const FormId = schedule.formId;
+                                  setCashPayment({ ExchangeBatteryId, FormId, Total: 0 });
+                                  setShowCashModal(true);
+                                }}
+                                style={{
+                                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                                   color: 'white',
                                   border: 'none',
                                   borderRadius: '4px',
                                   padding: '2px 8px',
                                   fontSize: '10px',
                                   fontWeight: '700',
-                                  cursor: paying[exchange.exchangeBatteryId || exchange.id] ? 'not-allowed' : 'pointer',
+                                  cursor: 'pointer',
                                   transition: 'all 0.2s',
                                   minWidth: '78px'
                                 }}
-                                onMouseEnter={(e) => {
-                                  if (!paying[exchange.exchangeBatteryId || exchange.id]) {
-                                    e.target.style.transform = 'scale(1.05)';
-                                  }
-                                }}
-                                onMouseLeave={(e) => {
-                                  if (!paying[exchange.exchangeBatteryId || exchange.id]) {
-                                    e.target.style.transform = 'scale(1)';
-                                  }
-                                }}
+                                onMouseEnter={e => e.target.style.transform = 'scale(1.05)'}
+                                onMouseLeave={e => e.target.style.transform = 'scale(1)'}
                               >
-                                {paying[exchange.exchangeBatteryId || exchange.id] ? '⏳' : '💳 Thanh toán'}
+                                💵 Tiền mặt
                               </button>
 
-                            )}
+                              {/* Nút Thanh toán - chỉ hiện khi chưa có orderId */}
+                              {!savedOrders[exchange.exchangeBatteryId || exchange.id] && (
 
-                            {/* Nút Thanh toán lại - Hiện khi đã có orderId trong savedOrders HOẶC trong sessionStorage*/}
-                            {(savedOrders[exchange.exchangeBatteryId || exchange.id] ||
-                              (() => {
-                                try {
-                                  const paymentCtxRaw = sessionStorage.getItem('paymentCtx');
-                                  if (paymentCtxRaw) {
-                                    const ctx = JSON.parse(paymentCtxRaw);
-                                    const key = exchange.exchangeBatteryId || exchange.id;
-                                    if (ctx && typeof ctx === 'object' && !Array.isArray(ctx)) {
-                                      if (ctx.exchangeBatteryId === key && ctx.orderId) return true;
-                                    } else if (Array.isArray(ctx)) {
-                                      // Nếu là mảng, tìm correct exchangeBatteryId
-                                      const found = ctx.find(c => c.exchangeBatteryId === key && c.orderId);
-                                      if (found) return true;
-                                    }
-                                  }
-                                } catch { }
-                                return false;
-                              })()
-                            ) && (
                                 <button
-                                  onClick={async () => {
-                                    const key = exchange.exchangeBatteryId || exchange.id;
-                                    setRetryingPayment(prev => ({ ...prev, [key]: true }));
-
-                                    try {
-                                      // Lấy orderId từ sessionStorage
-                                      let orderId = null;
-                                      try {
-                                        const paymentCtxRaw = sessionStorage.getItem('paymentCtx');
-                                        if (paymentCtxRaw) {
-                                          const ctx = JSON.parse(paymentCtxRaw);
-                                          if (ctx && typeof ctx === 'object' && !Array.isArray(ctx)) {
-                                            if (ctx.exchangeBatteryId === key) {
-                                              orderId = ctx.orderId;
-                                            }
-                                          } else if (Array.isArray(ctx)) {
-                                            const found = ctx.find(c => c.exchangeBatteryId === key);
-                                            if (found) orderId = found.orderId;
-                                          }
-                                        }
-                                      } catch { }
-                                      // Fallback: lấy orderId từ savedOrders, như cũ nếu ko tìm ra trong sessionStorage
-                                      orderId = orderId || savedOrders[key];
-                                      if (!orderId) {
-                                        alert('Không tìm thấy OrderId trong sessionStorage hoặc savedOrders');
-                                        return;
-                                      }
-                                      const description = 'Thanh toán lại';
-                                      const payRes = await authAPI.createPayOSPayment({ orderId, description });
-                                      const redirectUrl =
-                                        payRes?.data?.paymentUrl ||
-                                        payRes?.data?.checkoutUrl ||
-                                        payRes?.data?.payUrl ||
-                                        payRes?.data?.shortLink ||
-                                        payRes?.paymentUrl ||
-                                        payRes?.checkoutUrl ||
-                                        payRes?.payUrl ||
-                                        payRes?.shortLink;
-
-                                      if (!redirectUrl) {
-                                        throw new Error('Không nhận được link thanh toán từ PayOS.');
-                                      }
-                                      window.location.href = redirectUrl;
-                                    } catch (err) {
-                                      console.error('Error retry PayOS payment:', err);
-                                      alert('Lỗi khi thanh toán lại: ' + (err?.message || 'Unknown error'));
-                                    } finally {
-                                      setRetryingPayment(prev => ({ ...prev, [key]: false }));
-                                    }
-                                  }}
-                                  disabled={retryingPayment[exchange.exchangeBatteryId || exchange.id]}
+                                  onClick={() => handlePayForExchange(exchange)}
+                                  disabled={paying[exchange.exchangeBatteryId || exchange.id]}
                                   style={{
-                                    background: retryingPayment[exchange.exchangeBatteryId || exchange.id]
+                                    background: paying[exchange.exchangeBatteryId || exchange.id]
                                       ? '#9ca3af'
-                                      : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                      : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
                                     color: 'white',
                                     border: 'none',
                                     borderRadius: '4px',
                                     padding: '2px 8px',
                                     fontSize: '10px',
                                     fontWeight: '700',
-                                    cursor: retryingPayment[exchange.exchangeBatteryId || exchange.id] ? 'not-allowed' : 'pointer',
+                                    cursor: paying[exchange.exchangeBatteryId || exchange.id] ? 'not-allowed' : 'pointer',
                                     transition: 'all 0.2s',
-                                    minWidth: '90px'
+                                    minWidth: '78px'
                                   }}
                                   onMouseEnter={(e) => {
-                                    if (!retryingPayment[exchange.exchangeBatteryId || exchange.id]) {
+                                    if (!paying[exchange.exchangeBatteryId || exchange.id]) {
                                       e.target.style.transform = 'scale(1.05)';
                                     }
                                   }}
                                   onMouseLeave={(e) => {
-                                    if (!retryingPayment[exchange.exchangeBatteryId || exchange.id]) {
+                                    if (!paying[exchange.exchangeBatteryId || exchange.id]) {
                                       e.target.style.transform = 'scale(1)';
                                     }
                                   }}
                                 >
-                                  {retryingPayment[exchange.exchangeBatteryId || exchange.id] ? '⏳' : '🔄 Thanh toán lại'}
+                                  {paying[exchange.exchangeBatteryId || exchange.id] ? '⏳' : '💳 Thanh toán'}
                                 </button>
+
                               )}
-                          </div>
-                        )}
+
+                              {/* Nút Thanh toán lại - Hiện khi đã có orderId trong savedOrders HOẶC trong sessionStorage*/}
+                              {(savedOrders[exchange.exchangeBatteryId || exchange.id] ||
+                                (() => {
+                                  try {
+                                    const paymentCtxRaw = sessionStorage.getItem('paymentCtx');
+                                    if (paymentCtxRaw) {
+                                      const ctx = JSON.parse(paymentCtxRaw);
+                                      const key = exchange.exchangeBatteryId || exchange.id;
+                                      if (ctx && typeof ctx === 'object' && !Array.isArray(ctx)) {
+                                        if (ctx.exchangeBatteryId === key && ctx.orderId) return true;
+                                      } else if (Array.isArray(ctx)) {
+                                        // Nếu là mảng, tìm correct exchangeBatteryId
+                                        const found = ctx.find(c => c.exchangeBatteryId === key && c.orderId);
+                                        if (found) return true;
+                                      }
+                                    }
+                                  } catch { }
+                                  return false;
+                                })()
+                              ) && (
+                                  <button
+                                    onClick={async () => {
+                                      const key = exchange.exchangeBatteryId || exchange.id;
+                                      setRetryingPayment(prev => ({ ...prev, [key]: true }));
+
+                                      try {
+                                        // Lấy orderId từ sessionStorage
+                                        let orderId = null;
+                                        try {
+                                          const paymentCtxRaw = sessionStorage.getItem('paymentCtx');
+                                          if (paymentCtxRaw) {
+                                            const ctx = JSON.parse(paymentCtxRaw);
+                                            if (ctx && typeof ctx === 'object' && !Array.isArray(ctx)) {
+                                              if (ctx.exchangeBatteryId === key) {
+                                                orderId = ctx.orderId;
+                                              }
+                                            } else if (Array.isArray(ctx)) {
+                                              const found = ctx.find(c => c.exchangeBatteryId === key);
+                                              if (found) orderId = found.orderId;
+                                            }
+                                          }
+                                        } catch { }
+                                        // Fallback: lấy orderId từ savedOrders, như cũ nếu ko tìm ra trong sessionStorage
+                                        orderId = orderId || savedOrders[key];
+                                        if (!orderId) {
+                                          alert('Không tìm thấy OrderId trong sessionStorage hoặc savedOrders');
+                                          return;
+                                        }
+                                        const description = 'Thanh toán lại';
+                                        const payRes = await authAPI.createPayOSPayment({ orderId, description });
+                                        const redirectUrl =
+                                          payRes?.data?.paymentUrl ||
+                                          payRes?.data?.checkoutUrl ||
+                                          payRes?.data?.payUrl ||
+                                          payRes?.data?.shortLink ||
+                                          payRes?.paymentUrl ||
+                                          payRes?.checkoutUrl ||
+                                          payRes?.payUrl ||
+                                          payRes?.shortLink;
+
+                                        if (!redirectUrl) {
+                                          throw new Error('Không nhận được link thanh toán từ PayOS.');
+                                        }
+                                        window.location.href = redirectUrl;
+                                      } catch (err) {
+                                        console.error('Error retry PayOS payment:', err);
+                                        alert('Lỗi khi thanh toán lại: ' + (err?.message || 'Unknown error'));
+                                      } finally {
+                                        setRetryingPayment(prev => ({ ...prev, [key]: false }));
+                                      }
+                                    }}
+                                    disabled={retryingPayment[exchange.exchangeBatteryId || exchange.id]}
+                                    style={{
+                                      background: retryingPayment[exchange.exchangeBatteryId || exchange.id]
+                                        ? '#9ca3af'
+                                        : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      padding: '2px 8px',
+                                      fontSize: '10px',
+                                      fontWeight: '700',
+                                      cursor: retryingPayment[exchange.exchangeBatteryId || exchange.id] ? 'not-allowed' : 'pointer',
+                                      transition: 'all 0.2s',
+                                      minWidth: '90px'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      if (!retryingPayment[exchange.exchangeBatteryId || exchange.id]) {
+                                        e.target.style.transform = 'scale(1.05)';
+                                      }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      if (!retryingPayment[exchange.exchangeBatteryId || exchange.id]) {
+                                        e.target.style.transform = 'scale(1)';
+                                      }
+                                    }}
+                                  >
+                                    {retryingPayment[exchange.exchangeBatteryId || exchange.id] ? '⏳' : '🔄 Thanh toán lại'}
+                                  </button>
+                                )}
+                            </div>
+                          )}
 
                         {/* Hiển thị OrderId nếu có */}
                         {savedOrders[exchange.exchangeBatteryId || exchange.id] && (
@@ -1746,32 +1746,57 @@ export default function Calendar({ onDateSelect }) {
   const [showFormModal, setShowFormModal] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
 
+  // State cho role và current user
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userRole, setUserRole] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(false);
+
   // Calculate next month
   const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
   const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
 
-  // Fetch all station schedules
+  // Fetch current user and role
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        setLoadingUser(true);
+        const userData = await authAPI.getCurrent();
+        if (userData) {
+          setCurrentUser(userData);
+          // Lấy role từ userData (có thể là role, Role, hoặc roles array)
+          const role = userData.role || userData.Role ||
+            (Array.isArray(userData.roles) && userData.roles.length > 0 ? userData.roles[0] : null);
+          setUserRole(role);
+          console.log('Current user role:', role);
+        }
+      } catch (error) {
+        console.error('Error fetching current user:', error);
+      } finally {
+        setLoadingUser(false);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
+
+  // Fetch all station schedules based on role
   useEffect(() => {
     const fetchAllSchedules = async () => {
-      // Get stationId from localStorage
-      const stationId = localStorage.getItem('stationId');
-      
+      if (loadingUser || !userRole) {
+        // Chờ fetch user và role xong
+        return;
+      }
+
       try {
         setLoading(true);
         let schedules = [];
 
-        if (stationId) {
-          // Nếu có stationId: lấy lịch theo stationId
-          console.log('Fetching schedules for station ID:', stationId);
-          const response = await authAPI.getStationSchedulesByStationId(stationId);
-          console.log('Station schedules response:', response);
-          schedules = Array.isArray(response?.data) ? response.data : [];
-        } else {
-          // Nếu không có stationId: lấy tất cả lịch
-          console.log('No stationId found, fetching all schedules');
+        if (userRole === 'Admin' || userRole === 'admin') {
+          // Nếu role = Admin: lấy tất cả lịch
+          console.log('Role is Admin, fetching all schedules');
           const response = await authAPI.getAllStationSchedules();
           console.log('All station schedules response:', response);
-          
+
           // Xử lý response để lấy danh sách schedules
           if (Array.isArray(response?.data)) {
             schedules = response.data;
@@ -1781,6 +1806,38 @@ export default function Calendar({ onDateSelect }) {
             schedules = response;
           } else {
             schedules = [];
+          }
+        } else if (userRole === 'Staff' || userRole === 'staff' || userRole === 'Bsstaff') {
+          // Nếu role = Staff: lấy lịch theo stationId
+          const stationId = localStorage.getItem('stationId');
+          if (stationId) {
+            console.log('Role is Staff, fetching schedules for station ID:', stationId);
+            const response = await authAPI.getStationSchedulesByStationId(stationId);
+            console.log('Station schedules response:', response);
+            schedules = Array.isArray(response?.data) ? response.data : [];
+          } else {
+            console.warn('Role is Staff but no stationId found in localStorage');
+            schedules = [];
+          }
+        } else {
+          // Fallback: thử lấy từ localStorage như cũ
+          const stationId = localStorage.getItem('stationId');
+          if (stationId) {
+            console.log('Unknown role, using stationId from localStorage:', stationId);
+            const response = await authAPI.getStationSchedulesByStationId(stationId);
+            schedules = Array.isArray(response?.data) ? response.data : [];
+          } else {
+            console.log('Unknown role and no stationId, fetching all schedules');
+            const response = await authAPI.getAllStationSchedules();
+            if (Array.isArray(response?.data)) {
+              schedules = response.data;
+            } else if (response?.data?.data && Array.isArray(response.data.data)) {
+              schedules = response.data.data;
+            } else if (Array.isArray(response)) {
+              schedules = response;
+            } else {
+              schedules = [];
+            }
           }
         }
 
@@ -1795,7 +1852,7 @@ export default function Calendar({ onDateSelect }) {
     };
 
     fetchAllSchedules();
-  }, []);
+  }, [userRole, loadingUser]);
 
   const handlePrevMonth = () => {
     if (currentMonth === 0) {
@@ -2177,6 +2234,7 @@ export default function Calendar({ onDateSelect }) {
                   key={`${schedule.stationScheduleId}-${index}`}
                   schedule={schedule}
                   onViewFormDetail={handleViewFormDetail}
+                  userRole={userRole}
                 />
               ))}
             </div>
