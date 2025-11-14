@@ -24,8 +24,8 @@ function todayDateObj() {
   return { year: now.getFullYear(), month: now.getMonth(), date: now.getDate() };
 }
 
-// Calendar cell component (giữ nguyên)
-function CalendarCell({ day, isToday, isSelected, onDateSelect, year, month }) {
+// Calendar cell component - CẬP NHẬT để thêm dấu chấm vàng cho pending
+function CalendarCell({ day, isToday, isSelected, onDateSelect, year, month, hasPending }) {
   const cellStyle = {
     padding: 12,
     borderRadius: 10,
@@ -42,6 +42,7 @@ function CalendarCell({ day, isToday, isSelected, onDateSelect, year, month }) {
     fontSize: 16,
     minHeight: 40,
     verticalAlign: "middle",
+    position: "relative",
   };
 
   const handleMouseEnter = (e) => {
@@ -63,15 +64,61 @@ function CalendarCell({ day, isToday, isSelected, onDateSelect, year, month }) {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {day}
+      <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%" }}>
+        {/* Dấu chấm vàng cho pending - hiển thị ở giữa dưới số ngày */}
+        {hasPending && (
+          <span
+            style={{
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              backgroundColor: "#fbbf24",
+              border: "1px solid #f59e0b",
+              boxShadow: "0 0 4px rgba(251, 191, 36, 0.6)",
+              display: "block",
+              marginTop: "2px",
+            }}
+            title="Có Form/Schedule đang pending"
+          />
+        )}
+        {day}
+      </div>
     </td>
   );
 }
 
-// Component for single month calendar (giữ nguyên)
-function MonthCalendar({ year, month, today, selectedDate, onDateSelect }) {
+// Component for single month calendar - CẬP NHẬT để kiểm tra pending
+function MonthCalendar({ year, month, today, selectedDate, onDateSelect, allSchedules = [] }) {
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfWeek(year, month);
+
+  // Hàm kiểm tra xem ngày có pending schedules/forms không
+  const hasPendingOnDate = (day) => {
+    if (!allSchedules || allSchedules.length === 0) return false;
+
+    // Format date để so sánh
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+    // Kiểm tra các schedules có status = "pending" hoặc "Pending" vào ngày này
+    return allSchedules.some(schedule => {
+      if (!schedule.date) return false;
+
+      const scheduleDate = new Date(schedule.date);
+      const scheduleDateStr = `${scheduleDate.getUTCFullYear()}-${String(scheduleDate.getUTCMonth() + 1).padStart(2, '0')}-${String(scheduleDate.getUTCDate()).padStart(2, '0')}`;
+
+      if (scheduleDateStr !== dateStr) return false;
+
+      // Kiểm tra schedule status = "pending"
+      const scheduleStatus = schedule.status || schedule.Status || '';
+      if (scheduleStatus.toLowerCase() === 'pending') return true;
+
+      // Kiểm tra form status = "pending" nếu có
+      const formStatus = schedule.formStatus || schedule.FormStatus || schedule.form?.status || schedule.Form?.Status || '';
+      if (formStatus.toLowerCase() === 'pending') return true;
+
+      return false;
+    });
+  };
 
   // Build calendar grid
   const calendarRows = [];
@@ -95,6 +142,7 @@ function MonthCalendar({ year, month, today, selectedDate, onDateSelect }) {
           day === selectedDate.date &&
           month === selectedDate.month &&
           year === selectedDate.year;
+        const hasPending = hasPendingOnDate(day);
 
         cells.push(
           <CalendarCell
@@ -105,6 +153,7 @@ function MonthCalendar({ year, month, today, selectedDate, onDateSelect }) {
             onDateSelect={onDateSelect}
             year={year}
             month={month}
+            hasPending={hasPending}
           />
         );
         day++;
@@ -2165,7 +2214,7 @@ export default function Calendar({ onDateSelect }) {
         </div>
       )}
 
-      {/* Two month calendars (giữ nguyên) */}
+      {/* Two month calendars - CẬP NHẬT để truyền allSchedules */}
       <div
         style={{
           display: "flex",
@@ -2181,6 +2230,7 @@ export default function Calendar({ onDateSelect }) {
           today={today}
           selectedDate={selectedDate}
           onDateSelect={handleDateSelect}
+          allSchedules={allSchedules}
         />
         <MonthCalendar
           year={nextYear}
@@ -2188,6 +2238,7 @@ export default function Calendar({ onDateSelect }) {
           today={today}
           selectedDate={selectedDate}
           onDateSelect={handleDateSelect}
+          allSchedules={allSchedules}
         />
       </div>
 
