@@ -48,7 +48,7 @@
   margin: 6px 0 20px 0;
   font-size: 26px;
   font-weight: 700;
-  color: #061132;
+  color: #ffffff;
   letter-spacing: -0.2px;
   transform: translateZ(0);
   animation: titlePop .6s cubic-bezier(.2, .9, .3, 1);
@@ -436,7 +436,7 @@
 /* Card styling with glass effect, tilt on hover */
 .station-card {
   position: relative;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.1));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.023), rgba(255, 255, 255, 0.1));
   border-radius: 14px;
   padding: 16px;
   min-height: 160px;
@@ -612,7 +612,7 @@
 
 .station-status.active {
   color: #10b981;
-  background: linear-gradient(90deg, rgba(16, 185, 129, 0.06), rgba(16, 185, 129, 0.02));
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.509), rgba(16, 185, 129, 0.02));
   border: 1px solid rgba(16, 185, 129, 0.12);
 }
 
@@ -806,7 +806,7 @@
 .section-title {
   font-weight: 800;
   margin-bottom: 8px;
-  color: #0b1220;
+  color: #ffffff;
 }
 
 .empty-note {
@@ -1013,7 +1013,7 @@
 .section-title {
   font-weight: 700;
   margin-top: 8px;
-  color: #07103a;
+  color: #ffffff;
 }
 
 .empty-note {
@@ -1100,7 +1100,7 @@
   text-align: center;
   margin-top: 28px;
   font-size: 16px;
-  color: #334155;
+  color: #ffffff;
 }
 
 .station-error {
@@ -1154,7 +1154,7 @@
 /* tiny date text (small, gray) */
 .head-right .tiny {
   font-size: 12px;
-  color: #64748b;
+  color: #b8babd;
   /* xám nhạt */
   font-weight: 600;
   white-space: nowrap;
@@ -1373,7 +1373,7 @@
   align-items: center;
   font-weight: 800;
   margin-bottom: 12px;
-  color: #0b1220;
+  color: #fdfeff;
   font-size: 16px;
 }
 

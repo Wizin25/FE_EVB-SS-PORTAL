@@ -304,7 +304,7 @@ export default function FormPage() {
   return (
     <div className="mx-auto space-y-6 max-w-7xl">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">📋 Quản lý Form</h1>
+        <h1 className="text-3xl font-bold text-white dark:text-white">📋 Quản lý Form</h1>
         <button 
           onClick={fetchAllForms}
           disabled={loading}
