@@ -234,20 +234,31 @@ export default function StationScheduleHistory() {
     return result;
   }, [schedules, sortBy]);
   
+  // Scroll styles
+  const scrollStyles = {
+    height: "100vh",
+    overflowY: "auto",
+    overflowX: "hidden",
+    WebkitOverflowScrolling: "touch",
+    scrollBehavior: "smooth"
+  };
+
   return (
     <div style={{ 
-      maxHeight: '100vh',
-      minHeight: '100vh',
+      ...scrollStyles,
       backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb'
     }}>
-      <Header
-        onToggleTheme={handleToggleTheme}
-        theme={theme}
-        user={currentUser}
-        unreadCount={0}
-        nextBooking={null}
-        onOpenBooking={handleOpenBooking}
-      />
+      {/* Sticky Header */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 1000 }}>
+        <Header
+          onToggleTheme={handleToggleTheme}
+          theme={theme}
+          user={currentUser}
+          unreadCount={0}
+          nextBooking={null}
+          onOpenBooking={handleOpenBooking}
+        />
+      </div>
       
       <div className="container">
         <div className="page-header">
