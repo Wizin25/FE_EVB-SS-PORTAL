@@ -18,14 +18,14 @@ function SignIn() {
     const googleToken = urlParams.get('token');
     if (googleToken) handleGoogleToken(googleToken);
   }, []);
-  
+
 
   const handleGoogleToken = async (token) => {
     try {
       localStorage.setItem('authToken', token);
       const payload = decodeJwt(token);
       const roles = extractRolesFromPayload(payload);
-      
+
       if (roles.includes('Admin')) navigate('/admin');
       else if (roles.includes('Bsstaff')) navigate('/staff');
       else navigate('/home');
@@ -125,7 +125,7 @@ function SignIn() {
       // => cho phép browser follow redirect tới Google mà không bị CORS
       // gọi thẳng không popup
       window.location.href = 'https://localhost:5001/api/Account/login-google';
-  
+
       // 2️⃣ Theo dõi popup
       const timer = setInterval(async () => {
         if (popup.closed) {
@@ -133,7 +133,7 @@ function SignIn() {
           try {
             // 3️⃣ Khi popup đóng, lấy token từ BE
             const token = await authAPI.getGoogleAccessToken();
-            if (token) {  
+            if (token) {
               await handleGoogleToken(token);
             } else {
               setFormError('Google login failed: no token returned');
@@ -149,7 +149,7 @@ function SignIn() {
       setFormError('Không khởi tạo được đăng nhập Google');
     }
   };
-  
+
   return (
     <div className="sign-page">
       <video

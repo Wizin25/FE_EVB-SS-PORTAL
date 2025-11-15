@@ -25,6 +25,7 @@ function Profile({ theme = "light" }) {
   const [loadingForms, setLoadingForms] = useState(false);
   const [formDetail, setFormDetail] = useState(null);
   const [loadingFormDetail, setLoadingFormDetail] = useState(false);
+  const [sortBy, setSortBy] = useState('status'); // 'status' | 'date'
 
   const [showVehiclesModal, setShowVehiclesModal] = useState(false);
   const [vehicles, setVehicles] = useState([]);
@@ -34,6 +35,11 @@ function Profile({ theme = "light" }) {
   const [activeSidebar, setActiveSidebar] = useState("profile");
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth <= 800 : false);
   const [userRoles, setUserRoles] = useState([]);
+
+  // State cho thống kê
+  const [ordersCount, setOrdersCount] = useState(0);
+  const [exchangeBatteriesCount, setExchangeBatteriesCount] = useState(0);
+  const [loadingStats, setLoadingStats] = useState(false);
 
   const [passwordData, setPasswordData] = useState({
     oldPassword: "",
@@ -95,11 +101,11 @@ function Profile({ theme = "light" }) {
   // Hàm lấy thông tin trạm từ cache
   const getStationInfo = (stationId) => {
     if (!stationId) return { stationName: 'N/A', location: 'N/A' };
-    
+
     if (stationsCache[stationId]) {
       return stationsCache[stationId];
     }
-    
+
     return { stationName: 'N/A', location: 'N/A' };
   };
 
@@ -107,7 +113,7 @@ function Profile({ theme = "light" }) {
   const handleToggleTheme = useCallback(() => {
     const newTheme = localTheme === "light" ? "dark" : "light";
     setLocalTheme(newTheme);
-    
+
     const root = document.documentElement;
     if (newTheme === "dark") {
       root.classList.add("dark");
@@ -124,7 +130,7 @@ function Profile({ theme = "light" }) {
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") || "light";
     setLocalTheme(savedTheme);
-    
+
     const root = document.documentElement;
     if (savedTheme === "dark") {
       root.classList.add("dark");
@@ -134,7 +140,7 @@ function Profile({ theme = "light" }) {
     let mounted = true;
     setLoading(true);
     setError(null);
-    
+
     authAPI.getCurrent()
       .then((data) => {
         if (!mounted) return;
@@ -154,10 +160,10 @@ function Profile({ theme = "light" }) {
         setError(err?.message || "Lỗi khi lấy thông tin tài khoản");
         setLoading(false);
       });
-    
+
     // Pre-load stations
     loadAllStations();
-    
+
     return () => { mounted = false; };
   }, []);
 
@@ -165,11 +171,63 @@ function Profile({ theme = "light" }) {
   useEffect(() => {
     const roles = getUserRoles();
     setUserRoles(roles);
-    
+
     if (roles.includes('EvDriver') && user) {
       fetchForms();
     }
   }, [user]);
+
+  // Fetch statistics (orders count and exchange batteries count)
+  const fetchStatistics = useCallback(async () => {
+    if (!user?.accountId) return;
+
+    setLoadingStats(true);
+    try {
+      const accountId = user.accountId || user.id;
+
+      // Fetch orders count
+      try {
+        const ordersResponse = await authAPI.getOrdersByAccountId(accountId);
+        if (ordersResponse?.isSuccess) {
+          const ordersList = ordersResponse.data || [];
+          setOrdersCount(ordersList.length);
+        } else {
+          setOrdersCount(0);
+        }
+      } catch (err) {
+        console.error('Error fetching orders count:', err);
+        setOrdersCount(0);
+      }
+
+      // Fetch exchange batteries count từ forms (Lịch sử Đặt lịch)
+      try {
+        const formsResponse = await formAPI.getFormsByAccountId(accountId);
+
+        if (formsResponse?.isSuccess) {
+          const formsData = formsResponse.data || [];
+          // Đếm tổng số forms có exchange batteries (có thể đếm tất cả forms hoặc chỉ những form có exchange)
+          // Tạm thời đếm tất cả forms như là số lần trao đổi pin
+          setExchangeBatteriesCount(formsData.length);
+        } else {
+          setExchangeBatteriesCount(0);
+        }
+      } catch (err) {
+        console.error('Error fetching exchange batteries count:', err);
+        setExchangeBatteriesCount(0);
+      }
+    } catch (err) {
+      console.error('Error fetching statistics:', err);
+    } finally {
+      setLoadingStats(false);
+    }
+  }, [user?.accountId]);
+
+  // Fetch statistics when user is loaded
+  useEffect(() => {
+    if (user?.accountId) {
+      fetchStatistics();
+    }
+  }, [fetchStatistics]);
 
   // Responsive handling
   useEffect(() => {
@@ -181,23 +239,23 @@ function Profile({ theme = "light" }) {
   // API calls - Updated fetchForms with battery details and station names
   const fetchForms = useCallback(async () => {
     if (!isInRole('EvDriver') || !user) return;
-    
+
     setLoadingForms(true);
     try {
       const accountId = user.accountId || user.id;
       if (!accountId) return;
 
       const response = await formAPI.getFormsByAccountId(accountId);
-      
+
       if (response?.isSuccess) {
         const formsData = response.data || [];
-        
+
         // Lấy thông tin batteryName và stationName cho từng form
         const formsWithDetails = await Promise.all(
           formsData.map(async (form) => {
             let batteryName = 'Không có pin';
             let stationName = 'Chưa xác định';
-            
+
             // Lấy thông tin pin
             if (form.batteryId) {
               try {
@@ -208,15 +266,15 @@ function Profile({ theme = "light" }) {
                 batteryName = 'Lỗi khi tải thông tin pin';
               }
             }
-            
+
             // Lấy thông tin trạm từ cache
             if (form.stationId) {
               const stationInfo = getStationInfo(form.stationId);
               stationName = stationInfo.stationName;
             }
-            
-            return { 
-              ...form, 
+
+            return {
+              ...form,
               batteryName: batteryName,
               stationName: stationName
             };
@@ -235,14 +293,14 @@ function Profile({ theme = "light" }) {
   // Updated fetchFormDetail with battery details and station info
   const fetchFormDetail = useCallback(async (formId) => {
     if (!isInRole('EvDriver') || !formId) return;
-    
+
     setLoadingFormDetail(true);
     try {
       const response = await formAPI.getFormById(formId);
-      
+
       if (response?.isSuccess) {
         let formDetail = response.data;
-        
+
         // Lấy thông tin batteryName nếu có batteryId
         if (formDetail.batteryId) {
           try {
@@ -256,7 +314,7 @@ function Profile({ theme = "light" }) {
         } else {
           formDetail.batteryName = 'Không có pin';
         }
-        
+
         // Lấy thông tin stationName
         if (formDetail.stationId) {
           const stationInfo = getStationInfo(formDetail.stationId);
@@ -266,7 +324,7 @@ function Profile({ theme = "light" }) {
           formDetail.stationName = 'Chưa xác định';
           formDetail.stationLocation = 'N/A';
         }
-        
+
         setFormDetail(formDetail);
       } else {
         throw new Error(response?.message || 'Không thể lấy thông tin chi tiết');
@@ -289,7 +347,7 @@ function Profile({ theme = "light" }) {
     setVehiclesError(null);
     try {
       const response = await vehicleAPI.getCurrentUserVehicles();
-      
+
       if (response?.isSuccess) {
         setVehicles(response.data || []);
       } else {
@@ -324,85 +382,85 @@ function Profile({ theme = "light" }) {
         setError('Kích thước ảnh không được vượt quá 5MB');
         return;
       }
-      
+
       setAvatarFile(file);
       handleAvatarUpload(file);
     }
   }, []);
 
   const handleAvatarUpload = useCallback(async (file) => {
-  if (!file) return;
+    if (!file) return;
 
-  setIsUploadingAvatar(true);
-  setError(null);
+    setIsUploadingAvatar(true);
+    setError(null);
 
-  try {
-    console.log('Bắt đầu upload avatar...', file.name);
-    
-    // 1. Upload lên Cloudinary
-    const cloudinaryResponse = await authAPI.uploadToCloudinary(file);
-    console.log('Cloudinary upload response:', cloudinaryResponse);
+    try {
+      console.log('Bắt đầu upload avatar...', file.name);
 
-    // 2. Xử lý response từ Cloudinary
-    let avatarUrl;
-    
-    if (cloudinaryResponse.data?.url) {
-      avatarUrl = cloudinaryResponse.data.url;
-    } else if (cloudinaryResponse.data?.secure_url) {
-      avatarUrl = cloudinaryResponse.data.secure_url;
-    } else if (cloudinaryResponse.url) {
-      avatarUrl = cloudinaryResponse.url;
-    } else if (cloudinaryResponse.secure_url) {
-      avatarUrl = cloudinaryResponse.secure_url;
-    } else if (cloudinaryResponse.data?.publicId) {
-      avatarUrl = `https://res.cloudinary.com/your-cloud-name/image/upload/${cloudinaryResponse.data.publicId}`;
-    } else {
-      console.error('Cloudinary response structure:', cloudinaryResponse);
-      throw new Error('Không nhận được URL ảnh từ Cloudinary');
+      // 1. Upload lên Cloudinary
+      const cloudinaryResponse = await authAPI.uploadToCloudinary(file);
+      console.log('Cloudinary upload response:', cloudinaryResponse);
+
+      // 2. Xử lý response từ Cloudinary
+      let avatarUrl;
+
+      if (cloudinaryResponse.data?.url) {
+        avatarUrl = cloudinaryResponse.data.url;
+      } else if (cloudinaryResponse.data?.secure_url) {
+        avatarUrl = cloudinaryResponse.data.secure_url;
+      } else if (cloudinaryResponse.url) {
+        avatarUrl = cloudinaryResponse.url;
+      } else if (cloudinaryResponse.secure_url) {
+        avatarUrl = cloudinaryResponse.secure_url;
+      } else if (cloudinaryResponse.data?.publicId) {
+        avatarUrl = `https://res.cloudinary.com/your-cloud-name/image/upload/${cloudinaryResponse.data.publicId}`;
+      } else {
+        console.error('Cloudinary response structure:', cloudinaryResponse);
+        throw new Error('Không nhận được URL ảnh từ Cloudinary');
+      }
+
+      console.log('Avatar URL nhận được:', avatarUrl);
+
+      // 3. Sử dụng user data thay vì editData để đảm bảo có giá trị
+      const updateData = {
+        name: user?.name || "",
+        phone: user?.phone || "",
+        address: user?.address || "",
+        email: user?.email || "",
+        avatar: avatarUrl
+      };
+
+      console.log('Data gửi lên update profile:', updateData);
+
+      const updateResponse = await authAPI.updateProfile(updateData);
+
+      if (updateResponse?.isSuccess) {
+        // Cập nhật state user với avatar mới
+        setUser(prev => ({ ...prev, avatar: avatarUrl }));
+        setEditData(prev => ({ ...prev, avatar: avatarUrl }));
+        try {
+          localStorage.setItem('avatarUrl', avatarUrl);
+        } catch { }
+        try {
+          window.dispatchEvent(new CustomEvent('avatar-updated', { detail: avatarUrl }));
+        } catch { }
+
+        console.log('Cập nhật avatar thành công');
+      } else {
+        throw new Error(updateResponse?.message || 'Cập nhật avatar thất bại');
+      }
+
+    } catch (err) {
+      console.error('Lỗi upload avatar:', err);
+      setError(err?.message || 'Lỗi khi tải lên ảnh đại diện');
+    } finally {
+      setIsUploadingAvatar(false);
+      setAvatarFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
-
-    console.log('Avatar URL nhận được:', avatarUrl);
-
-    // 3. Sử dụng user data thay vì editData để đảm bảo có giá trị
-    const updateData = {
-      name: user?.name || "",
-      phone: user?.phone || "", 
-      address: user?.address || "",
-      email: user?.email || "",
-      avatar: avatarUrl
-    };
-
-    console.log('Data gửi lên update profile:', updateData);
-
-    const updateResponse = await authAPI.updateProfile(updateData);
-    
-    if (updateResponse?.isSuccess) {
-      // Cập nhật state user với avatar mới
-      setUser(prev => ({ ...prev, avatar: avatarUrl }));
-      setEditData(prev => ({ ...prev, avatar: avatarUrl }));
-      try {
-        localStorage.setItem('avatarUrl', avatarUrl);
-      } catch {}
-      try {
-        window.dispatchEvent(new CustomEvent('avatar-updated', { detail: avatarUrl }));
-      } catch {}
-      
-      console.log('Cập nhật avatar thành công');
-    } else {
-      throw new Error(updateResponse?.message || 'Cập nhật avatar thất bại');
-    }
-
-  } catch (err) {
-    console.error('Lỗi upload avatar:', err);
-    setError(err?.message || 'Lỗi khi tải lên ảnh đại diện');
-  } finally {
-    setIsUploadingAvatar(false);
-    setAvatarFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  }
-}, [user]);
+  }, [user]);
 
   // Form handlers
   const handleEditChange = useCallback((e) => {
@@ -415,10 +473,10 @@ function Profile({ theme = "light" }) {
     e.preventDefault();
     setEditLoading(true);
     setEditError(null);
-    
+
     try {
       const response = await authAPI.updateProfile(editData);
-      
+
       if (response?.isSuccess) {
         setUser(prev => ({ ...prev, ...editData }));
         setEditMode(false);
@@ -464,7 +522,7 @@ function Profile({ theme = "light" }) {
       setPasswordError("Mật khẩu mới và xác nhận không khớp.");
       return;
     }
-    
+
     setPasswordLoading(true);
     try {
       const response = await authAPI.changePassword(passwordData);
@@ -493,6 +551,39 @@ function Profile({ theme = "light" }) {
   const customerId = useMemo(() => ev && typeof ev === "object" ? (ev.customerId ?? "-") : "-", [ev]);
 
   const count = useCallback((arr) => (Array.isArray(arr) ? arr.length : 0), []);
+
+  // Sắp xếp forms theo status hoặc date
+  const sortedForms = useMemo(() => {
+    if (!Array.isArray(forms)) return [];
+    let result = [...forms];
+
+    if (sortBy === 'status') {
+      // Ưu tiên: Pending > Approved > Completed > Rejected > Others
+      const statusOrder = ['Pending', 'Approved', 'Completed', 'Rejected', 'Deleted'];
+      result.sort((a, b) => {
+        const statusA = a.status || '';
+        const statusB = b.status || '';
+        const indexA = statusOrder.indexOf(statusA);
+        const indexB = statusOrder.indexOf(statusB);
+
+        if (indexA !== -1 && indexB !== -1) {
+          return indexA - indexB;
+        }
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return statusA.localeCompare(statusB);
+      });
+    } else if (sortBy === 'date') {
+      // Sắp xếp theo ngày mới nhất
+      result.sort((a, b) => {
+        const dateA = new Date(a.date || 0);
+        const dateB = new Date(b.date || 0);
+        return dateB - dateA;
+      });
+    }
+
+    return result;
+  }, [forms, sortBy]);
 
   // Avatar URL - ưu tiên avatar từ user, sau đó dùng UI Avatars
   const avatarUrl = useMemo(() => {
@@ -534,9 +625,9 @@ function Profile({ theme = "light" }) {
 
     if (userRoles.includes('EvDriver')) {
       baseItems.push({
-        key: "bookingHistory", 
-        label: "Lịch sử Đặt lịch", 
-        icon: "📋", 
+        key: "bookingHistory",
+        label: "Lịch sử Đặt lịch",
+        icon: "📋",
         onClick: () => setActiveSidebar("bookingHistory")
       });
     }
@@ -545,9 +636,9 @@ function Profile({ theme = "light" }) {
       { key: "paymentHistory", label: "Lịch sử thanh toán", icon: "💳", onClick: () => setActiveSidebar("paymentHistory") },
       { key: "changePassword", label: "Thay đổi mật khẩu", icon: "🔒", onClick: () => setActiveSidebar("changePassword") },
       {
-        key: "home", 
-        label: "Trở về trang chủ", 
-        icon: "🏠", 
+        key: "home",
+        label: "Trở về trang chủ",
+        icon: "🏠",
         onClick: () => navigate('/home'),
         isHome: true
       }
@@ -568,12 +659,12 @@ function Profile({ theme = "light" }) {
   // Loading, Error, and Empty states
   if (loading) {
     return (
-      <div className={`min-h-screen transition-colors duration-300 ${localTheme === 'dark' 
-        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white' 
+      <div className={`min-h-screen transition-colors duration-300 ${localTheme === 'dark'
+        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white'
         : 'bg-gradient-to-br from-blue-50 via-white to-green-50 text-gray-900'}`}
         style={scrollStyles}>
         <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
-          <Header 
+          <Header
             onToggleTheme={handleToggleTheme}
             theme={localTheme}
             user={user}
@@ -592,12 +683,12 @@ function Profile({ theme = "light" }) {
 
   if (error) {
     return (
-      <div className={`min-h-screen transition-colors duration-300 ${localTheme === 'dark' 
-        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white' 
+      <div className={`min-h-screen transition-colors duration-300 ${localTheme === 'dark'
+        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white'
         : 'bg-gradient-to-br from-blue-50 via-white to-green-50 text-gray-900'}`}
         style={scrollStyles}>
         <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
-          <Header 
+          <Header
             onToggleTheme={handleToggleTheme}
             theme={localTheme}
             user={user}
@@ -608,7 +699,7 @@ function Profile({ theme = "light" }) {
         </div>
         <div className={`profile-error-state ${localTheme === "dark" ? "dark" : ""}`}>
           <p>❌ Lỗi: {error}</p>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="profile-btn-primary"
             style={{ marginTop: '16px' }}
@@ -623,12 +714,12 @@ function Profile({ theme = "light" }) {
 
   if (!user) {
     return (
-      <div className={`min-h-screen transition-colors duration-300 ${localTheme === 'dark' 
-        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white' 
+      <div className={`min-h-screen transition-colors duration-300 ${localTheme === 'dark'
+        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white'
         : 'bg-gradient-to-br from-blue-50 via-white to-green-50 text-gray-900'}`}
         style={scrollStyles}>
         <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
-          <Header 
+          <Header
             onToggleTheme={handleToggleTheme}
             theme={localTheme}
             user={user}
@@ -639,7 +730,7 @@ function Profile({ theme = "light" }) {
         </div>
         <div className={`profile-empty ${localTheme === "dark" ? "dark" : ""}`}>
           <p>🔒 Chưa đăng nhập</p>
-          <button 
+          <button
             onClick={() => navigate('/login')}
             className="profile-btn-primary"
             style={{ marginTop: '16px' }}
@@ -654,64 +745,98 @@ function Profile({ theme = "light" }) {
 
   // Main render components
   const renderBookingHistory = () => {
-  if (!userRoles.includes('EvDriver')) {
+    if (!userRoles.includes('EvDriver')) {
+      return (
+        <div className="liquid-glass" style={{ padding: 32, textAlign: 'center', margin: 20 }}>
+          <h3 style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>🚫 Truy cập bị từ chối</h3>
+          <p style={{ opacity: 0.8 }}>Bạn không có quyền truy cập tính năng này.</p>
+        </div>
+      );
+    }
+
     return (
-      <div className="liquid-glass" style={{ padding: 32, textAlign: 'center', margin: 20 }}>
-        <h3 style={{ fontWeight: 700, fontSize: 20, marginBottom: 12 }}>🚫 Truy cập bị từ chối</h3>
-        <p style={{ opacity: 0.8 }}>Bạn không có quyền truy cập tính năng này.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ padding: isMobile ? 16 : 24 }}>
-      <div className="liquid-glass" style={{ padding: 20, marginBottom: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <h3 style={{ fontWeight: 700, fontSize: 20, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            📋 Lịch sử Đặt lịch của bạn
-          </h3>
-          <button
-            onClick={fetchForms}
-            disabled={loadingForms}
-            className="profile-btn-primary"
-            style={{ fontSize: 14, padding: '10px 20px' }}
-          >
-            {loadingForms ? '⏳ Đang tải...' : '🔄 Làm mới'}
-          </button>
-        </div>
-      </div>
-
-      {loadingForms ? (
-        <div className="profile-loading-state">
-          <p>⏳ Đang tải lịch sử đặt lịch...</p>
-        </div>
-      ) : forms.length === 0 ? (
-        <div className="profile-empty liquid-glass" style={{ margin: 20 }}>
-          <p>📭 Bạn chưa có lịch sử đặt lịch nào.</p>
-          <button 
-            onClick={() => navigate('/booking')}
-            className="profile-btn-primary"
-            style={{ marginTop: 16 }}
-          >
-            📝 Tạo đặt lịch mới
-          </button>
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gap: '16px' }}>
-          <div className="liquid-glass" style={{ padding: '12px 20px' }}>
-            <p style={{ fontSize: '14px', color: localTheme === 'dark' ? '#94a3b8' : '#64748b', margin: 0 }}>
-              📊 Hiển thị {forms.length} đặt lịch của bạn
-            </p>
-          </div>
-          {forms.map((form, index) => (
-            <div
-              key={form.formId || form.id || `form-${index}`}
-              className="profile-card"
-              onClick={() => {
-                setSelectedForm(form);
-                fetchFormDetail(form.formId || form.id);
-              }}
+      <div style={{ padding: isMobile ? 16 : 24 }}>
+        <div className="liquid-glass" style={{ padding: 20, marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <h3 style={{ fontWeight: 700, fontSize: 20, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              📋 Lịch sử Đặt lịch của bạn
+            </h3>
+            <button
+              onClick={fetchForms}
+              disabled={loadingForms}
+              className="profile-btn-primary"
+              style={{ fontSize: 14, padding: '10px 20px' }}
             >
+              {loadingForms ? '⏳ Đang tải...' : '🔄 Làm mới'}
+            </button>
+          </div>
+        </div>
+
+        {loadingForms ? (
+          <div className="profile-loading-state">
+            <p>⏳ Đang tải lịch sử đặt lịch...</p>
+          </div>
+        ) : forms.length === 0 ? (
+          <div className="profile-empty liquid-glass" style={{ margin: 20 }}>
+            <p>📭 Bạn chưa có lịch sử đặt lịch nào.</p>
+            <button
+              onClick={() => navigate('/booking')}
+              className="profile-btn-primary"
+              style={{ marginTop: 16 }}
+            >
+              📝 Tạo đặt lịch mới
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {/* Sort Buttons */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setSortBy('status')}
+                className={`profile-btn-secondary${sortBy === 'status' ? ' profile-btn-active' : ''}`}
+                style={{
+                  fontSize: 13,
+                  padding: '8px 16px',
+                  fontWeight: 600,
+                  background: sortBy === 'status' ? (localTheme === 'dark' ? '#1e293b' : '#f1f5f9') : undefined,
+                  border: sortBy === 'status' ? '1.5px solid #0ea5e9' : undefined,
+                  color: sortBy === 'status' ? '#0ea5e9' : undefined,
+                }}
+                type="button"
+              >
+                Sắp xếp theo trạng thái
+              </button>
+              <button
+                onClick={() => setSortBy('date')}
+                className={`profile-btn-secondary${sortBy === 'date' ? ' profile-btn-active' : ''}`}
+                style={{
+                  fontSize: 13,
+                  padding: '8px 16px',
+                  fontWeight: 600,
+                  background: sortBy === 'date' ? (localTheme === 'dark' ? '#1e293b' : '#f1f5f9') : undefined,
+                  border: sortBy === 'date' ? '1.5px solid #0ea5e9' : undefined,
+                  color: sortBy === 'date' ? '#0ea5e9' : undefined,
+                }}
+                type="button"
+              >
+                Sắp xếp theo ngày tạo
+              </button>
+            </div>
+
+            <div className="liquid-glass" style={{ padding: '12px 20px' }}>
+              <p style={{ fontSize: '14px', color: localTheme === 'dark' ? '#94a3b8' : '#64748b', margin: 0 }}>
+                📊 Hiển thị {sortedForms.length} đặt lịch của bạn
+              </p>
+            </div>
+            {sortedForms.map((form, index) => (
+              <div
+                key={form.formId || form.id || `form-${index}`}
+                className="profile-card"
+                onClick={() => {
+                  setSelectedForm(form);
+                  fetchFormDetail(form.formId || form.id);
+                }}
+              >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
                   <div style={{ flex: 1 }}>
                     <h4 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 700 }}>
@@ -724,12 +849,12 @@ function Profile({ theme = "light" }) {
                       <span>📅 {form.date ? formatDateTime(form.date) : 'Chưa có ngày'}</span>
                     </div>
                   </div>
-                  <div className="profile-badge" style={{ 
-                    background: form.status === 'Completed' ? '#10b981' : 
-                               form.status === 'Pending' ? '#f59e0b' : 
-                               form.status === 'Approved' ? '#3b82f6' : 
-                               form.status === 'Rejected' ? '#ef4444' : 
-                               form.status === 'Deleted' ? '#6b7280' : '#3b82f6',
+                  <div className="profile-badge" style={{
+                    background: form.status === 'Completed' ? '#10b981' :
+                      form.status === 'Pending' ? '#f59e0b' :
+                        form.status === 'Approved' ? '#10b981' : // Đổi màu Approved thành xanh lá cây
+                          form.status === 'Rejected' ? '#ef4444' :
+                            form.status === 'Deleted' ? '#6b7280' : '#3b82f6',
                     color: 'white'
                   }}>
                     {form.status || 'Chưa xác định'}
@@ -764,7 +889,7 @@ function Profile({ theme = "light" }) {
                             ✕
                           </button>
                         </div>
-                        
+
                         <div style={{ display: 'grid', gap: '12px', fontSize: '14px' }}>
                           {/* Thông tin mới - Ngày bắt đầu và cập nhật */}
                           <div><strong>🕐 Ngày tạo:</strong> {formatDateTime(formDetail.startDate)}</div>
@@ -773,34 +898,34 @@ function Profile({ theme = "light" }) {
 
                           {/* Thông tin VIN */}
                           <div><strong>🚗 VIN:</strong> {formDetail.vin || 'N/A'}</div>
-                          
+
                           {/* Thông tin trạm - ĐÃ THÊM */}
                           <div><strong>🏢 Trạm:</strong> {formDetail.stationName || 'N/A'}</div>
                           <div><strong>📍 Địa chỉ trạm:</strong> {formDetail.stationLocation || 'N/A'}</div>
 
                           <div><strong>📝 Tiêu đề:</strong> {formDetail.title || 'N/A'}</div>
                           <div><strong>📋 Mô tả:</strong> {formDetail.description || 'N/A'}</div>
-                                                    
+
                           <div>
-  <strong>🔋 Thông tin Pin:</strong>
-  {formDetail.batteryId ? (
-    <div style={{ marginTop: '8px', padding: '12px', background: 'rgba(56, 189, 248, 0.1)', borderRadius: '8px' }}>
-      {formDetail.batteryDetail ? (
-        <>
-          <div><strong>Tên Pin:</strong> {formDetail.batteryDetail.batteryName || 'N/A'}</div>
-          <div><strong>Loại Pin:</strong> {formDetail.batteryDetail.batteryType || 'N/A'}</div>
-          <div><strong>Dung lượng:</strong> {formDetail.batteryDetail.capacity || 'N/A'}</div>
-          <div><strong>Thông số kỹ thuật:</strong> {formDetail.batteryDetail.specification || 'N/A'}</div>
-          <div><strong>Chất lượng Pin:</strong> {formDetail.batteryDetail.batteryQuality || 'N/A'}%</div>
-        </>
-      ) : (
-        <div>Đang tải thông tin pin...</div>
-      )}
-    </div>
-  ) : (
-    <span style={{ marginLeft: '8px', opacity: 0.7 }}>Không có thông tin pin</span>
-  )}
-</div>
+                            <strong>🔋 Thông tin Pin:</strong>
+                            {formDetail.batteryId ? (
+                              <div style={{ marginTop: '8px', padding: '12px', background: 'rgba(56, 189, 248, 0.1)', borderRadius: '8px' }}>
+                                {formDetail.batteryDetail ? (
+                                  <>
+                                    <div><strong>Tên Pin:</strong> {formDetail.batteryDetail.batteryName || 'N/A'}</div>
+                                    <div><strong>Loại Pin:</strong> {formDetail.batteryDetail.batteryType || 'N/A'}</div>
+                                    <div><strong>Dung lượng:</strong> {formDetail.batteryDetail.capacity || 'N/A'}</div>
+                                    <div><strong>Thông số kỹ thuật:</strong> {formDetail.batteryDetail.specification || 'N/A'}</div>
+                                    <div><strong>Chất lượng Pin:</strong> {formDetail.batteryDetail.batteryQuality || 'N/A'}%</div>
+                                  </>
+                                ) : (
+                                  <div>Đang tải thông tin pin...</div>
+                                )}
+                              </div>
+                            ) : (
+                              <span style={{ marginLeft: '8px', opacity: 0.7 }}>Không có thông tin pin</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ) : (
@@ -819,50 +944,50 @@ function Profile({ theme = "light" }) {
   };
 
   const renderVehiclesModal = () => {
-  if (!showVehiclesModal) return null;
+    if (!showVehiclesModal) return null;
 
-  return (
-    <div className="profile-modal-overlay" onClick={() => setShowVehiclesModal(false)}>
-      <div className="profile-modal" onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
-            🚗 Danh sách xe của bạn
-          </h3>
-          <button
-            onClick={() => setShowVehiclesModal(false)}
-            className="profile-btn"
-            style={{ padding: '6px 12px', fontSize: '16px' }}
-          >
-            ✕
-          </button>
-        </div>
-        
-        {loadingVehicles ? (
-          <div className="profile-loading-state">
-            <p>⏳ Đang tải danh sách xe...</p>
-          </div>
-        ) : vehiclesError ? (
-          <div className="profile-error-state">
-            <p>❌ {vehiclesError}</p>
-          </div>
-        ) : vehicles.length === 0 ? (
-          <div className="profile-empty">
-            <p>📭 Bạn chưa có xe nào trong tài khoản.</p>
-            <button 
-              onClick={() => navigate('/vehicles')}
-              className="profile-btn-primary"
-              style={{ marginTop: '12px' }}
+    return (
+      <div className="profile-modal-overlay" onClick={() => setShowVehiclesModal(false)}>
+        <div className="profile-modal" onClick={(e) => e.stopPropagation()}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+              🚗 Danh sách xe của bạn
+            </h3>
+            <button
+              onClick={() => setShowVehiclesModal(false)}
+              className="profile-btn"
+              style={{ padding: '6px 12px', fontSize: '16px' }}
             >
-              🚗 Thêm xe mới
+              ✕
             </button>
           </div>
-        ) : (
-          <div style={{ display: 'grid', gap: '16px' }}>
-            {vehicles.map((vehicle, index) => (
-              <div
-                key={vehicle.vehicleId || `vehicle-${index}`}
-                className="profile-card"
+
+          {loadingVehicles ? (
+            <div className="profile-loading-state">
+              <p>⏳ Đang tải danh sách xe...</p>
+            </div>
+          ) : vehiclesError ? (
+            <div className="profile-error-state">
+              <p>❌ {vehiclesError}</p>
+            </div>
+          ) : vehicles.length === 0 ? (
+            <div className="profile-empty">
+              <p>📭 Bạn chưa có xe nào trong tài khoản.</p>
+              <button
+                onClick={() => navigate('/vehicles')}
+                className="profile-btn-primary"
+                style={{ marginTop: '12px' }}
               >
+                🚗 Thêm xe mới
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: '16px' }}>
+              {vehicles.map((vehicle, index) => (
+                <div
+                  key={vehicle.vehicleId || `vehicle-${index}`}
+                  className="profile-card"
+                >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
                     <div style={{ flex: 1 }}>
                       <h4 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '700' }}>
@@ -876,10 +1001,10 @@ function Profile({ theme = "light" }) {
                         )}
                       </div>
                     </div>
-                    <div className="profile-badge" style={{ 
-                      background: vehicle.status === 'Active' ? '#10b981' : 
-                                 vehicle.status === 'Inactive' ? '#6b7280' : 
-                                 vehicle.status === 'Maintenance' ? '#f59e0b' : '#6b7280',
+                    <div className="profile-badge" style={{
+                      background: vehicle.status === 'Active' ? '#10b981' :
+                        vehicle.status === 'Inactive' ? '#6b7280' :
+                          vehicle.status === 'Maintenance' ? '#f59e0b' : '#6b7280',
                       color: 'white'
                     }}>
                       {vehicle.status || 'Unknown'}
@@ -912,11 +1037,11 @@ function Profile({ theme = "light" }) {
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${localTheme === 'dark' 
-      ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white' 
+    <div className={`min-h-screen transition-colors duration-300 ${localTheme === 'dark'
+      ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white'
       : 'bg-gradient-to-br from-blue-50 via-white to-green-50 text-gray-900'}`}
       style={scrollStyles}>
-      
+
       {/* Hidden file input for avatar upload */}
       <input
         type="file"
@@ -928,7 +1053,7 @@ function Profile({ theme = "light" }) {
 
       {/* Sticky Header */}
       <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
-        <Header 
+        <Header
           onToggleTheme={handleToggleTheme}
           theme={localTheme}
           user={user}
@@ -964,12 +1089,12 @@ function Profile({ theme = "light" }) {
                 <div style={{ position: 'relative', display: 'inline-block' }}>
                   <img
                     className="profile-avatar"
-                    src={isUploadingAvatar ? 
-                      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%2338bdf8' opacity='0.7'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='white' font-size='14'%3E⏳%3C/text%3E%3C/svg%3E" 
+                    src={isUploadingAvatar ?
+                      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%2338bdf8' opacity='0.7'/%3E%3Ctext x='50' y='55' text-anchor='middle' fill='white' font-size='14'%3E⏳%3C/text%3E%3C/svg%3E"
                       : avatarUrl}
                     alt="avatar"
                     onClick={handleAvatarClick}
-                    style={{ 
+                    style={{
                       cursor: isUploadingAvatar ? 'wait' : 'pointer',
                       opacity: isUploadingAvatar ? 0.7 : 1
                     }}
@@ -1128,7 +1253,9 @@ function Profile({ theme = "light" }) {
                   <div className="profile-section-title">📊 Thống kê</div>
                   <div className="profile-section-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
                     <div className="liquid-glass" style={{ padding: 16, textAlign: 'center' }}>
-                      <div style={{ fontSize: 24, fontWeight: 700, color: '#3b82f6' }}>{count(exchangeBatteries)}</div>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: '#3b82f6' }}>
+                        {loadingStats ? '⏳' : exchangeBatteriesCount}
+                      </div>
                       <div style={{ fontSize: 14, opacity: 0.8 }}>Pin đã trao đổi</div>
                     </div>
                     <div className="liquid-glass" style={{ padding: 16, textAlign: 'center' }}>
@@ -1136,7 +1263,9 @@ function Profile({ theme = "light" }) {
                       <div style={{ fontSize: 14, opacity: 0.8 }}>Đơn đặt lịch</div>
                     </div>
                     <div className="liquid-glass" style={{ padding: 16, textAlign: 'center' }}>
-                      <div style={{ fontSize: 24, fontWeight: 700, color: '#f59e0b' }}>{count(orders)}</div>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: '#f59e0b' }}>
+                        {loadingStats ? '⏳' : ordersCount}
+                      </div>
                       <div style={{ fontSize: 14, opacity: 0.8 }}>Đơn hàng</div>
                     </div>
                   </div>
@@ -1146,10 +1275,10 @@ function Profile({ theme = "light" }) {
           )}
 
           {activeSidebar === "bookingHistory" && renderBookingHistory()}
-          
+
           {/* INTEGRATED HistoryOrder Component */}
           {activeSidebar === "paymentHistory" && <HistoryOrder user={user} theme={localTheme} />}
-          
+
           {activeSidebar === "changePassword" && (
             <div style={{ padding: isMobile ? 16 : 24 }}>
               <div className="liquid-glass" style={{ padding: 20, marginBottom: 20 }}>
@@ -1157,21 +1286,21 @@ function Profile({ theme = "light" }) {
                   🔒 Đổi mật khẩu
                 </h3>
               </div>
-              
+
               <form onSubmit={handlePasswordSubmit} className="liquid-glass" style={{ padding: 24 }}>
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 6 }}>
                     Mật khẩu hiện tại
                   </label>
-                  <input 
-                    type="password" 
-                    name="oldPassword" 
-                    value={passwordData.oldPassword} 
+                  <input
+                    type="password"
+                    name="oldPassword"
+                    value={passwordData.oldPassword}
                     onChange={handlePasswordChange}
-                    className="profile-edit-input" 
-                    placeholder="Nhập mật khẩu hiện tại" 
-                    disabled={passwordLoading} 
-                    required 
+                    className="profile-edit-input"
+                    placeholder="Nhập mật khẩu hiện tại"
+                    disabled={passwordLoading}
+                    required
                     style={{ width: "100%" }}
                   />
                 </div>
@@ -1179,15 +1308,15 @@ function Profile({ theme = "light" }) {
                   <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 6 }}>
                     Mật khẩu mới
                   </label>
-                  <input 
-                    type="password" 
-                    name="newPassword" 
-                    value={passwordData.newPassword} 
+                  <input
+                    type="password"
+                    name="newPassword"
+                    value={passwordData.newPassword}
                     onChange={handlePasswordChange}
-                    className="profile-edit-input" 
-                    placeholder="Nhập mật khẩu mới" 
-                    disabled={passwordLoading} 
-                    required 
+                    className="profile-edit-input"
+                    placeholder="Nhập mật khẩu mới"
+                    disabled={passwordLoading}
+                    required
                     style={{ width: "100%" }}
                   />
                 </div>
@@ -1195,19 +1324,19 @@ function Profile({ theme = "light" }) {
                   <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 6 }}>
                     Xác nhận mật khẩu mới
                   </label>
-                  <input 
-                    type="password" 
-                    name="confirmPassword" 
-                    value={passwordData.confirmPassword} 
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    value={passwordData.confirmPassword}
                     onChange={handlePasswordChange}
-                    className="profile-edit-input" 
-                    placeholder="Nhập lại mật khẩu mới" 
-                    disabled={passwordLoading} 
-                    required 
+                    className="profile-edit-input"
+                    placeholder="Nhập lại mật khẩu mới"
+                    disabled={passwordLoading}
+                    required
                     style={{ width: "100%" }}
                   />
                 </div>
-                
+
                 {passwordError && (
                   <div style={{ color: "#ef4444", fontSize: 14, padding: '12px', background: '#fef2f2', borderRadius: 8, marginBottom: 16 }}>
                     ❌ {passwordError}
@@ -1218,10 +1347,10 @@ function Profile({ theme = "light" }) {
                     ✅ {passwordSuccess}
                   </div>
                 )}
-                
+
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, flexWrap: 'wrap' }}>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setActiveSidebar("profile")}
                     className="profile-btn"
                     style={{ padding: '10px 20px' }}
@@ -1229,8 +1358,8 @@ function Profile({ theme = "light" }) {
                   >
                     Hủy
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="profile-btn-primary"
                     style={{ padding: '10px 20px' }}
                     disabled={passwordLoading}

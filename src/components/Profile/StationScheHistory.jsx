@@ -13,6 +13,7 @@ export default function StationScheduleHistory() {
   const [error, setError] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
   const [stations, setStations] = useState([]); // Thêm state để lưu danh sách trạm
+  const [sortBy, setSortBy] = useState('date'); // 'station' | 'date'
   const [theme, setTheme] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("theme") || "light";
@@ -209,7 +210,29 @@ export default function StationScheduleHistory() {
     return schedule.date || schedule.dateTime || schedule.createdDate;
   };
 
-  // ... (phần còn lại của component giữ nguyên)
+  // Sắp xếp schedules theo station hoặc date
+  const sortedSchedules = React.useMemo(() => {
+    if (!Array.isArray(schedules)) return [];
+    let result = [...schedules];
+    
+    if (sortBy === 'station') {
+      // Sắp xếp theo tên trạm
+      result.sort((a, b) => {
+        const stationA = getStationInfo(a).toLowerCase();
+        const stationB = getStationInfo(b).toLowerCase();
+        return stationA.localeCompare(stationB);
+      });
+    } else if (sortBy === 'date') {
+      // Sắp xếp theo ngày mới nhất
+      result.sort((a, b) => {
+        const dateA = new Date(getDateTime(a) || 0);
+        const dateB = new Date(getDateTime(b) || 0);
+        return dateB - dateA;
+      });
+    }
+    
+    return result;
+  }, [schedules, sortBy]);
   
   return (
     <div style={{ 
@@ -266,38 +289,234 @@ export default function StationScheduleHistory() {
           </div>
        ) : (
   <>
+    {/* Sort Buttons */}
+    <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+      <button
+        onClick={() => setSortBy('station')}
+        style={{
+          fontSize: 13,
+          padding: '8px 16px',
+          fontWeight: 600,
+          borderRadius: '8px',
+          border: sortBy === 'station' ? '1.5px solid #0ea5e9' : '1px solid #d1d5db',
+          background: sortBy === 'station' ? (theme === 'dark' ? '#1e293b' : '#f1f5f9') : 'transparent',
+          color: sortBy === 'station' ? '#0ea5e9' : (theme === 'dark' ? '#e5e7eb' : '#374151'),
+          cursor: 'pointer',
+          transition: 'all 0.2s'
+        }}
+        type="button"
+      >
+        Sắp xếp theo trạm
+      </button>
+      <button
+        onClick={() => setSortBy('date')}
+        style={{
+          fontSize: 13,
+          padding: '8px 16px',
+          fontWeight: 600,
+          borderRadius: '8px',
+          border: sortBy === 'date' ? '1.5px solid #0ea5e9' : '1px solid #d1d5db',
+          background: sortBy === 'date' ? (theme === 'dark' ? '#1e293b' : '#f1f5f9') : 'transparent',
+          color: sortBy === 'date' ? '#0ea5e9' : (theme === 'dark' ? '#e5e7eb' : '#374151'),
+          cursor: 'pointer',
+          transition: 'all 0.2s'
+        }}
+        type="button"
+      >
+        Sắp xếp theo ngày
+      </button>
+    </div>
+
     <div className="schedule-count">
-      Hiển thị {schedules.length} lịch đặt đã hoàn thành
+      Hiển thị {sortedSchedules.length} lịch đặt đã hoàn thành
     </div>
 
     <div className="schedules-list">
-      {schedules.map((schedule, index) => (
-
-              <div key={getScheduleId(schedule) || `schedule-${index}`} className="schedule-card">
-                <div className="schedule-header">
-                  {getStatusBadge(schedule.status)}
-                </div>
-                
-                <div className="schedule-details">
-                  <div className="detail-row">
-                    <span className="label">📅 Thời gian đặt lịch:</span>
-                    <span className="value">
-                      {formatDate(getDateTime(schedule))}
-                    </span>
+      {sortedSchedules.map((schedule, index) => (
+        <div key={getScheduleId(schedule) || `schedule-${index}`} className="schedule-card">
+          <div className="schedule-card-inner">
+            {/* Ticket Top Section - Header */}
+            <div className="schedule-header" style={{
+              padding: '20px 24px',
+              background: '#e0f2fe',
+              borderBottom: '1px dashed #000000'
+            }}>
+              <div className="schedule-header-left" style={{
+                gap: '16px',
+                flex: 1
+              }}>
+                <div className="schedule-title" style={{ flex: 1 }}>
+                  <div className="schedule-id" style={{
+                    fontSize: '11px',
+                    color: '#0ea5e9',
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                    marginBottom: '6px'
+                  }}>
+                    Mã đặt lịch: {getScheduleId(schedule)}
                   </div>
-                  
-                  <div className="detail-row">
-                    <span className="label">🏢 Trạm:</span>
-                    <span className="value">{getStationInfo(schedule)}</span>
-                  </div>
-                  
-                  <div className="detail-row">
-                    <span className="label">📝 Mô tả:</span>
-                    <span className="value">{getDescription(schedule)}</span>
+                  <div className="schedule-station-name" style={{
+                    fontSize: '20px',
+                    fontWeight: '800',
+                    background: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%)',
+                    WebkitBackgroundClip: 'text',
+                    color: '#DAA520',
+                    backgroundClip: 'text',
+                    lineHeight: '1.3'
+                  }}>
+                    {getStationInfo(schedule)}
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Ticket Main Content - Horizontal Layout */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'row',
+              minHeight: '160px',
+              position: 'relative'
+            }}>
+              {/* Left Side - Details */}
+              <div style={{
+                flex: 1,
+                background: '#e0f2fe',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px'
+              }}>
+                {/* Info Grid */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '20px'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                  }}>
+                    <div style={{
+                      fontSize: '10px',
+                      fontWeight: '700',
+                      color: '#0ea5e9',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      📅 Thời gian đặt lịch
+                    </div>
+                    <div style={{
+                      fontSize: '15px',
+                      fontWeight: '700',
+                      color: '#000000',
+                      lineHeight: '1.4'
+                    }}>
+                      {formatDate(getDateTime(schedule))}
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                  }}>
+                    <div style={{
+                      fontSize: '10px',
+                      fontWeight: '700',
+                      color: '#0ea5e9',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      🏢 Trạm sạc
+                    </div>
+                    <div style={{
+                      fontSize: '15px',
+                      fontWeight: '700',
+                      color: '#000000',
+                      lineHeight: '1.4'
+                    }}>
+                      {getStationInfo(schedule)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description Section */}
+                {getDescription(schedule) && getDescription(schedule) !== 'Không có mô tả' && (
+                  <div style={{
+                    paddingTop: '16px',
+                    borderTop: '1px solid #000000'
+                  }}>
+                    <div style={{
+                      fontSize: '10px',
+                      fontWeight: '700',
+                      color: '#0ea5e9',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      marginBottom: '8px'
+                    }}>
+                      📝 Mô tả
+                    </div>
+                    <div style={{
+                      fontSize: '14px',
+                      color: '#000000',
+                      lineHeight: '1.6',
+                      fontWeight: '600'
+                    }}>
+                      {getDescription(schedule)}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Vertical Divider with Perforated Style */}
+              <div style={{
+                position: 'relative',
+                width: '1px',
+                background: 'transparent',
+                margin: '20px 0',
+                flexShrink: 0
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  top: '0',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '1px',
+                  height: '100%',
+                  background: 'repeating-linear-gradient(to bottom, transparent, transparent 8px, #000000 8px, #000000 16px)'
+                }}></div>
+              </div>
+
+              {/* Right Side - Status */}
+              <div style={{
+                width: '160px',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px',
+                flexShrink: 0,
+                background: '#e0f2fe'
+              }}>
+                <div style={{
+                  fontSize: '10px',
+                  fontWeight: '700',
+                  color: '#0ea5e9',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  marginBottom: '4px'
+                }}>
+                  Trạng thái
+                </div>
+                {getStatusBadge(schedule.status)}
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
           </div>
         </>)}
       </div>
