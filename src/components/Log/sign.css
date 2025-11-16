@@ -846,6 +846,137 @@ body {
   }
 }
 
+/* Google Login Button - Beautiful Styling */
+.google-btn {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 2px solid rgba(255, 255, 255, 0.8) !important;
+  color: #3c4043 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  backdrop-filter: blur(10px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.2) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1), 
+              0 2px 8px rgba(255, 255, 255, 0.3) inset !important;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  margin-top: 12px !important;
+  animation: googleBtnFadeIn 0.6s ease-out 1.6s both !important;
+}
+
+@keyframes googleBtnFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.google-btn::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: radial-gradient(circle, rgba(66, 133, 244, 0.15) 0%, transparent 70%) !important;
+  border-radius: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  transition: all 0.5s ease !important;
+  opacity: 0 !important;
+}
+
+.google-btn:hover::before {
+  width: 300px !important;
+  height: 300px !important;
+  opacity: 1 !important;
+}
+
+.google-btn:hover {
+  background: rgba(255, 255, 255, 1) !important;
+  border-color: rgba(66, 133, 244, 0.4) !important;
+  transform: translateY(-3px) scale(1.02) !important;
+  box-shadow: 0 8px 30px rgba(66, 133, 244, 0.25),
+              0 4px 15px rgba(0, 0, 0, 0.15),
+              0 2px 8px rgba(255, 255, 255, 0.4) inset !important;
+}
+
+.google-btn:active {
+  transform: translateY(-1px) scale(0.98) !important;
+  transition: all 0.1s ease !important;
+}
+
+.google-btn:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+.google-btn:disabled:hover {
+  transform: none !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1), 
+              0 2px 8px rgba(255, 255, 255, 0.3) inset !important;
+}
+
+.google-icon {
+  width: 20px !important;
+  height: 20px !important;
+  flex-shrink: 0 !important;
+  transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1)) !important;
+}
+
+.google-btn:hover .google-icon {
+  transform: scale(1.15) rotate(5deg) !important;
+}
+
+.google-btn span {
+  position: relative !important;
+  z-index: 1 !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  background: linear-gradient(135deg, #3c4043 0%, #5f6368 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  transition: all 0.3s ease !important;
+}
+
+.google-btn:hover span {
+  background: linear-gradient(135deg, #4285F4 0%, #34A853 50%, #FBBC05 75%, #EA4335 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+/* Ripple effect on click */
+.google-btn::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-radius: 50% !important;
+  background: rgba(66, 133, 244, 0.3) !important;
+  transform: translate(-50%, -50%) !important;
+  transition: width 0.6s ease, height 0.6s ease, opacity 0.6s ease !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.google-btn:active::after {
+  width: 200px !important;
+  height: 200px !important;
+  opacity: 1 !important;
+  transition: width 0s ease, height 0s ease, opacity 0.3s ease !important;
+}
+
 .google-signin-container {
   margin-top: 20px;
   text-align: center;
