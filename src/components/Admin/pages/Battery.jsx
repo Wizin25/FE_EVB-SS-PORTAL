@@ -713,12 +713,12 @@ export default function BatteryManagementPage() {
             onChange={e => setStatusFilter(e.target.value)}
           >
             <option value="">-- Tất cả trạng thái --</option>
-            <option value="Available">Available</option>
-            <option value="InUse">InUse</option>
-            <option value="Charging">Charging</option>
-            <option value="Maintenance">Maintenance</option>
-            <option value="Decommissioned">Delete</option>
-            <option value="Booked">Booked</option>
+            <option value="Available">Sẵn sàng</option>
+            <option value="InUse">Đang sử dụng</option>
+            <option value="Charging">Đang sạc</option>
+            <option value="Maintenance">Bảo trì</option>
+            <option value="Decommissioned">Đã xóa</option>
+            <option value="Booked">Đã đặt</option>
           </select>
         </div>
 
@@ -906,12 +906,12 @@ export default function BatteryManagementPage() {
                                     b.status === 'Decommissioned' ? 'status-decommissioned' : ' '
                               }`}
                           >
-                            <option value="Available">Available</option>
-                            <option value="Charging">Charging</option>
-                            <option value="Maintenance">Maintenance</option>
-                            <option value="InUse">InUse</option>
-                            <option value="Booked">Booked</option>
-                            <option value="Decommissioned">Delete</option>
+                            <option value="Available">Sẵn sàng</option>
+                            <option value="Charging">Đang sạc</option>
+                            <option value="Maintenance">Bảo trì</option>
+                            <option value="InUse">Đang sử dụng</option>
+                            <option value="Booked">Đã đặt</option>
+                            <option value="Decommissioned">Đã xóa</option>
                           </select>
                         </div>
 
@@ -1086,10 +1086,10 @@ export default function BatteryManagementPage() {
                           }`}
                         style={{ marginLeft: '8px' }}
                       >
-                        <option value="Available">Available</option>
+                        <option value="Available">Sẵn sàng</option>
                         <option value="InUse">InUse</option>
-                        <option value="Charging">Charging</option>
-                        <option value="Maintenance">Maintenance</option>
+                        <option value="Charging">Đang sạc</option>
+                        <option value="Maintenance">Bảo trì</option>
                         <option value="Decommissioned">Delete</option>
                         <option value="Booked">Booked</option>
                       </select>

@@ -70,6 +70,7 @@ export default function StationForUser() {
   // Reload Station
   const [isLoading, setIsLoading] = useState(false);
 
+
   // Array of images to rotate through
   const stationImages = [
     "https://www.global-imi.com/sites/default/files/shutterstock_2002470953-min%20%281%29_1.jpg",
@@ -391,7 +392,7 @@ export default function StationForUser() {
           alt="Battery Station Modern"
           style={{
             width: "100%",
-            height: "320px",
+            height: "520px",
             objectFit: "cover",
             display: "block",
             background: "#e0ffe7"
@@ -750,12 +751,12 @@ export default function StationForUser() {
                                       {row.map((slot, cIdx) => {
                                         const hasBattery = !!slot?.battery;
                                         const b = slot?.battery || null;
-                                        const status = (b?.status || slot?.status || 'Empty').toLowerCase();
+                                        const status = (b?.status || slot?.status || 'Trống').toLowerCase();
                                         const isCompatible = hasBattery && batteryCompatible(b);
                                         const canOpen = hasBattery && isCompatible;
 
                                         const name = hasBattery ? (b.batteryName || b.batteryId) : '';
-                                        const badge = hasBattery ? (b.status || '') : (slot?.status || 'Empty');
+                                        const badge = hasBattery ? (b.status || '') : (slot?.status || 'Trống');
 
                                         return (
                                           <button
@@ -765,7 +766,7 @@ export default function StationForUser() {
                                             onClick={() => canOpen && openSlotModal(slot, st.stationId)}
                                             title={
                                               !hasBattery
-                                                ? (slot?.status || 'Empty')
+                                                ? (slot?.status || 'Trống')
                                                 : isCompatible
                                                   ? `${name}${b?.capacity != null ? ` • ${b.capacity}%` : ''} • ${badge} (phù hợp)`
                                                   : `${name} • Không phù hợp với xe`
@@ -786,7 +787,7 @@ export default function StationForUser() {
                                                 </div>
                                               </>
                                             ) : (
-                                              <div className="slot-status">{slot?.status || 'Empty'}</div>
+                                              <div className="slot-status">Trống</div>
                                             )}
                                           </button>
                                         );
@@ -799,10 +800,10 @@ export default function StationForUser() {
                               )}
 
                               <div className="slot-legend" style={{ justifyContent: 'center' }}>
-                                <span><i className="lg lg-empty" />Empty</span>
-                                <span><i className="lg lg-available" />Available</span>
-                                <span><i className="lg lg-charging" />Charging</span>
-                                <span><i className="lg lg-faulty" />Booked</span>
+                                <span><i className="lg lg-empty" />Trống</span>
+                                <span><i className="lg lg-available" />Sẵn sàng</span>
+                                <span><i className="lg lg-charging" />Đang sạc</span>
+                                <span><i className="lg lg-faulty" />Đã đặt</span>
                               </div>
                             </div>
 
@@ -963,7 +964,8 @@ export default function StationForUser() {
         <div className="modal-overlay" onClick={closeSlotModal}>
           <div className="modal slot-modal" onClick={(e) => e.stopPropagation()}>
             <h2>Chi tiết Pin</h2>
-
+            {/* Định nghĩa biến trạng thái pin tại đây để dùng trong render */}
+            {(() => {})()}
             {(!activeSlot || !slotBattery) ? (
               <div className="empty-note">Không có dữ liệu pin.</div>
             ) : (
@@ -1011,12 +1013,27 @@ export default function StationForUser() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
-                  <button className="btn light" onClick={closeSlotModal}>Đóng</button>
-                  <button className="btn" onClick={chooseBatteryFromModal}>
-                    🔁 Chọn pin này
-                  </button>
-                </div>
+                {(() => {
+                  // Chỉ "Chọn pin này" khi status là Available (khác thì disable nút và khóa không gọi chọn)
+                  const batteryStatus = slotBattery?.status?.toString().toLowerCase() || "";
+                  const isAvailable = batteryStatus === "available"; 
+                  return (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
+                      <button className="btn light" onClick={closeSlotModal}>Đóng</button>
+                      <button
+                        className="btn"
+                        onClick={isAvailable ? chooseBatteryFromModal : undefined}
+                        disabled={!isAvailable}
+                        style={{
+                          opacity: isAvailable ? 1 : 0.4,
+                          cursor: isAvailable ? "pointer" : "not-allowed"
+                        }}
+                      >
+                        {isAvailable ? "🔁 Chọn pin này" : "🚫 Pin không khả dụng"}
+                      </button>
+                    </div>
+                  );
+                })()}
               </>
             )}
           </div>

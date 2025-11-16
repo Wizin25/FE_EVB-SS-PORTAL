@@ -737,17 +737,33 @@ export default function Station() {
                       {editingId === station.stationId ? (
                         <form className="edit-form" onSubmit={handleUpdate}>
                           <div className="form-row">
-                            <label> Tên trạm
-                              <input className="input" type="text" value={editName}
-                                onChange={(e) => setEditName(e.target.value)} />
+                            <label style={{ color: "#fff" }}> Tên trạm:  
+                              <input
+                                className="input"
+                                type="text"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                style={{ color: "#000" }}
+                              />
                             </label>
-                            <label> BatteryNumber
-                              <input className="input" type="number" min="0" value={editBatteryNumber}
-                                onChange={(e) => setEditBatteryNumber(e.target.value)} />
-                            </label>
-                            <label> Location
-                              <input className="input" type="text" value={editLocation}
-                                onChange={(e) => setEditLocation(e.target.value)} />
+                            {/* <label style={{ color: "#fff" }}> Số pin đăng ký:  
+                              <input
+                                className="input"
+                                type="number"
+                                min="0"
+                                value={editBatteryNumber}
+                                onChange={(e) => setEditBatteryNumber(e.target.value)}
+                                style={{ color: "#000" }}
+                              />
+                            </label> */}
+                            <label style={{ color: "#fff" }}> Địa điểm: 
+                              <input
+                                className="input"
+                                type="text"
+                                value={editLocation}
+                                onChange={(e) => setEditLocation(e.target.value)}
+                                style={{ color: "#000" }}
+                              />
                             </label>
                           </div>
                           <div className="edit-actions">
@@ -812,11 +828,11 @@ export default function Station() {
                           )}
 
                           <div className="slot-legend">
-                            <span><i className="lg lg-empty" />Empty</span>
-                            <span><i className="lg lg-available" />Available</span>
-                            <span><i className="lg lg-charging " />Charging</span>
-                            <span><i className="lg lg-reserved" />Maintenance</span>
-                            <span><i className="lg lg-faulty" />Booked</span>
+                            <span><i className="lg lg-empty" />Trống</span>
+                            <span><i className="lg lg-available" />Sẵn sàng</span>
+                            <span><i className="lg lg-charging " />Đang sạc</span>
+                            <span><i className="lg lg-reserved" />Bảo trì</span>
+                            <span><i className="lg lg-faulty" />Đã đặt</span>
                           </div>
                         </div>
 
