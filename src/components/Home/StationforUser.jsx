@@ -60,6 +60,9 @@ export default function StationForUser() {
   // State to track expanded battery details for each station
   const [expandedStations, setExpandedStations] = useState(new Set());
 
+  // ==== ADD state for map toggle per station ===
+  const [showMapFor, setShowMapFor] = useState({});
+
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
@@ -69,7 +72,6 @@ export default function StationForUser() {
 
   // Reload Station
   const [isLoading, setIsLoading] = useState(false);
-
 
   // Array of images to rotate through
   const stationImages = [
@@ -262,7 +264,6 @@ export default function StationForUser() {
 
   const safeLen = (arr) => (Array.isArray(arr) ? arr.length : 0);
 
-
   // Function to toggle battery details visibility for a station
   const toggleStationDetails = (stationId) => {
     setExpandedStations(prev => {
@@ -286,7 +287,6 @@ export default function StationForUser() {
   const [showSlotModal, setShowSlotModal] = useState(false);
   const [activeSlot, setActiveSlot] = useState(null);      // slot object (kèm stationId)
   const [slotBattery, setSlotBattery] = useState(null);    // battery embed trong slot
-
 
   // === Build grid 5 hàng × 6 cột từ slots ===
   const buildSlotGrid = (slots = []) => {
@@ -523,36 +523,78 @@ export default function StationForUser() {
                         : '0 10px 25px rgba(0, 0, 0, 0.1)';
                     }}
                   >
-                    {/* Station Image */}
-                    <div style={{
-                      height: '400px',
-                      background: `url(${stationImages[idx % stationImages.length]}) center/cover`,
-                      position: 'relative'
-                    }}>
-                      <div style={{
-                        position: 'absolute',
-                        top: '12px',
-                        right: '12px',
-                        background: (st.status ?? "").toLowerCase() === "active"
-                          ? 'rgba(34, 197, 94, 0.9)'
-                          : 'rgba(239, 68, 68, 0.9)',
-                        color: 'white',
-                        padding: '4px 12px',
-                        borderRadius: '20px',
-                        fontSize: '0.8rem',
-                        fontWeight: 'bold',
-                        backdropFilter: 'blur(10px)'
-                      }}>
-                        {(st.status ?? "").toLowerCase() === "active" ? "🟢" : "🔴"} {st.status ?? "Unknown"}
+                    {/* Station Image OR Map + Toggle Button */}
+                    <div
+                      style={{
+                        height: "400px",
+                        width: "100%",
+                        position: "relative",
+                        overflow: "hidden"
+                      }}
+                    >
+                      {/* Nếu showMapFor[stationUniqueId] = true → hiển thị Google Map */}
+                      {showMapFor[stationUniqueId] && st.image ? (
+                        <div
+                          style={{ width: "100%", height: "100%" }}
+                          dangerouslySetInnerHTML={{ __html: st.image }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            background: `url(${stationImages[idx % stationImages.length]}) center/cover`
+                          }}
+                        />
+                      )}
+
+                      {/* Status badge giữ nguyên */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "12px",
+                          right: "12px",
+                          background:
+                            (st.status ?? "").toLowerCase() === "active"
+                              ? "rgba(34, 197, 94, 0.9)"
+                              : "rgba(239, 68, 68, 0.9)",
+                          color: "white",
+                          padding: "4px 12px",
+                          borderRadius: "20px",
+                          fontSize: "0.8rem",
+                          fontWeight: "bold",
+                          backdropFilter: "blur(10px)",
+                          zIndex: 10
+                        }}
+                      >
+                        {(st.status ?? "").toLowerCase() === "active" ? "🟢" : "🔴"}{" "}
+                        {st.status ?? "Unknown"}
                       </div>
-                      <div style={{
-                        position: 'absolute',
-                        bottom: '0',
-                        left: '0',
-                        right: '0',
-                        background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                        height: '60px'
-                      }}></div>
+
+                      {/* Nút bật/tắt MAP */}
+                      <button
+                        onClick={() =>
+                          setShowMapFor(prev => ({
+                            ...prev,
+                            [stationUniqueId]: !prev[stationUniqueId]
+                          }))
+                        }
+                        style={{
+                          position: "absolute",
+                          bottom: "12px",
+                          left: "12px",
+                          padding: "6px 12px",
+                          background: "rgba(0,0,0,0.6)",
+                          color: "#fff",
+                          borderRadius: "8px",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: "0.85rem",
+                          zIndex: 20
+                        }}
+                      >
+                        {showMapFor[stationUniqueId] ? "📸 Xem hình" : "🗺 Xem bản đồ"}
+                      </button>
                     </div>
 
                     <div style={{ padding: '20px' }}>
@@ -807,8 +849,6 @@ export default function StationForUser() {
                               </div>
                             </div>
 
-
-
                             {(Array.isArray(st.slots) ? st.slots.map(s => s?.battery).filter(Boolean) : []).map((b) => {
                               const bid = vprop(b, 'batteryId') || vprop(b, 'id') || vprop(b, 'BatteryId');
                               const bname = vprop(b, 'batteryName') || bid || 'N/A';
@@ -827,7 +867,6 @@ export default function StationForUser() {
                               else if (bstatus.toLowerCase().includes('ready')) { statusChipColor = '#06b6d4'; statusIcon = '🔋'; }
                             })}
                           </div>
-
                         </div>
                       )}
 
