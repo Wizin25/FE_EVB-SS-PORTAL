@@ -1,6 +1,7 @@
 // src/components/HistoryOrder.jsx
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { authAPI } from '../services/authAPI';
+import { packageAPI } from '../services/packageAPI';
 import './ProfileStyle.css';
 
 // Ưu tiên status: "pending" > "processing" > "success"/"completed" > "failed"/"cancelled" > others
@@ -22,20 +23,22 @@ function getStatusOrderIndex(status) {
 function HistoryOrder({ user, theme = "light" }) {
   const [orders, setOrders] = useState([]);
   const [batteryDetails, setBatteryDetails] = useState({});
+  const [packageDetails, setPackageDetails] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 800);
   const [expandedOrders, setExpandedOrders] = useState({});
   const [loadingBatteries, setLoadingBatteries] = useState({});
+  const [loadingPackages, setLoadingPackages] = useState({});
   const [processingPayments, setProcessingPayments] = useState({});
   // State cho việc lựa chọn sắp xếp
   const [sortBy, setSortBy] = useState('status'); // status | date
 
   // Format currency (VND)
   const formatCurrency = useCallback((amount) => {
-    return new Intl.NumberFormat('vi-VN', { 
-      style: 'currency', 
-      currency: 'VND' 
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
     }).format(amount);
   }, []);
 
@@ -65,10 +68,10 @@ function HistoryOrder({ user, theme = "light" }) {
 
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await authAPI.getOrdersByAccountId(user.accountId);
-      
+
       if (response?.isSuccess) {
         setOrders(response.data || []);
       } else {
@@ -84,12 +87,12 @@ function HistoryOrder({ user, theme = "light" }) {
   // Fetch battery details
   const fetchBatteryDetails = useCallback(async (batteryId) => {
     if (!batteryId) return;
-    
+
     setLoadingBatteries(prev => ({ ...prev, [batteryId]: true }));
-    
+
     try {
       const response = await authAPI.getBatteryById(batteryId);
-      
+
       if (response) {
         setBatteryDetails(prev => ({
           ...prev,
@@ -104,6 +107,42 @@ function HistoryOrder({ user, theme = "light" }) {
       }));
     } finally {
       setLoadingBatteries(prev => ({ ...prev, [batteryId]: false }));
+    }
+  }, []);
+
+  // Fetch package details
+  const fetchPackageDetails = useCallback(async (packageId) => {
+    if (!packageId) return;
+
+    setLoadingPackages(prev => ({ ...prev, [packageId]: true }));
+
+    try {
+      const response = await packageAPI.getPackageById(packageId);
+
+      // Handle different response structures
+      let packageData = null;
+      if (response?.isSuccess && response?.data) {
+        packageData = response.data;
+      } else if (response?.data) {
+        packageData = response.data;
+      } else if (response) {
+        packageData = response;
+      }
+
+      if (packageData) {
+        setPackageDetails(prev => ({
+          ...prev,
+          [packageId]: packageData
+        }));
+      }
+    } catch (err) {
+      console.error(`Error fetching package details for ${packageId}:`, err);
+      setPackageDetails(prev => ({
+        ...prev,
+        [packageId]: { error: 'Không thể tải thông tin gói dịch vụ' }
+      }));
+    } finally {
+      setLoadingPackages(prev => ({ ...prev, [packageId]: false }));
     }
   }, []);
 
@@ -148,16 +187,48 @@ function HistoryOrder({ user, theme = "light" }) {
     return types[serviceType?.toLowerCase()] || serviceType || 'Không xác định';
   };
 
+  // Helper function to get package property (handles different field name variations)
+  const getPackageProperty = useCallback((pkg, property) => {
+    if (!pkg) return 'N/A';
+
+    const possibleKeys = {
+      id: ['packageId', 'id', 'packageID', 'PackageID', 'PackageId'],
+      name: ['packageName', 'packName', 'name', 'PackageName', 'title'],
+      price: ['price', 'cost', 'amount', 'Price'],
+      description: ['description', 'desc', 'details', 'Description'],
+      batteryType: ['batteryType', 'Battery_type', 'battery_type', 'BatteryType'],
+      expiredDays: ['expiredDate', 'expiredDays', 'expired', 'expiry', 'expiration', 'ExpriedDays'],
+      status: ['status', 'Status']
+    };
+
+    const keys = possibleKeys[property] || [property];
+    for (let key of keys) {
+      if (pkg[key] !== undefined && pkg[key] !== null && pkg[key] !== '') {
+        return pkg[key];
+      }
+    }
+    return property === 'price' ? 0 : 'N/A';
+  }, []);
+
   // Toggle hiển thị chi tiết đơn hàng
-  const toggleOrderDetails = (orderId, batteryId) => {
+  const toggleOrderDetails = (orderId, batteryId, serviceType, serviceId) => {
+    const isExpanding = !expandedOrders[orderId];
+
     setExpandedOrders(prev => ({
       ...prev,
       [orderId]: !prev[orderId]
     }));
 
     // Nếu mở chi tiết và có batteryId, fetch thông tin pin
-    if (!expandedOrders[orderId] && batteryId && !batteryDetails[batteryId]) {
+    if (isExpanding && batteryId && !batteryDetails[batteryId]) {
       fetchBatteryDetails(batteryId);
+    }
+
+    // Nếu mở chi tiết và serviceType là 'package' hoặc 'usepackage', fetch thông tin package
+    if (isExpanding && serviceId && (serviceType?.toLowerCase() === 'package' || serviceType?.toLowerCase() === 'usepackage')) {
+      if (!packageDetails[serviceId]) {
+        fetchPackageDetails(serviceId);
+      }
     }
   };
 
@@ -196,7 +267,7 @@ function HistoryOrder({ user, theme = "light" }) {
       }
 
       console.log('Redirecting to payment URL:', redirectUrl);
-      
+
       // Redirect đến trang thanh toán PayOS
       window.location.href = redirectUrl;
     } catch (err) {
@@ -257,7 +328,7 @@ function HistoryOrder({ user, theme = "light" }) {
         </div>
         <div className="profile-error-state">
           <p>❌ {error}</p>
-          <button 
+          <button
             onClick={fetchOrders}
             className="profile-btn-primary"
             style={{ marginTop: '12px' }}
@@ -339,7 +410,7 @@ function HistoryOrder({ user, theme = "light" }) {
                   <h4 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 700 }}>
                     Đơn hàng: {order.orderId}
                   </h4>
-                  
+
                   {/* Thông tin cơ bản luôn hiển thị */}
                   <div style={{ display: 'grid', gap: '8px', fontSize: '14px' }}>
                     <div>
@@ -354,9 +425,39 @@ function HistoryOrder({ user, theme = "light" }) {
                   {expandedOrders[order.orderId] && (
                     <div style={{ display: 'grid', gap: '12px', fontSize: '14px', marginTop: '12px', padding: '12px', backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.05)', borderRadius: '8px' }}>
                       <div>
-                        <strong>📦 Loại dịch vụ:</strong> {getServiceTypeDisplay(order.serviceType)}
+                        <strong>🧾 Loại dịch vụ:</strong> {getServiceTypeDisplay(order.serviceType)}
                       </div>
-                      
+
+                      {/* Hiển thị chi tiết gói dịch vụ nếu serviceType là 'package' hoặc 'usepackage' */}
+                      {(order.serviceType?.toLowerCase() === 'package' || order.serviceType?.toLowerCase() === 'usepackage') && order.serviceId && (
+                        <div>
+                          <strong>📦 Thông tin Gói dịch vụ:</strong>
+                          {loadingPackages[order.serviceId] ? (
+                            <div style={{ marginTop: '8px', padding: '12px', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '8px' }}>
+                              <p>⏳ Đang tải thông tin gói dịch vụ...</p>
+                            </div>
+                          ) : packageDetails[order.serviceId] ? (
+                            packageDetails[order.serviceId].error ? (
+                              <div style={{ marginTop: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px' }}>
+                                <p>❌ {packageDetails[order.serviceId].error}</p>
+                              </div>
+                            ) : (
+                              <div style={{ marginTop: '8px', padding: '12px', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '8px' }}>
+                                <div><strong>Tên gói:</strong> {getPackageProperty(packageDetails[order.serviceId], 'name')}</div>
+                                <div><strong>Giá:</strong> {formatCurrency(getPackageProperty(packageDetails[order.serviceId], 'price'))}</div>
+                                <div><strong>Loại pin:</strong> {getPackageProperty(packageDetails[order.serviceId], 'batteryType')}</div>
+                                <div><strong>Thời hạn:</strong> {getPackageProperty(packageDetails[order.serviceId], 'expiredDays')} ngày</div>
+                                <div><strong>Mô tả:</strong> {getPackageProperty(packageDetails[order.serviceId], 'description') || 'Không có mô tả'}</div>
+                              </div>
+                            )
+                          ) : (
+                            <div style={{ marginTop: '8px', padding: '12px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '8px' }}>
+                              <p>ℹ️ Chưa có thông tin gói dịch vụ. Bấm vào nút chi tiết để tải.</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Hiển thị chi tiết pin nếu có */}
                       {order.batteryId && (
                         <div>
@@ -389,23 +490,23 @@ function HistoryOrder({ user, theme = "light" }) {
                     </div>
                   )}
                 </div>
-                
+
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
-                  <div className="profile-badge" style={{ 
+                  <div className="profile-badge" style={{
                     background: getStatusColor(order.status),
                     color: 'white'
                   }}>
                     {order.status || 'Chưa xác định'}
                   </div>
-                  
+
                   {/* Nút thanh toán lại cho Pending hoặc Failed */}
                   {(order.status?.toLowerCase() === 'pending' || order.status?.toLowerCase() === 'failed') && (
                     <button
                       onClick={() => handleRetryPayment(order.orderId)}
                       disabled={processingPayments[order.orderId]}
                       className="profile-btn-primary"
-                      style={{ 
-                        fontSize: '12px', 
+                      style={{
+                        fontSize: '12px',
                         padding: '6px 12px',
                         opacity: processingPayments[order.orderId] ? 0.6 : 1,
                         cursor: processingPayments[order.orderId] ? 'not-allowed' : 'pointer'
@@ -414,10 +515,10 @@ function HistoryOrder({ user, theme = "light" }) {
                       {processingPayments[order.orderId] ? '⏳ Đang xử lý...' : '💳 Thanh toán lại'}
                     </button>
                   )}
-                  
+
                   {/* Nút chi tiết */}
                   <button
-                    onClick={() => toggleOrderDetails(order.orderId, order.batteryId)}
+                    onClick={() => toggleOrderDetails(order.orderId, order.batteryId, order.serviceType, order.serviceId)}
                     className="profile-btn-secondary"
                     style={{ fontSize: '12px', padding: '6px 12px' }}
                   >
