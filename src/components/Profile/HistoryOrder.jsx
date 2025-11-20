@@ -2,6 +2,8 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { authAPI } from '../services/authAPI';
 import { packageAPI } from '../services/packageAPI';
+import { formAPI } from '../services/formAPI';
+import { vehicleAPI } from '../services/vehicleAPI';
 import './ProfileStyle.css';
 
 // Ưu tiên status: "pending" > "processing" > "success"/"completed" > "failed"/"cancelled" > others
@@ -110,39 +112,106 @@ function HistoryOrder({ user, theme = "light" }) {
     }
   }, []);
 
-  // Fetch package details
-  const fetchPackageDetails = useCallback(async (packageId) => {
-    if (!packageId) return;
+  // Fetch package details: OrderID → ServiceID (FormID) → VIN → PackageID → Package Info
+  // Fallback: Nếu serviceId là packageId trực tiếp, lấy package luôn
+  const fetchPackageDetails = useCallback(async (serviceId, orderId) => {
+    if (!serviceId) return;
 
-    setLoadingPackages(prev => ({ ...prev, [packageId]: true }));
+    // Use orderId as key for loading state
+    const loadingKey = orderId || serviceId;
+    setLoadingPackages(prev => ({ ...prev, [loadingKey]: true }));
 
     try {
-      const response = await packageAPI.getPackageById(packageId);
+      // Try method 1: serviceId is formId → get form → get VIN → get package
+      try {
+        // Step 1: Get form by serviceId (assuming it's formId)
+        const formResponse = await formAPI.getFormById(serviceId);
+
+        if (formResponse?.isSuccess && formResponse?.data) {
+          const formData = formResponse.data;
+          // Get VIN from form (handle different field name variations)
+          const vin = formData.VIN || formData.vin || formData.Vin || formData.vehicleId || formData.vehicleID;
+
+          if (vin) {
+            // Step 2: Get package by VIN (vehicleId)
+            const vehiclePackageResponse = await vehicleAPI.getPackageByVehicleId(vin);
+
+            // Handle different response structures for vehicle package
+            let vehiclePackageData = null;
+            if (vehiclePackageResponse?.isSuccess && vehiclePackageResponse?.data) {
+              vehiclePackageData = vehiclePackageResponse.data;
+            } else if (vehiclePackageResponse?.data) {
+              vehiclePackageData = vehiclePackageResponse.data;
+            } else if (vehiclePackageResponse) {
+              vehiclePackageData = vehiclePackageResponse;
+            }
+
+            // Extract packageId from vehicle package response
+            // Handle different field name variations
+            const packageId = vehiclePackageData?.packageId ||
+              vehiclePackageData?.PackageId ||
+              vehiclePackageData?.packageID ||
+              vehiclePackageData?.PackageID ||
+              vehiclePackageData?.package ||
+              vehiclePackageData?.Package;
+
+            if (packageId) {
+              // Step 3: Get package details by packageId
+              const packageResponse = await packageAPI.getPackageById(packageId);
+
+              // Handle different response structures
+              let packageData = null;
+              if (packageResponse?.isSuccess && packageResponse?.data) {
+                packageData = packageResponse.data;
+              } else if (packageResponse?.data) {
+                packageData = packageResponse.data;
+              } else if (packageResponse) {
+                packageData = packageResponse;
+              }
+
+              if (packageData) {
+                setPackageDetails(prev => ({
+                  ...prev,
+                  [loadingKey]: packageData
+                }));
+                return; // Success, exit early
+              }
+            }
+          }
+        }
+      } catch (formErr) {
+        console.log('Form method failed, trying direct package method:', formErr);
+      }
+
+      // Method 2: Fallback - serviceId might be packageId directly
+      const packageResponse = await packageAPI.getPackageById(serviceId);
 
       // Handle different response structures
       let packageData = null;
-      if (response?.isSuccess && response?.data) {
-        packageData = response.data;
-      } else if (response?.data) {
-        packageData = response.data;
-      } else if (response) {
-        packageData = response;
+      if (packageResponse?.isSuccess && packageResponse?.data) {
+        packageData = packageResponse.data;
+      } else if (packageResponse?.data) {
+        packageData = packageResponse.data;
+      } else if (packageResponse) {
+        packageData = packageResponse;
       }
 
       if (packageData) {
         setPackageDetails(prev => ({
           ...prev,
-          [packageId]: packageData
+          [loadingKey]: packageData
         }));
+      } else {
+        throw new Error('Không thể lấy thông tin gói dịch vụ');
       }
     } catch (err) {
-      console.error(`Error fetching package details for ${packageId}:`, err);
+      console.error(`Error fetching package details for serviceId ${serviceId}:`, err);
       setPackageDetails(prev => ({
         ...prev,
-        [packageId]: { error: 'Không thể tải thông tin gói dịch vụ' }
+        [loadingKey]: { error: err?.message || 'Không thể tải thông tin gói dịch vụ' }
       }));
     } finally {
-      setLoadingPackages(prev => ({ ...prev, [packageId]: false }));
+      setLoadingPackages(prev => ({ ...prev, [loadingKey]: false }));
     }
   }, []);
 
@@ -225,9 +294,10 @@ function HistoryOrder({ user, theme = "light" }) {
     }
 
     // Nếu mở chi tiết và serviceType là 'package' hoặc 'usepackage', fetch thông tin package
+    // serviceId chính là formId trong trường hợp này
     if (isExpanding && serviceId && (serviceType?.toLowerCase() === 'package' || serviceType?.toLowerCase() === 'usepackage')) {
-      if (!packageDetails[serviceId]) {
-        fetchPackageDetails(serviceId);
+      if (!packageDetails[orderId] && !packageDetails[serviceId]) {
+        fetchPackageDetails(serviceId, orderId);
       }
     }
   };
@@ -432,24 +502,27 @@ function HistoryOrder({ user, theme = "light" }) {
                       {(order.serviceType?.toLowerCase() === 'package' || order.serviceType?.toLowerCase() === 'usepackage') && order.serviceId && (
                         <div>
                           <strong>📦 Thông tin Gói dịch vụ:</strong>
-                          {loadingPackages[order.serviceId] ? (
+                          {loadingPackages[order.orderId] || loadingPackages[order.serviceId] ? (
                             <div style={{ marginTop: '8px', padding: '12px', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '8px' }}>
                               <p>⏳ Đang tải thông tin gói dịch vụ...</p>
                             </div>
-                          ) : packageDetails[order.serviceId] ? (
-                            packageDetails[order.serviceId].error ? (
-                              <div style={{ marginTop: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px' }}>
-                                <p>❌ {packageDetails[order.serviceId].error}</p>
-                              </div>
-                            ) : (
-                              <div style={{ marginTop: '8px', padding: '12px', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '8px' }}>
-                                <div><strong>Tên gói:</strong> {getPackageProperty(packageDetails[order.serviceId], 'name')}</div>
-                                <div><strong>Giá:</strong> {formatCurrency(getPackageProperty(packageDetails[order.serviceId], 'price'))}</div>
-                                <div><strong>Loại pin:</strong> {getPackageProperty(packageDetails[order.serviceId], 'batteryType')}</div>
-                                <div><strong>Thời hạn:</strong> {getPackageProperty(packageDetails[order.serviceId], 'expiredDays')} ngày</div>
-                                <div><strong>Mô tả:</strong> {getPackageProperty(packageDetails[order.serviceId], 'description') || 'Không có mô tả'}</div>
-                              </div>
-                            )
+                          ) : packageDetails[order.orderId] || packageDetails[order.serviceId] ? (
+                            (() => {
+                              const packageData = packageDetails[order.orderId] || packageDetails[order.serviceId];
+                              return packageData.error ? (
+                                <div style={{ marginTop: '8px', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px' }}>
+                                  <p>❌ {packageData.error}</p>
+                                </div>
+                              ) : (
+                                <div style={{ marginTop: '8px', padding: '12px', background: 'rgba(139, 92, 246, 0.1)', borderRadius: '8px' }}>
+                                  <div><strong>Tên gói:</strong> {getPackageProperty(packageData, 'name')}</div>
+                                  <div><strong>Giá:</strong> {formatCurrency(getPackageProperty(packageData, 'price'))}</div>
+                                  <div><strong>Loại pin:</strong> {getPackageProperty(packageData, 'batteryType')}</div>
+                                  <div><strong>Thời hạn:</strong> {getPackageProperty(packageData, 'expiredDays')} ngày</div>
+                                  <div><strong>Mô tả:</strong> {getPackageProperty(packageData, 'description') || 'Không có mô tả'}</div>
+                                </div>
+                              );
+                            })()
                           ) : (
                             <div style={{ marginTop: '8px', padding: '12px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '8px' }}>
                               <p>ℹ️ Chưa có thông tin gói dịch vụ. Bấm vào nút chi tiết để tải.</p>
