@@ -18,10 +18,11 @@ function SignUp() {
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [showOtpModal, setShowOtpModal] = useState(false);
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState(Array(6).fill(''));
   const [isVerifying, setIsVerifying] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const navigate = useNavigate();
+  const inputRefs = useRef([]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -160,7 +161,8 @@ function SignUp() {
     setOtpError('');
     setOtpSuccessCountdown(null);
     setOtpSuccessMessage('');
-    if (!otp.trim()) {
+    const otpString = otp.join('');
+    if (!otpString) {
       setOtpError('Mã OTP là bắt buộc.');
       return;
     }
@@ -168,7 +170,7 @@ function SignUp() {
     try {
       const res = await authAPI.verifyRegisterOtp({
         email: formData.email.trim(),
-        otp: otp.trim(),
+        otp: otpString,
       });
       if (res?.isSuccess) {
         let seconds = 5;
@@ -240,6 +242,60 @@ function SignUp() {
       }
     } finally {
       setResendLoading(false);
+    }
+  };
+
+  const handleOtpChange = (e, index) => {
+    const value = e.target.value;
+    if (!/^\d*$/.test(value)) return;
+
+    const newOtp = [...otp];
+    if (value.length > 0) {
+      newOtp[index] = value.slice(-1);
+      setOtp(newOtp);
+      setOtpError('');
+      if (index < 5) inputRefs.current[index + 1].focus();
+    } else {
+      newOtp[index] = '';
+      setOtp(newOtp);
+      setOtpError('');
+    }
+  };
+
+  const handleOtpKeyDown = (e, index) => {
+    if (e.key === 'Backspace') {
+      if (!otp[index] && index > 0) {
+        e.preventDefault();
+        const newOtp = [...otp];
+        newOtp[index - 1] = '';
+        setOtp(newOtp);
+        inputRefs.current[index - 1].focus();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      e.preventDefault();
+      inputRefs.current[index - 1].focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      e.preventDefault();
+      inputRefs.current[index + 1].focus();
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').trim();
+    if (!/^\d+$/.test(pastedData)) return;
+
+    const digits = pastedData.split('').slice(0, 6);
+    const newOtp = [...otp];
+    digits.forEach((d, i) => {
+      if (i < 6) newOtp[i] = d;
+    });
+    setOtp(newOtp);
+    setOtpError('');
+
+    const focusIndex = Math.min(digits.length, 5);
+    if (inputRefs.current[focusIndex]) {
+      inputRefs.current[focusIndex].focus();
     }
   };
 
@@ -336,18 +392,23 @@ function SignUp() {
           <div className="otp-box">
             <h2>Xác thực OTP</h2>
             <p>Nhập mã OTP đã được gửi đến email <b>{formData.email}</b></p>
-            <input
-              type="text"
-              placeholder="Nhập OTP..."
-              value={otp}
-              onChange={(e) => {
-                setOtp(e.target.value);
-                setOtpError('');
-              }}
-              maxLength={6}
-              disabled={isVerifying || !!otpSuccessCountdown}
-              autoComplete="one-time-code"
-            />
+            <div className="otp-inputs-container">
+              {[...Array(6)].map((_, index) => (
+                <input
+                  key={index}
+                  ref={(el) => (inputRefs.current[index] = el)}
+                  type="text"
+                  className="otp-input"
+                  value={otp[index] || ''}
+                  onChange={(e) => handleOtpChange(e, index)}
+                  onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                  onPaste={handleOtpPaste}
+                  maxLength={1}
+                  disabled={isVerifying || !!otpSuccessCountdown}
+                  autoComplete="off"
+                />
+              ))}
+            </div>
             {/* Hiển thị lỗi OTP nếu có */}
             {otpError && <div className="input-error" style={{ marginTop: 8 }}>{otpError}</div>}
             {/* Hiển thị thông báo thành công và đếm ngược khi xác thực OTP thành công */}

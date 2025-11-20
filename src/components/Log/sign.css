@@ -3,12 +3,14 @@
   padding: 0;
   box-sizing: border-box;
 }
+
 :root {
 
   /* LiquidGlass tunables (áp cho card) */
   --liquid-blur: 0px;
   --liquid-saturate: 1.35;
-  --liquid-overlay: rgba(255, 255, 255, 0); /* overlay */
+  --liquid-overlay: rgba(255, 255, 255, 0);
+  /* overlay */
   --liquid-border: rgba(255, 255, 255, 0.999);
   --liquid-radius: 14px;
 }
@@ -26,19 +28,20 @@
   backdrop-filter: url(#liquidGlass) blur(var(--liquid-blur)) saturate(var(--liquid-saturate));
   -webkit-backdrop-filter: url(#liquidGlass) blur(var(--liquid-blur)) saturate(var(--liquid-saturate));
   overflow: hidden;
-  box-shadow: 0 10px 20px rgba(0,0,0,.14);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, .14);
 }
 
 /* highlight cạnh kính */
 .liquid::before {
   content: "";
-  position: absolute; inset: 0;
+  position: absolute;
+  inset: 0;
   border-radius: inherit;
   pointer-events: none;
   background:
-    linear-gradient(to bottom, rgba(255,255,255,.35), transparent 40%),
-    radial-gradient(120% 60% at 0% -10%, rgba(255,255,255,.28), transparent 60%),
-    radial-gradient(90% 70% at 100% -20%, rgba(255,255,255,.18), transparent 60%);
+    linear-gradient(to bottom, rgba(255, 255, 255, .35), transparent 40%),
+    radial-gradient(120% 60% at 0% -10%, rgba(255, 255, 255, .28), transparent 60%),
+    radial-gradient(90% 70% at 100% -20%, rgba(255, 255, 255, .18), transparent 60%);
   mix-blend-mode: overlay;
 }
 
@@ -53,16 +56,24 @@ body {
   justify-content: center;
   align-items: center;
   height: 100vh;
-  
+
   animation: gradientShift 8s ease infinite;
   padding: 20px;
 }
 
 /* Gradient background animation */
 @keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* Main container holding both panels */
@@ -84,12 +95,14 @@ body {
   margin: 0 auto;
   transform: translateY(0);
 }
+
 /* Container fade in animation */
 @keyframes containerFadeIn {
   0% {
     opacity: 0;
     transform: translateY(50px) scale(0.95);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -136,22 +149,28 @@ body {
 }
 
 @keyframes floatingParticle1 {
-  0%, 100% { 
+
+  0%,
+  100% {
     transform: translateY(0px) translateX(0px) rotate(0deg);
     opacity: 0.3;
   }
-  50% { 
+
+  50% {
     transform: translateY(-20px) translateX(10px) rotate(180deg);
     opacity: 0.6;
   }
 }
 
 @keyframes floatingParticle2 {
-  0%, 100% { 
+
+  0%,
+  100% {
     transform: translateY(0px) translateX(0px) rotate(0deg);
     opacity: 0.4;
   }
-  50% { 
+
+  50% {
     transform: translateY(15px) translateX(-15px) rotate(-180deg);
     opacity: 0.7;
   }
@@ -162,7 +181,7 @@ body {
   text-align: center;
   font-size: 1.6rem;
   line-height: 1.4;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   animation: brandContentSlide 1.2s ease-out 0.3s both;
 }
 
@@ -172,6 +191,7 @@ body {
     opacity: 0;
     transform: translateX(-30px);
   }
+
   100% {
     opacity: 1;
     transform: translateX(0);
@@ -208,10 +228,11 @@ body {
 /* Logo glow animation */
 @keyframes logoGlow {
   0% {
-    text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   }
+
   100% {
-    text-shadow: 0 2px 10px rgba(0,0,0,0.1), 0 0 20px rgba(255, 255, 255, 0.3);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1), 0 0 20px rgba(255, 255, 255, 0.3);
   }
 }
 
@@ -221,6 +242,7 @@ body {
     opacity: 0;
     transform: translateY(20px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -237,10 +259,11 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: last center;
-  padding: 30px 40px; /* Giảm padding để có thêm không gian */
+  padding: 30px 40px;
+  /* Giảm padding để có thêm không gian */
   position: relative;
   animation: formSlideIn 1s ease-out 0.2s both;
-  
+
 }
 
 /* Form slide in animation */
@@ -249,6 +272,7 @@ body {
     opacity: 0;
     transform: translateX(30px);
   }
+
   100% {
     opacity: 1;
     transform: translateX(0);
@@ -260,7 +284,8 @@ body {
   max-width: 320px;
   display: flex;
   flex-direction: column;
-  gap: 10px; /* Giảm gap giữa các elements */
+  gap: 10px;
+  /* Giảm gap giữa các elements */
   margin-top: 5px;
 }
 
@@ -287,12 +312,15 @@ body {
   filter: drop-shadow(0 2px 30px #acffbd8c);
   transform: scale(1.04);
 }
+
 .sign-container h2 {
-  font-size: 1.8rem; /* Tăng lại font size */
+  font-size: 1.8rem;
+  /* Tăng lại font size */
   font-weight: 700;
   color: black;
   text-align: center;
-  margin-bottom: 15px; /* Giảm margin */
+  margin-bottom: 15px;
+  /* Giảm margin */
   margin-top: 5px;
   animation: titleBounce 0.6s ease-out 0.5s both;
 }
@@ -303,9 +331,11 @@ body {
     opacity: 0;
     transform: translateY(-20px) scale(0.9);
   }
+
   60% {
     transform: translateY(5px) scale(1.05);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -316,18 +346,21 @@ body {
 .social-buttons {
   display: flex;
   gap: 15px;
-  margin-bottom: 20px; /* Giảm margin */
+  margin-bottom: 20px;
+  /* Giảm margin */
   width: 100%;
 }
 
 .social-btn {
   flex: 1;
-  padding: 10px 15px; /* Giảm padding */
+  padding: 10px 15px;
+  /* Giảm padding */
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   background: white;
   color: #666;
-  font-size: 14px; /* Tăng font size */
+  font-size: 14px;
+  /* Tăng font size */
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: flex;
@@ -337,8 +370,13 @@ body {
   animation: socialBtnFadeIn 0.6s ease-out both;
 }
 
-.social-btn:nth-child(1) { animation-delay: 0.6s; }
-.social-btn:nth-child(2) { animation-delay: 0.7s; }
+.social-btn:nth-child(1) {
+  animation-delay: 0.6s;
+}
+
+.social-btn:nth-child(2) {
+  animation-delay: 0.7s;
+}
 
 /* Social button fade in */
 @keyframes socialBtnFadeIn {
@@ -346,6 +384,7 @@ body {
     opacity: 0;
     transform: translateY(15px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -366,10 +405,12 @@ body {
 /* Divider */
 .divider {
   text-align: center;
-  margin: 15px 0; /* Giảm margin */
+  margin: 15px 0;
+  /* Giảm margin */
   position: relative;
   color: #999;
-  font-size: 14px; /* Tăng font size */
+  font-size: 14px;
+  /* Tăng font size */
   font-weight: 500;
   animation: dividerSlide 0.6s ease-out 0.8s both;
 }
@@ -379,6 +420,7 @@ body {
     opacity: 0;
     transform: scaleX(0);
   }
+
   100% {
     opacity: 1;
     transform: scaleX(1);
@@ -401,6 +443,7 @@ body {
   0% {
     transform: scaleX(0);
   }
+
   100% {
     transform: scaleX(1);
   }
@@ -408,32 +451,55 @@ body {
 
 .divider span {
   background: white;
-  padding: 0 15px; /* Giảm padding */
+  padding: 0 15px;
+  /* Giảm padding */
   position: relative;
   z-index: 2;
 }
 
 /* Input Groups */
 .input-group {
-  margin-bottom: 10px; /* Giảm margin */
+  margin-bottom: 10px;
+  /* Giảm margin */
   position: relative;
   animation: inputSlideIn 0.5s ease-out both;
   color: #ffffff;
 }
 
-.input-group:nth-child(1) { animation-delay: 1s; }
-.input-group:nth-child(2) { animation-delay: 1.1s; }
-.input-group:nth-child(3) { animation-delay: 1.2s; }
-.input-group:nth-child(4) { animation-delay: 1.3s; }
-.input-group:nth-child(5) { animation-delay: 1.4s; }
-.input-group:nth-child(6) { animation-delay: 1.5s; }
-.input-group:nth-child(7) { animation-delay: 1.6s; }
+.input-group:nth-child(1) {
+  animation-delay: 1s;
+}
+
+.input-group:nth-child(2) {
+  animation-delay: 1.1s;
+}
+
+.input-group:nth-child(3) {
+  animation-delay: 1.2s;
+}
+
+.input-group:nth-child(4) {
+  animation-delay: 1.3s;
+}
+
+.input-group:nth-child(5) {
+  animation-delay: 1.4s;
+}
+
+.input-group:nth-child(6) {
+  animation-delay: 1.5s;
+}
+
+.input-group:nth-child(7) {
+  animation-delay: 1.6s;
+}
 
 @keyframes inputSlideIn {
   0% {
     opacity: 0;
     transform: translateX(-20px);
   }
+
   100% {
     opacity: 1;
     transform: translateX(0);
@@ -442,11 +508,13 @@ body {
 
 .input-group input {
   width: 100%;
-  padding: 11px 0; /* Tăng padding */
+  padding: 11px 0;
+  /* Tăng padding */
   border: none;
   border-bottom: 1px solid #e0e0e0;
   background: transparent;
-  font-size: 14px; /* Tăng font size */
+  font-size: 14px;
+  /* Tăng font size */
   color: rgb(255, 255, 255);
   transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
   outline: none;
@@ -487,12 +555,14 @@ body {
   transform: translateX(-50%);
 }
 
-.input-group input:focus + ::after,
+.input-group input:focus+ ::after,
 .input-group:focus-within::after {
   width: 100%;
 }
+
 .input-error {
-  color: #ff1a1a; /* Đỏ tươi cực nổi bật */
+  color: #ff1a1a;
+  /* Đỏ tươi cực nổi bật */
   background: linear-gradient(90deg, #fff6f6a3 80%, #ffcecec0 100%);
   font-size: 14px;
   margin-top: 5px;
@@ -503,18 +573,30 @@ body {
   font-weight: 700;
   box-shadow: 0 1.5px 8px -3px #ff6b35a6;
   letter-spacing: 0.02em;
-  animation: error-pop 0.22s cubic-bezier(0.7,0.1,0.3,1.4);
+  animation: error-pop 0.22s cubic-bezier(0.7, 0.1, 0.3, 1.4);
   transition: color 0.15s, background 0.25s, box-shadow 0.2s;
   text-align: center;
 }
 
 @keyframes error-pop {
-  0% { transform: scale(0.95) translateY(8px); opacity: 0; }
-  80% { transform: scale(1.04) translateY(-2px);}
-  100% { transform: scale(1) translateY(0); opacity: 1; }
+  0% {
+    transform: scale(0.95) translateY(8px);
+    opacity: 0;
+  }
+
+  80% {
+    transform: scale(1.04) translateY(-2px);
+  }
+
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
 }
-.forgot-description{
-  color: #ffffff; /* Đỏ tươi cực nổi bật */
+
+.forgot-description {
+  color: #ffffff;
+  /* Đỏ tươi cực nổi bật */
   font-size: 14px;
   margin-top: 5px;
   margin-bottom: 4px;
@@ -523,7 +605,7 @@ body {
   font-weight: 700;
   box-shadow: 0 1.5px 8px -3px #ff6b35a6;
   letter-spacing: 0.02em;
-  animation: error-pop 0.22s cubic-bezier(0.7,0.1,0.3,1.4);
+  animation: error-pop 0.22s cubic-bezier(0.7, 0.1, 0.3, 1.4);
   transition: color 0.15s, background 0.25s, box-shadow 0.2s;
   text-align: center;
 }
@@ -531,16 +613,19 @@ body {
 /* Submit Button */
 .sign-button {
   width: 100%;
-  padding: 14px; /* Tăng padding */
+  padding: 14px;
+  /* Tăng padding */
   background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 15px; /* Tăng font size */
+  font-size: 15px;
+  /* Tăng font size */
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-top: 15px; /* Giảm margin */
+  margin-top: 15px;
+  /* Giảm margin */
   text-transform: uppercase;
   letter-spacing: 1px;
   position: relative;
@@ -555,6 +640,7 @@ body {
     opacity: 0;
     transform: translateY(20px) scale(0.9);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -602,7 +688,8 @@ body {
   transition: all 0.3s ease;
   animation: linkFadeIn 0.5s ease-out 1.6s both;
   position: relative;
-  font-size: 14px; /* Tăng font size */
+  font-size: 14px;
+  /* Tăng font size */
 }
 
 .forgot-link::after {
@@ -623,9 +710,11 @@ body {
 /* Sign Link */
 .sign-link {
   text-align: center;
-  margin-top: 20px; /* Giảm margin */
+  margin-top: 20px;
+  /* Giảm margin */
   color: #ffffff;
-  font-size: 14px; /* Tăng font size */
+  font-size: 14px;
+  /* Tăng font size */
   animation: linkFadeIn 0.5s ease-out 1.7s both;
 }
 
@@ -634,6 +723,7 @@ body {
     opacity: 0;
     transform: translateY(10px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -676,7 +766,7 @@ body {
     align-items: flex-start;
     overflow-y: auto;
   }
-  
+
   .sign-main-container {
     flex-direction: column;
     width: 100%;
@@ -685,71 +775,81 @@ body {
     max-height: none;
     margin-top: 5px;
   }
-  
+
   .brand-panel {
     width: 100%;
-    height: 140px; /* Giảm height cho mobile */
+    height: 140px;
+    /* Giảm height cho mobile */
     padding: 20px 15px;
     background: linear-gradient(135deg, rgba(255, 107, 53, 0.8) 0%, rgba(255, 140, 66, 0.8) 50%, rgba(255, 167, 38, 0.8) 100%);
   }
-  
+
   .brand-content {
-    font-size: 1rem; /* Giảm font size */
+    font-size: 1rem;
+    /* Giảm font size */
   }
-  
+
   .brand-subtitle {
-    font-size: 1.3rem; /* Giảm font size */
+    font-size: 1.3rem;
+    /* Giảm font size */
   }
-  
+
   .brand-logo {
-    font-size: 1.4rem; /* Giảm font size */
+    font-size: 1.4rem;
+    /* Giảm font size */
     margin-top: 0px;
     margin-bottom: 5px
   }
-  
+
   .sign-container {
     width: 100%;
     height: auto;
-    padding: 20px 20px 15px 20px; /* Giảm padding */
+    padding: 20px 20px 15px 20px;
+    /* Giảm padding */
     justify-content: flex-start;
   }
-  
+
   .sign-container h1,
   .sign-container h2 {
-    font-size: 1.2rem; /* Giảm font size */
+    font-size: 1.2rem;
+    /* Giảm font size */
     margin-bottom: 15px;
     margin-top: 5px;
   }
-  
+
   .sign-container form {
     max-width: 100%;
-    gap: 8px; /* Giảm gap cho mobile */
+    gap: 8px;
+    /* Giảm gap cho mobile */
   }
-  
+
   .social-buttons {
     flex-direction: column;
     margin-bottom: 15px;
   }
-  
+
   .input-group {
-    margin-bottom: 8px; /* Giảm margin */
+    margin-bottom: 8px;
+    /* Giảm margin */
     text-decoration-color: #e0e0e0;
   }
-  
+
   .input-group input {
-    padding: 8px 0; /* Giảm padding */
+    padding: 8px 0;
+    /* Giảm padding */
     font-size: 13px;
     color: #ffffff;
   }
-  
+
   .sign-button {
     padding: 10px;
     font-size: 13px;
     margin-top: 10px;
   }
-  
+
   .sign-link {
-    margin-top: 12px; /* Giảm margin */
+    margin-top: 12px;
+    /* Giảm margin */
     margin-bottom: 10px;
     font-size: 12px;
   }
@@ -759,45 +859,46 @@ body {
   .sign-page {
     padding: 5px;
   }
-  
+
   .sign-main-container {
     width: 100%;
     min-height: 95vh;
     margin-top: 10px;
     border-radius: 15px;
   }
-  
+
   .brand-panel {
     padding: 15px;
-    height: 120px; /* Giảm thêm height cho màn hình nhỏ */
+    height: 120px;
+    /* Giảm thêm height cho màn hình nhỏ */
   }
-  
+
   .brand-content {
     font-size: 0.9rem;
   }
-  
+
   .brand-subtitle {
     font-size: 1.2rem;
   }
-  
+
   .sign-container {
     padding: 15px 20px;
   }
-  
+
   .sign-container form {
     max-width: 100%;
     gap: 6px;
   }
-  
+
   .input-group {
     margin-bottom: 6px;
   }
-  
+
   .input-group input {
     padding: 7px 0;
     font-size: 12px;
   }
-  
+
   .sign-button {
     padding: 8px;
     font-size: 12px;
@@ -820,6 +921,7 @@ body {
   0% {
     opacity: 0;
   }
+
   100% {
     opacity: 1;
   }
@@ -837,6 +939,7 @@ body {
 
 /* Reduce motion for users who prefer it */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -859,8 +962,8 @@ body {
   overflow: hidden !important;
   backdrop-filter: blur(10px) saturate(1.2) !important;
   -webkit-backdrop-filter: blur(10px) saturate(1.2) !important;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1), 
-              0 2px 8px rgba(255, 255, 255, 0.3) inset !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1),
+    0 2px 8px rgba(255, 255, 255, 0.3) inset !important;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
   margin-top: 12px !important;
   animation: googleBtnFadeIn 0.6s ease-out 1.6s both !important;
@@ -871,6 +974,7 @@ body {
     opacity: 0;
     transform: translateY(20px) scale(0.9);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -902,8 +1006,8 @@ body {
   border-color: rgba(66, 133, 244, 0.4) !important;
   transform: translateY(-3px) scale(1.02) !important;
   box-shadow: 0 8px 30px rgba(66, 133, 244, 0.25),
-              0 4px 15px rgba(0, 0, 0, 0.15),
-              0 2px 8px rgba(255, 255, 255, 0.4) inset !important;
+    0 4px 15px rgba(0, 0, 0, 0.15),
+    0 2px 8px rgba(255, 255, 255, 0.4) inset !important;
 }
 
 .google-btn:active {
@@ -919,8 +1023,8 @@ body {
 
 .google-btn:disabled:hover {
   transform: none !important;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1), 
-              0 2px 8px rgba(255, 255, 255, 0.3) inset !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1),
+    0 2px 8px rgba(255, 255, 255, 0.3) inset !important;
 }
 
 .google-icon {
@@ -1040,25 +1144,34 @@ body {
 
 .otp-modal {
   position: fixed;
-  top: 0; left: 0;
-  width: 100vw; height: 100vh;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   background: rgba(0, 0, 0, 0.6);
-  display: flex; justify-content: center; align-items: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   z-index: 999;
 }
 
 .otp-box {
-  background: rgba(87, 204, 153, 0.3); /* xanh lá ánh cam, độ trong suốt 30% */
-  background: linear-gradient(120deg, rgba(87, 204, 153, 0.3), rgba(252, 180, 64, 0.3)); /* green-orange blend */
+  background: rgba(87, 204, 153, 0.3);
+  /* xanh lá ánh cam, độ trong suốt 30% */
+  background: linear-gradient(120deg, rgba(87, 204, 153, 0.3), rgba(252, 180, 64, 0.3));
+  /* green-orange blend */
   backdrop-filter: blur(8px);
   padding: 30px;
   border-radius: 16px;
   text-align: center;
   width: 320px;
-  box-shadow: 0 0 15px rgba(0,0,0,0.3);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
 }
 
-.otp-box h2 { margin-bottom: 10px; }
+.otp-box h2 {
+  margin-bottom: 10px;
+}
+
 .otp-box input {
   width: 100%;
   padding: 10px;
@@ -1068,11 +1181,13 @@ body {
   text-align: center;
   font-size: 18px;
 }
+
 .otp-actions {
   display: flex;
   justify-content: space-between;
   gap: 8px;
 }
+
 .otp-actions button {
   flex: 1;
   padding: 8px;
@@ -1083,6 +1198,55 @@ body {
   cursor: pointer;
   transition: 0.2s;
 }
+
 .otp-actions button:hover {
   background-color: #0077cc;
+}
+
+/* OTP Input Styles */
+.otp-inputs-container {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.otp-input {
+  width: 45px;
+  height: 50px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.otp-input:focus {
+  border-color: #ff6b35;
+  box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
+  transform: translateY(-2px);
+}
+
+.otp-input:disabled {
+  background: #f0f0f0;
+  color: #999;
+  cursor: not-allowed;
+}
+
+/* Responsive adjustments for OTP */
+@media (max-width: 480px) {
+  .otp-input {
+    width: 35px;
+    height: 40px;
+    font-size: 1.2rem;
+    gap: 6px;
+  }
+
+  .otp-inputs-container {
+    gap: 6px;
+  }
 }
