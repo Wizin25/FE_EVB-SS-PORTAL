@@ -118,8 +118,6 @@ const Report = () => {
     };
   }, [imagePreview]);
 
-
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -273,6 +271,18 @@ const Report = () => {
       className="report-page-container"
       style={{ overflowY: 'auto', overflowX: 'hidden', height: '100vh' }}
     >
+      {/* Thêm Header vào đây */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+        <Header
+          onToggleTheme={handleToggleTheme}
+          theme={theme}
+          user={user}
+          unreadCount={0}
+          nextBooking={null}
+          onOpenBooking={() => navigate('/booking')}
+        />
+      </div>
+
       <div className="report-container">
         <div className="report-wrapper">
           {/* Hero Section */}
