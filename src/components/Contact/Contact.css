@@ -78,6 +78,10 @@
   font-weight: 600;
   font-size: 0.9rem;
   border: 1px solid rgba(255, 255, 255, 0.3);
+
+  /* NEW - đẹp hơn */
+  letter-spacing: 0.3px;
+  box-shadow: 0 6px 20px rgba(255,255,255,0.25);
 }
 
 .hero-content h1 {
@@ -153,9 +157,10 @@
   animation-delay: 4s;
 }
 
+/* NEW - animation mềm hơn */
 @keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(5deg); }
+  0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
+  50% { transform: translateY(-15px) rotate(3deg) scale(1.03); }
 }
 
 /* Section Styles */
@@ -208,6 +213,9 @@ section {
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+
+  /* NEW - hover mượt hơn */
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
 .contact-method-card::before {
@@ -295,6 +303,12 @@ section {
   gap: 16px;
 }
 
+/* NEW - focus đẹp hơn */
+.category-tab:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+
 .category-tab:hover {
   border-color: var(--accent);
   transform: translateY(-4px);
@@ -337,10 +351,14 @@ section {
   margin-bottom: 16px;
   overflow: hidden;
   transition: all 0.3s ease;
+
+  /* NEW */
+  transition: transform 0.25s ease, box-shadow 0.3s ease;
 }
 
 .faq-item:hover {
   box-shadow: var(--shadow);
+  transform: translateY(-3px);
 }
 
 .faq-question {
@@ -493,6 +511,13 @@ section {
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 1rem;
+
+  /* NEW - hiệu ứng nhấn */
+  transition: transform 0.15s ease;
+}
+
+.emergency-btn:active {
+  transform: scale(0.97);
 }
 
 .emergency-btn.primary {
@@ -574,6 +599,13 @@ section {
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 1rem;
+
+  /* NEW */
+  transition: transform 0.15s ease;
+}
+
+.feedback-btn:active {
+  transform: scale(0.97);
 }
 
 .feedback-btn.primary {
@@ -611,44 +643,44 @@ section {
   .support-hero {
     padding: 50px 24px 60px;
   }
-  
+
   .hero-content h1 {
     font-size: 2.5rem;
   }
-  
+
   .section-headerh h2 {
     font-size: 2rem;
   }
-  
+
   .emergency-content {
     flex-direction: column;
     text-align: center;
     gap: 24px;
   }
-  
+
   .emergency-actions {
     justify-content: center;
   }
-  
+
   .feedback-card {
     flex-direction: column;
     text-align: center;
     padding: 40px 24px;
     gap: 32px;
   }
-  
+
   .feedback-actions {
     justify-content: center;
   }
-  
+
   .category-tabs {
     grid-template-columns: 1fr;
   }
-  
+
   .contact-methods-grid {
     grid-template-columns: 1fr;
   }
-  
+
   section {
     padding: 50px 16px;
   }
@@ -658,34 +690,34 @@ section {
   .support-hero {
     padding: 40px 16px 50px;
   }
-  
+
   .hero-content h1 {
     font-size: 2rem;
   }
-  
+
   .hero-content p {
     font-size: 1.1rem;
   }
-  
+
   .search-input {
     padding: 16px 20px;
   }
-  
+
   .emergency-actions,
   .feedback-actions {
     flex-direction: column;
     width: 100%;
   }
-  
+
   .emergency-btn,
   .feedback-btn {
     width: 100%;
   }
-  
+
   section {
     padding: 40px 16px;
   }
-  
+
   .section-headerh {
     margin-bottom: 40px;
   }

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import Header from '../Home/header';
 import Footer from '../Home/footer';
+import { authAPI } from '../services/authAPI';
+import api from '../services/api';
 import './Contact.css';
 
 const SupportCenter = () => {
@@ -48,28 +50,26 @@ const SupportCenter = () => {
     // Fetch data (giống như trong HomePage)
     const fetchData = async () => {
       try {
-        // Fetch user profile - giả sử có API
-        // const userRes = await api.get("/me");
-        // setUser(userRes.data);
-        setUser({ name: "User", profileUrl: "https://ui-avatars.com/api/?name=U&background=eee&color=888" });
+        // Fetch user profile dùng authAPI.getCurrent
+        const userData = await authAPI.getCurrent();
+        setUser(userData);
       } catch (error) {
         console.error("Error fetching user:", error);
+        setUser(null);
       }
 
       try {
         // Fetch unread notifications count
-        // const notificationRes = await api.get("/notifications/unread-count");
-        // setUnreadCount(notificationRes.data.count);
-        setUnreadCount(3); // Giá trị mẫu
+        const notificationRes = await api.get("/notifications/unread-count");
+        setUnreadCount(notificationRes.data.count);
       } catch (error) {
         setUnreadCount(0);
       }
 
       try {
         // Fetch next booking
-        // const bookingRes = await api.get("/bookings/next");
-        // setNextBooking(bookingRes.data);
-        setNextBooking(null); // Hoặc dữ liệu mẫu
+        const bookingRes = await api.get("/bookings/next");
+        setNextBooking(bookingRes.data);
       } catch (error) {
         setNextBooking(null);
       }
@@ -79,7 +79,7 @@ const SupportCenter = () => {
   }, []);
 
   const handleOpenBooking = () => {
-    window.location.href = "/booking";
+    navigate('/booking');
   };
 
   const [activeTab, setActiveTab] = useState('general');
@@ -219,11 +219,9 @@ const SupportCenter = () => {
   );
 
   return (
-    <div
-      className={`min-h-screen transition-colors duration-300 ${theme === 'dark'
-          ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900'
-          : 'bg-gradient-to-br from-blue-50 via-white to-green-50'
-        }`}
+    <div 
+      className="report-page-container"
+      style={{ overflowY: 'auto', overflowX: 'hidden', height: '100vh' }}
     >
       {/* Header */}
       <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
@@ -231,14 +229,13 @@ const SupportCenter = () => {
           onToggleTheme={handleToggleTheme}
           theme={theme}
           user={user}
-          unreadCount={unreadCount}
-          nextBooking={nextBooking}
-          onOpenBooking={handleOpenBooking}
+          unreadCount={0}
+          nextBooking={null}
+          onOpenBooking={() => navigate('/booking')}
         />
       </div>
 
       <div className={`support-center ${theme}`}>
-        <div className="support-wrapper">
           {/* Hero Section */}
           <section className="support-hero">
             <div className="hero-content">
@@ -357,8 +354,7 @@ const SupportCenter = () => {
               </div>
             </div>
           </section>
-                <Footer theme={theme} />
-        </div>
+          <Footer theme={theme} />
       </div>
     </div>
   );
