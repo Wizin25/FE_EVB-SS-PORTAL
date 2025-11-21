@@ -956,8 +956,8 @@ const Vehicle = () => {
                               <span className="detail-value">
                                 <span className={`expired-date ${isExpiringSoon(packageInfo.expiredDate) ? 'expiring-soon' : ''} ${isExpired(packageInfo.expiredDate) ? 'expired' : ''}`}>
                                   ⏰ {formatExpiryDate(packageInfo.expiredDate)}
-                                  {isExpiringSoon(packageInfo.expiredDate) && ' (Sắp hết hạn)'}
-                                  {isExpired(packageInfo.expiredDate) && ' (Đã hết hạn)'}
+                                  {isExpiringSoon(packageInfo.expiredDate)}
+                                  {isExpired(packageInfo.expiredDate)}
                                 </span>
                               </span>
                             </div>
