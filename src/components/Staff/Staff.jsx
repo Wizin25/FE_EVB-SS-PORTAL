@@ -323,6 +323,8 @@ function StaffPage() {
   const [slotModal, setSlotModal] = useState({ open: false, battery: null, slot: null });
   const [batteryStatusChoice, setBatteryStatusChoice] = useState(''); // Status mới được chọn cho battery
   const [updatingBatteryStatus, setUpdatingBatteryStatus] = useState(false); // Loading state khi update status
+  const [removingBatteryFromStation, setRemovingBatteryFromStation] = useState(false);
+  const [removeBatteryError, setRemoveBatteryError] = useState('');
 
 
   const filteredSortedBatteryReports = useMemo(() => {
@@ -1238,6 +1240,66 @@ function StaffPage() {
     setBatteryStatusChoice(battery?.status || '');
   }, [stationInv]);
 
+  const handleRemoveBatteryFromStation = useCallback(async (batteryId) => {
+    if (!batteryId) {
+      toast.error('Không tìm thấy Battery ID để gỡ');
+      return;
+    }
+
+    if (!window.confirm('Bạn có chắc muốn gỡ pin này ra khỏi trạm?')) {
+      return;
+    }
+
+    setRemovingBatteryFromStation(true);
+    setRemoveBatteryError('');
+
+    try {
+      await authAPI.deleteBatteryInStation(batteryId);
+
+      // Cập nhật UI local
+      setStationInv(prev => {
+        if (!prev) return prev;
+        const next = { ...prev };
+
+        // Xóa trong batteries[]
+        if (Array.isArray(next.batteries)) {
+          next.batteries = next.batteries.filter(b => b.batteryId !== batteryId);
+        }
+
+        // Xóa trong slots[]
+        if (Array.isArray(next.slots)) {
+          next.slots = next.slots.map(slot => {
+            // slot dạng 2D
+            if (Array.isArray(slot)) {
+              return slot.map(s =>
+                s?.batteryId === batteryId
+                  ? { ...s, batteryId: null, battery: null }
+                  : s
+              );
+            }
+            // slot dạng 1D
+            return slot?.batteryId === batteryId
+              ? { ...slot, batteryId: null, battery: null }
+              : slot;
+          });
+        }
+
+        return next;
+      });
+
+      toast.success('Đã gỡ pin khỏi trạm thành công!');
+      setSlotModal({ open: false, battery: null, slot: null }); // đóng modal
+
+    } catch (e) {
+      const msg = e?.message || 'Lỗi khi gỡ pin khỏi trạm';
+      setRemoveBatteryError(msg);
+      toast.error(msg);
+    } finally {
+      setRemovingBatteryFromStation(false);
+    }
+  }, [toast, setStationInv, setSlotModal]);
+
+
   // Hàm xử lý update battery status
   const handleUpdateBatteryStatus = useCallback(async () => {
     if (!slotModal.battery?.batteryId) {
@@ -1252,23 +1314,23 @@ function StaffPage() {
     setUpdatingBatteryStatus(true);
     try {
       await authAPI.updateBatteryStatus(slotModal.battery.batteryId, batteryStatusChoice);
-      
+
       // Cập nhật local state
       const updatedBattery = { ...slotModal.battery, status: batteryStatusChoice };
       setSlotModal(prev => ({ ...prev, battery: updatedBattery }));
-      
+
       // Cập nhật trong stationInv.batteries
       if (stationInv?.batteries) {
         setStationInv(prev => ({
           ...prev,
-          batteries: prev.batteries.map(b => 
-            b.batteryId === slotModal.battery.batteryId 
+          batteries: prev.batteries.map(b =>
+            b.batteryId === slotModal.battery.batteryId
               ? { ...b, status: batteryStatusChoice }
               : b
           )
         }));
       }
-      
+
       // Cập nhật trong stationInv.slots nếu có battery trong slot
       if (stationInv?.slots) {
         setStationInv(prev => ({
@@ -3018,14 +3080,14 @@ function StaffPage() {
                                       battery.status === "Available"
                                         ? "linear-gradient(90deg,#a7f3d0, #6ee7b7)"
                                         : battery.status === "Charging"
-                                        ? "linear-gradient(90deg,#f9fafb,#60a5fa 80%)"
-                                        : battery.status === "Maintenance"
-                                        ? "linear-gradient(90deg,#fef3c7,#fde68a)"
-                                        : battery.status === "InUse"
-                                        ? "linear-gradient(90deg,#e0e7ff,#818cf8 80%)"
-                                        : battery.status === "Booked"
-                                        ? "linear-gradient(90deg,#ffe4e6,#f87171 70%)"
-                                        : "#e5e7eb",
+                                          ? "linear-gradient(90deg,#f9fafb,#60a5fa 80%)"
+                                          : battery.status === "Maintenance"
+                                            ? "linear-gradient(90deg,#fef3c7,#fde68a)"
+                                            : battery.status === "InUse"
+                                              ? "linear-gradient(90deg,#e0e7ff,#818cf8 80%)"
+                                              : battery.status === "Booked"
+                                                ? "linear-gradient(90deg,#ffe4e6,#f87171 70%)"
+                                                : "#e5e7eb",
                                     color: "#155e75",
                                     fontWeight: 600,
                                     fontSize: 12,
@@ -3105,7 +3167,6 @@ function StaffPage() {
                             <tr><td style={{ fontWeight: 600, paddingRight: 8 }}>Spec:</td><td>{slotModal.battery.specification || 'N/A'}</td></tr>
                           </tbody>
                         </table>
-
                         {/* Update Battery Status Section */}
                         <div style={{ marginTop: 16, padding: 12, background: 'rgba(59, 130, 246, 0.05)', borderRadius: 8 }}>
                           <h4 style={{ margin: '0 0 12px 0', color: '#0f172a', fontSize: '14px', fontWeight: 600 }}>
@@ -3116,9 +3177,9 @@ function StaffPage() {
                               className="status-select"
                               value={batteryStatusChoice}
                               onChange={(e) => setBatteryStatusChoice(e.target.value)}
-                              style={{ 
-                                padding: '8px 12px', 
-                                borderRadius: '6px', 
+                              style={{
+                                padding: '8px 12px',
+                                borderRadius: '6px',
                                 border: '1px solid rgba(15,23,42,0.2)',
                                 fontSize: '13px',
                                 minWidth: '150px'
@@ -3137,8 +3198,8 @@ function StaffPage() {
                               style={{
                                 padding: '8px 16px',
                                 borderRadius: '6px',
-                                background: updatingBatteryStatus 
-                                  ? 'rgba(15,23,42,0.3)' 
+                                background: updatingBatteryStatus
+                                  ? 'rgba(15,23,42,0.3)'
                                   : (batteryStatusChoice && batteryStatusChoice !== slotModal.battery.status
                                     ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
                                     : 'rgba(15,23,42,0.2)'),
@@ -3162,6 +3223,29 @@ function StaffPage() {
                             </div>
                           )}
                         </div>
+                        {/* BUTTON REMOVE BATTERY */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+                          <button
+                            className="btn-danger"
+                            onClick={() => handleRemoveBatteryFromStation(slotModal?.battery?.batteryId)}
+                            disabled={removingBatteryFromStation}
+                            style={{
+                              marginTop: 12,
+                              padding: '8px 14px',
+                              borderRadius: '6px',
+                              fontSize: '13px',
+                              background: removingBatteryFromStation
+                                ? '#e2e8f0'
+                                : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                              color: 'white',
+                              border: 'none',
+                              cursor: removingBatteryFromStation ? 'not-allowed' : 'pointer'
+                            }}
+                          >
+                            {removingBatteryFromStation ? 'Đang gỡ...' : '🗑️ Gỡ pin khỏi trạm'}
+                          </button>
+                        </div>
+
                       </div>
                     )}
                   </div>

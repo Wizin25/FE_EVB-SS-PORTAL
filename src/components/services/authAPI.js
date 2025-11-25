@@ -374,6 +374,20 @@ export const authAPI = {
       throw new Error(err?.message || "Lỗi khi lấy danh sách pin");
     }
   },
+  
+  getAllPageBatteries: async ({ pageNum, pageSize }) => {
+    try {
+      const res = await api.get("/api/Battery/get_all_page_batteries", {
+        params: { pageNum, pageSize },
+      });
+      if (res.data?.isSuccess) {
+        return res.data.data;
+      }
+      return { items: [], total: 0 };
+    } catch (err) {
+      throw new Error(err?.message || "Lỗi khi lấy danh sách pin phân trang");
+    }
+  },
 
   // Batteries suitable for a vehicle at a station
   getBatteriesSuitVehicle: async ({ vin, stationId }) => {
@@ -726,7 +740,7 @@ export const authAPI = {
     }
   },
 
-  getStationByIdForAdmin: async (stationId) => {
+  getStationById: async (stationId) => {
     try {
       const res = await api.get('/api/Station/get_station_by_id', {
         params: { stationId }

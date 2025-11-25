@@ -1350,8 +1350,8 @@ export default function BatteryManagementPage() {
                         className="btn small" style={{ width: '100%' }}
                         onClick={async () => {
                           try {
-                            // Gọi API get_station_by_id_for_admin
-                            const stationDetail = await authAPI.getStationByIdForAdmin(st.stationId);
+                            // Gọi API get_station_by_id
+                            const stationDetail = await authAPI.getStationById(st.stationId);
 
                             // Loại bỏ slot đã có pin (battery) để không cho gán vào các slot đã có pin
                             const availableSlots = Array.isArray(stationDetail?.slots)

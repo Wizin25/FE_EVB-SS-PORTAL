@@ -63,7 +63,7 @@ export default function FormPage() {
     if (!stationId || stationDetails[stationId]) return;
     setStationLoading(prev => ({ ...prev, [stationId]: true }));
     try {
-      const response = await authAPI.getStationByIdForAdmin(stationId);
+      const response = await authAPI.getStationById(stationId);
       if (response) {
         setStationDetails(prev => ({
           ...prev,

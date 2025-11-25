@@ -1522,3 +1522,20 @@
     font-size: 0.75em;
   }
 }
+
+.add-battery-btn {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 10px;
+  background: #007bff;
+  border: none;
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.25s;
+}
+
+.add-battery-btn:hover {
+  background: #0056b3;
+}

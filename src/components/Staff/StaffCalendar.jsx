@@ -248,7 +248,7 @@ function FormDetailModal({ form, onClose }) {
     if (!stationId) return null;
 
     try {
-      const station = await authAPI.getStationByIdForAdmin(stationId);
+      const station = await authAPI.getStationById(stationId);
       if (station) {
         // Chuẩn hóa thông tin station
         const stationInfo = {

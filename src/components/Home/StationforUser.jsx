@@ -314,7 +314,7 @@ export default function StationForUser() {
   const fetchStationDetail = async (stationId) => {
     try {
       setLoadingDetails(true);
-      const res = await authAPI.getStationByIdForAdmin(stationId);
+      const res = await authAPI.getStationById(stationId);
       const data = res?.data?.data || res?.data || res;
       setStationDetails((prev) => ({
         ...prev,

@@ -52,6 +52,11 @@ export default function Station() {
   // Thêm state để lưu số lượng exchange history của mỗi trạm
   const [stationExchangeCounts, setStationExchangeCounts] = useState({});
 
+  // 🟦 STEP 1 — Thêm state để lưu stationDetails (theo stationId)
+  // Lưu slot + pin cho từng station (dữ liệu từ get_station_by_id)
+  const [stationDetails, setStationDetails] = useState({});
+  const [detailLoading, setDetailLoading] = useState(false);
+
   // Hàm đếm số lượng exchange battery history của một trạm
   const getExchangeCountForStation = (stationId) => {
     return stationExchangeCounts[stationId] || 0;
@@ -226,6 +231,41 @@ export default function Station() {
     }
   };
 
+  // ✅ 2) Nút Reload chỉ load danh sách trạm, không reload slots
+  const reloadAllStations = async () => {
+    try {
+      await fetchStations();
+
+      // 🔥 nếu có trạm đang mở → reload luôn chi tiết trạm đó
+      if (expandedId) {
+        await fetchStationDetail(expandedId);
+      }
+
+      alert("Đã reload danh sách trạm.");
+    } catch (err) {
+      alert("Reload thất bại: " + (err?.message || "Lỗi không xác định"));
+    }
+  };
+  // 🟦 STEP 2 — Tạo hàm fetchStationDetail()
+  const fetchStationDetail = async (stationId) => {
+    try {
+      setDetailLoading(true);
+      // Sử dụng đúng API cho admin để đảm bảo field slot đầy đủ như mô tả prompt
+      const res = await authAPI.getStationById(stationId);
+      const data = res?.data?.data || res?.data || res;
+      setStationDetails(prev => ({
+        ...prev,
+        [stationId]: data
+      }));
+    } catch (err) {
+      console.error("Failed to fetch station detail:", err);
+    // Option: Store error in state to show in UI
+    alert("Không thể tải chi tiết trạm: " + (err?.message || "Lỗi không xác định"));
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   useEffect(() => { fetchStations(); }, []);
 
   // Fetch exchange counts for all stations when stations are loaded
@@ -288,11 +328,21 @@ export default function Station() {
   const safeLen = (arr) => (Array.isArray(arr) ? arr.length : 0);
 
   // Mở/đóng chi tiết
-  const toggleExpand = (stationId) => {
+  // 🟦 STEP 3 — Sửa toggleExpand để gọi API
+  const toggleExpand = async (stationId) => {
     const newExpandedId = expandedId === stationId ? null : stationId;
     setExpandedId(newExpandedId);
-    if (newExpandedId && !stationStaff[stationId]) {
-      fetchStationStaff(stationId);
+
+    if (newExpandedId) {
+      // 1) load staff như cũ
+      if (!stationStaff[stationId]) {
+        fetchStationStaff(stationId);
+      }
+
+      // 2) load slots + battery từ get_station_by_id
+      if (!stationDetails[stationId]) {
+        await fetchStationDetail(stationId);
+      }
     }
   };
 
@@ -497,6 +547,8 @@ export default function Station() {
   const [slotBattery, setSlotBattery] = useState(null);
   const [slotLoading, setSlotLoading] = useState(false);
   const [slotError, setSlotError] = useState(null);
+  const [removingBattery, setRemovingBattery] = useState(false);
+
 
   // NEW: build grid 5 hàng x 6 cột từ slots
   const buildSlotGrid = (slots = []) => {
@@ -508,10 +560,11 @@ export default function Station() {
   };
 
   // NEW: đếm pin theo slots (occupied/battery != null)
-  const getBatteryCountFromSlots = (station) => {
-    if (!Array.isArray(station?.slots)) return 0;
-    return station.slots.filter(s => !!s?.battery).length;
-  };
+  // const getBatteryCountFromSlots = (station) => {
+  //   if (!Array.isArray(station?.slots)) return 0;
+  //   return station.slots.filter(s => !!s?.battery).length;
+  // };
+  // 🟦 STEP 5 — Thay getBatteryCountFromSlots(station) thành count dựa trên stationDetails
 
   // NEW: mở modal – ưu tiên dùng battery embed; fallback gọi get-battery-by-id nếu cần
   const openSlotModal = async (slot) => {
@@ -554,6 +607,54 @@ export default function Station() {
     setActiveSlot(null);
     setSlotBattery(null);
     setSlotError(null);
+  };
+  
+  // ✅ 1) Gỡ pin → Reload đúng trạm đó, sửa lại cập nhật slot UI khi fetch xong
+  const handleRemoveBatteryFromStation = async () => {
+    if (!slotBattery?.batteryId) {
+      alert("Không tìm thấy Battery ID");
+      return;
+    }
+
+    const ok = window.confirm("Bạn có chắc muốn gỡ pin này khỏi trạm?");
+    if (!ok) return;
+
+    setRemovingBattery(true);
+
+    try {
+      // Gọi API phía backend
+      await authAPI.deleteBatteryInStation(slotBattery.batteryId);
+
+      // Cập nhật UI local: xóa pin khỏi slot trong stationDetails (tạm thời, trước khi fetch detail thật)
+      setStationDetails(prev => {
+        const detail = prev[activeSlot.stationId];
+        if (!detail) return prev;
+
+        const newSlots = detail.slots.map(s =>
+          s.slotId === activeSlot.slotId
+            ? { ...s, battery: null, batteryId: null }
+            : s
+        );
+
+        return {
+          ...prev,
+          [activeSlot.stationId]: { ...detail, slots: newSlots }
+        };
+      });
+
+      alert("Đã gỡ pin khỏi trạm");
+
+      // 🟦 reload lại đúng station đang mở (để cập nhật realtime slot)
+      if (expandedId) {
+        await fetchStationDetail(expandedId);
+      }
+      
+      closeSlotModal();
+    } catch (err) {
+      alert(err?.message || "Không thể gỡ pin");
+    } finally {
+      setRemovingBattery(false);
+    }
   };
 
   return (
@@ -621,7 +722,9 @@ export default function Station() {
           <option value="asc">Tăng dần</option>
           <option value="desc">Giảm dần</option>
         </select>
-        <button className="btn" onClick={fetchStations} disabled={loading || opLoading}>Reload</button>
+        <button className="btn" onClick={reloadAllStations} disabled={loading || opLoading}>
+          Reload
+        </button>
       </div>
 
       <div className="station-summary">
@@ -646,7 +749,11 @@ export default function Station() {
             <>
               <div className="station-grid">
                 {currentItems.map((station, idx) => {
-                  const batteryCount = getBatteryCountFromSlots(station);
+                  // 🟦 STEP 5 — Thay getBatteryCountFromSlots(station) thành count dựa trên stationDetails
+                  const detail = stationDetails[station.stationId];
+                  const batteryCount = detail?.slots
+                    ? detail.slots.filter(s => !!s?.battery).length
+                    : 0;
                   const isExpanded = expandedId === station.stationId;
                   const staffCount = getStaffCountForStation(station);
                   const exchangeCount = getExchangeCountForStation(station.stationId);
@@ -783,49 +890,49 @@ export default function Station() {
                             Pin đang ở trạm
                           </div>
 
-                          {Array.isArray(station.slots) && station.slots.length > 0 ? (
-                            <div className="slot-grid">
-                              {buildSlotGrid(station.slots).map((row, rIdx) => (
-                                <div className="liquid slot-row" key={`row-${rIdx}`}>
-                                  {row.map((slot, cIdx) => {
-                                    const s = (slot.battery?.status || "Empty").toLowerCase(); // Empty/Occupied/Reserved/Faulty
-                                    const hasBattery = !!slot?.battery;
-                                    const name = slot?.battery?.batteryName || slot?.battery?.batteryId;
+                          {/* 🟦 STEP 4 — Ở phần render “Pin đang ở trạm”, thay station.slots bằng stationDetails */}
+                          {(() => {
+                            const detail = stationDetails[station.stationId];
+                            const slots = detail?.slots || [];
 
-                                    return (
-                                      <button
-                                        type="button"
-                                        key={slot?.slotId || `slot-${rIdx}-${cIdx}`}
-                                        className={`slot-cell status-${s} ${hasBattery ? "has-battery" : ""}`}
-                                        onClick={() => openSlotModal(slot)}
-                                        title={
-                                          slot
-                                            ? (hasBattery
-                                              ? `${slot.battery?.batteryName || slot.battery?.batteryId || "battery"}${slot.battery?.capacity ? ` • ${slot.battery.capacity}Ah` : ""}`
-                                              : slot.status || "Empty")
-                                            : "Trống"
-                                        }
-                                      >
-                                        {hasBattery ? (
-                                          <React.Fragment>
-                                            {slot.battery?.batteryName || slot.battery?.batteryId || "battery"}
-                                            {slot.battery?.capacity ? ` • ${slot.battery.capacity}%` : ""}
-                                            {slot.battery?.status ? (
-                                              <span className="slot-badge" style={{ marginTop: 4 }}>{slot.battery.status}</span>
-                                            ) : null}
-                                          </React.Fragment>
-                                        ) : (
-                                          <div className="slot-status">{slot?.status || "Empty"}</div>
-                                        )}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="empty-note">Trạm chưa có slot nào.</div>
-                          )}
+                            if (detailLoading && !slots.length) {
+                              return <div className="loading-staff">Đang tải slot...</div>;
+                            }
+
+                            if (!slots.length) {
+                              return <div className="empty-note">Trạm chưa có slot nào.</div>;
+                            }
+
+                            return (
+                              <div className="slot-grid">
+                                {buildSlotGrid(slots).map((row, rIdx) => (
+                                  <div className="liquid slot-row" key={`row-${rIdx}`}>
+                                    {row.map((slot, cIdx) => {
+                                      const hasBattery = !!slot?.battery;
+                                      const s = (slot?.battery?.status || "Empty").toLowerCase();
+
+                                      return (
+                                        <button
+                                          type="button"
+                                          key={slot?.slotId || `slot-${rIdx}-${cIdx}`}
+                                          className={`slot-cell status-${s} ${hasBattery ? "has-battery" : ""}`}
+                                          onClick={() => openSlotModal(slot)}
+                                        >
+                                          {hasBattery
+                                            ? <>
+                                                {slot.battery.batteryName || slot.battery.batteryId}
+                                                {slot.battery.capacity ? ` • ${slot.battery.capacity}%` : ""}
+                                                <span className="slot-badge">{slot.battery.status}</span>
+                                              </>
+                                            : <div className="slot-status">{slot?.status || "Empty"}</div>}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()}
 
                           <div className="slot-legend">
                             <span><i className="lg lg-empty" />Trống</span>
@@ -944,43 +1051,57 @@ export default function Station() {
                 </ul>
 
                 {slotBattery ? (
-                  <div className="battery-detail">
-                    <div className="section-title">Thông tin pin</div>
-                    <div className="batt-card-mini">
-                      <div className="batt-mini-row">
-                        <span className="batt-mini-label">Tên/ID:</span>
-                        <span className="batt-mini-val">
-                          {slotBattery.batteryName || slotBattery.batteryId}
-                        </span>
-                      </div>
-                      <div className="batt-mini-row">
-                        <span className="batt-mini-label">Type:</span>
-                        <span className="batt-mini-val">{slotBattery.batteryType || "—"}</span>
-                      </div>
-                      <div className="batt-mini-row">
-                        <span className="batt-mini-label">Spec:</span>
-                        <span className="batt-mini-val">{slotBattery.specification || "—"}</span>
-                      </div>
-                      <div className="batt-mini-row">
-                        <span className="batt-mini-label">Capacity:</span>
-                        <span className="batt-mini-val">{slotBattery.capacity ?? "—"}%</span>
-                      </div>
-                      <div className="batt-mini-row">
-                        <span className="batt-mini-label">SoH:</span>
-                        <span className="batt-mini-val">{slotBattery.batteryQuality ?? "—"}%</span>
-                      </div>
-                      <div className="batt-mini-row">
-                        <span className="batt-mini-label">Status:</span>
-                        <span className="batt-mini-val">{slotBattery.status || "—"}</span>
-                      </div>
-                      <div className="batt-mini-row">
-                        <span className="batt-mini-label">Updated:</span>
-                        <span className="batt-mini-val">
-                          {slotBattery.updateDate ? new Date(slotBattery.updateDate).toLocaleString() : "—"}
-                        </span>
+                  <>
+                    <div className="battery-detail">
+                      <div className="section-title">Thông tin pin</div>
+                      <div className="batt-card-mini">
+                        <div className="batt-mini-row">
+                          <span className="batt-mini-label">Tên/ID:</span>
+                          <span className="batt-mini-val">
+                            {slotBattery.batteryName || slotBattery.batteryId}
+                          </span>
+                        </div>
+                        <div className="batt-mini-row">
+                          <span className="batt-mini-label">Type:</span>
+                          <span className="batt-mini-val">{slotBattery.batteryType || "—"}</span>
+                        </div>
+                        <div className="batt-mini-row">
+                          <span className="batt-mini-label">Spec:</span>
+                          <span className="batt-mini-val">{slotBattery.specification || "—"}</span>
+                        </div>
+                        <div className="batt-mini-row">
+                          <span className="batt-mini-label">Capacity:</span>
+                          <span className="batt-mini-val">{slotBattery.capacity ?? "—"}%</span>
+                        </div>
+                        <div className="batt-mini-row">
+                          <span className="batt-mini-label">SoH:</span>
+                          <span className="batt-mini-val">{slotBattery.batteryQuality ?? "—"}%</span>
+                        </div>
+                        <div className="batt-mini-row">
+                          <span className="batt-mini-label">Status:</span>
+                          <span className="batt-mini-val">{slotBattery.status || "—"}</span>
+                        </div>
+                        <div className="batt-mini-row">
+                          <span className="batt-mini-label">Updated:</span>
+                          <span className="batt-mini-val">
+                            {slotBattery.updateDate ? new Date(slotBattery.updateDate).toLocaleString() : "—"}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                    {slotBattery && (
+                      <div style={{ display: "flex", justifyContent: "flex-end", width: "100%" }}>
+                        <button
+                          className="btn danger"
+                          onClick={handleRemoveBatteryFromStation}
+                          disabled={removingBattery}
+                          style={{ marginTop: 12 }}
+                        >
+                          {removingBattery ? "Đang gỡ..." : "🗑️ Gỡ pin khỏi trạm"}
+                        </button>
+                      </div>
+                    )}
+                  </>
                 ) : slotLoading ? (
                   <div className="loading-staff">Đang tải thông tin pin…</div>
                 ) : (
@@ -1019,5 +1140,3 @@ export default function Station() {
     </div>
   );
 }
-
-
