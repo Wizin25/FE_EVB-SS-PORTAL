@@ -526,13 +526,13 @@
   transform: translateX(4px);
 }
 
-.detail-label {
+.detail-labelV {
   font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.6);
   font-weight: 500;
 }
 
-.detail-value {
+.detail-valueV {
   font-size: 0.938rem;
   color: white;
   font-weight: 600;
@@ -1483,7 +1483,7 @@
 /* Vehicle.css - Thêm các style mới */
 
 /* Battery info styles */
-.battery-type, .battery-spec, .battery-quality {
+.battery-typeV, .battery-spec, .battery-quality {
   font-size: 0.9em;
   color: var(--text-secondary);
 }
@@ -1514,7 +1514,7 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .battery-type, .battery-spec, .battery-quality {
+  .battery-typeV, .battery-spec, .battery-quality {
     font-size: 0.85em;
   }
   
