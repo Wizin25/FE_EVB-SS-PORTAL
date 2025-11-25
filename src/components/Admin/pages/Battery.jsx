@@ -886,7 +886,7 @@ export default function BatteryManagementPage() {
                           Dung lượng: <strong>{b.capacity}%</strong>
                         </div>
                         <div className="batt-meta">
-                          Dung lượng tối đa: <strong>{b.specification}</strong>
+                          Thông số kỹ thuật: <strong>{b.specification ?? "Chưa có"}</strong>
                         </div>
                         <div className="batt-submeta">
                           Trạm: <strong>{b.station?.stationName || b.station?.stationId || "Chưa gán"}</strong>

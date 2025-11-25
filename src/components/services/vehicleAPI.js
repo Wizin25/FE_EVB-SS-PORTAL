@@ -150,4 +150,38 @@ getBatteryByVehicleId: async (vehicleId) => {
     throw error;
   }
 },
+
+addBatteryInVehicle: async ({ AccountId, VehicleId, BatteryId }) => {
+  try {
+    const formData = new FormData();
+    formData.append('AccountId', AccountId);
+    formData.append('VehicleId', VehicleId);
+    formData.append('BatteryId', BatteryId);
+
+    const response = await api.put('/api/Vehicle/add_battery_in_vehicle', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('API Error - addBatteryInVehicle DETAIL:', {
+      error,
+      response: error.response,
+      data: error.response?.data,
+      status: error.response?.status
+    });
+
+    if (error.response) {
+      const errorMessage = error.response.data?.message ||
+                          error.response.data?.responseCode ||
+                          'Lỗi server khi thêm pin vào xe';
+      throw new Error(errorMessage);
+    } else if (error.request) {
+      throw new Error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.');
+    } else {
+      throw new Error('Lỗi không xác định: ' + error.message);
+    }
+  }
+},
+
 };

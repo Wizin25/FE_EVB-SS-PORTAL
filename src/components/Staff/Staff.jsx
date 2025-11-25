@@ -2894,12 +2894,12 @@ function StaffPage() {
                               onClick={() => openSlotDetail(slot)}
                               title={battery?.batteryName || battery?.batteryId || 'Trống'}
                             >
-                              <div className="slot-status" style={{ fontWeight: '600', marginBottom: '4px' }}>
+                              <div className="slot-status" style={{ fontWeight: '600', marginBottom: '1px' }}>
                                 {battery?.batteryName || battery?.batteryId || '—'}
                               </div>
                               {battery && (
                                 <>
-                                  <div className="slot-status" style={{ fontSize: '12px', color: '#64748b', marginBottom: '2px' }}>
+                                  <div className="slot-status" style={{ fontSize: '12px', color: '#64748b', marginBottom: '1px' }}>
                                     Capacity: {battery.capacity != null ? `${battery.capacity}%` : 'N/A'}
                                   </div>
                                   <div className="slot-badge">{battery.status || 'N/A'}</div>
@@ -2935,24 +2935,116 @@ function StaffPage() {
                     <div key={g.row ?? idx} className="slot-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 14 }}>
                       {g.list.map((slot, i) => {
                         const battery = slot?.battery || (slot?.batteryId && stationInv?.batteries?.find(b => b.batteryId === slot.batteryId)) || null;
+
+                        // Xác định màu nền cell dựa theo status của battery
+                        let cellBackground = "linear-gradient(90deg, #f1f5f9 80%, #e5e7eb 100%)"; // mặc định cho slot trống
+                        if (battery) {
+                          switch (battery.status) {
+                            case "Available":
+                              cellBackground = "linear-gradient(120deg, #e0f2fe 25%,rgb(17, 251, 98) 105%)";
+                              break;
+                            case "Charging":
+                              cellBackground = "linear-gradient(120deg, #f0fdfa 45%, #38bdf8 100%)";
+                              break;
+                            case "Maintenance":
+                              cellBackground = "linear-gradient(120deg, #fdf6b2 65%, #fef08a 100%)";
+                              break;
+                            case "InUse":
+                              cellBackground = "linear-gradient(120deg, #f3e8ff 60%, #ede9fe 100%)";
+                              break;
+                            case "Booked":
+                              cellBackground = "linear-gradient(120deg, #fce7f3 60%, #fecaca 100%)";
+                              break;
+                            case "Decommissioned":
+                              cellBackground = "linear-gradient(120deg, #f1f5f9 80%, #cbd5e1 100%)";
+                              break;
+                            default:
+                              cellBackground = "linear-gradient(120deg, #f0fdfa 60%, #a7f3d0 100%)";
+                              break;
+                          }
+                        }
+
                         return (
                           <button
                             key={slot?.slotId || i}
-                            className="slot-cell"
-                            style={{ minHeight: 68, borderRadius: 10 }}
+                            className={`slot-cell decorated-slot ${battery ? 'has-battery' : 'empty-slot'}`}
+                            style={{
+                              minHeight: 78,
+                              borderRadius: 14,
+                              boxShadow: battery
+                                ? "0 6px 18px 0 rgba(16, 185, 129, 0.18)"
+                                : "0 4px 10px 0 rgba(148,163,184,.12)",
+                              background: cellBackground,
+                              cursor: 'pointer',
+                              border: battery
+                                ? "2.5px solid #34d399"
+                                : "1.5px solid #e2e8f0",
+                              transition: "box-shadow .17s, border .17s"
+                            }}
                             onClick={() => openSlotDetail(slot)}
                             title={battery?.batteryName || battery?.batteryId || 'Trống'}
                           >
-                            <div className="slot-status" style={{ fontWeight: '600', marginBottom: '4px' }}>
-                              {battery?.batteryName || battery?.batteryId || 'Empty'}
+                            <div
+                              className="slot-status"
+                              style={{
+                                fontWeight: 700,
+                                marginBottom: battery ? 2 : '0.5px',
+                                fontSize: 15,
+                                color: battery ? "#059669" : "#64748b",
+                                letterSpacing: 0.2,
+                                textShadow: battery ? "0 1px 4px #d1fae5" : ""
+                              }}
+                            >
+                              {battery?.batteryName || battery?.batteryId || <span style={{ color: "#cbd5e1" }}>— Empty —</span>}
                             </div>
-                            {battery && (
-                              <>
-                                <div className="slot-status" style={{ fontSize: '10px', color: '#64748b', marginBottom: '2px' }}>
-                                  {battery.capacity != null ? `${battery.capacity}%` : 'N/A'}
+                            {battery ? (
+                              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 1 }}>
+                                <div
+                                  className="slot-info"
+                                  style={{ fontSize: 12, color: "#0891b2", marginBottom: 1, fontWeight: 500 }}
+                                >
+                                  ⚡ Capacity:{" "}
+                                  <span style={{ color: "#14b8a6", fontWeight: 700 }}>
+                                    {battery.capacity != null ? `${battery.capacity}%` : "N/A"}
+                                  </span>
                                 </div>
-                                <div className="slot-badge">{battery.status || 'N/A'}</div>
-                              </>
+                                <span
+                                  className="slot-badge"
+                                  style={{
+                                    background:
+                                      battery.status === "Available"
+                                        ? "linear-gradient(90deg,#a7f3d0, #6ee7b7)"
+                                        : battery.status === "Charging"
+                                        ? "linear-gradient(90deg,#f9fafb,#60a5fa 80%)"
+                                        : battery.status === "Maintenance"
+                                        ? "linear-gradient(90deg,#fef3c7,#fde68a)"
+                                        : battery.status === "InUse"
+                                        ? "linear-gradient(90deg,#e0e7ff,#818cf8 80%)"
+                                        : battery.status === "Booked"
+                                        ? "linear-gradient(90deg,#ffe4e6,#f87171 70%)"
+                                        : "#e5e7eb",
+                                    color: "#155e75",
+                                    fontWeight: 600,
+                                    fontSize: 12,
+                                    padding: "4px 10px",
+                                    borderRadius: 14,
+                                    marginTop: 2,
+                                    boxShadow: '0 1px 4px #e0eaff57',
+                                    border: '1px solid #d1fae5'
+                                  }}
+                                >
+                                  {battery.status || 'N/A'}
+                                </span>
+                              </div>
+                            ) : (
+                              <div style={{
+                                color: "#cbd5e1",
+                                fontSize: 11,
+                                opacity: 0.9,
+                                marginTop: 2
+                              }}>
+                                Slot trống
+                              </div>
                             )}
                           </button>
                         );
