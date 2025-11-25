@@ -3,6 +3,7 @@ import { message } from 'antd';
 import { authAPI } from '../services/authAPI';
 import { formAPI } from '../services/formAPI';
 import Calendar from '../Admin/pages/Calendar';
+import StaffReportManager from './StaffReportManager';
 import './Staff.css';
 import { decodeJwt, extractRolesFromPayload } from '../services/jwt';
 
@@ -16,6 +17,7 @@ const VIEW_NAV = [
   { key: 'battery-report', label: 'Báo cáo pin', icon: '📝' },
   { key: 'exchange-battery', label: 'Xác nhận giao dịch', icon: '✅' },
   { key: 'station-for-staff', label: 'Quản lý trạm', icon: '🔋' },
+  { key: 'report-manager', label: 'Quản lý báo cáo', icon: '📊' }, // Thêm dòng này
 ];
 
 const VIEW_CONFIG = VIEW_NAV.reduce((acc, item) => {
@@ -454,6 +456,7 @@ function StaffPage() {
   const isBatteryReportView = activeViewKey === 'battery-report';
   const isExchangeBatteryView = activeViewKey === 'exchange-battery';
   const isStationInventoryView = activeViewKey === 'station-for-staff';
+  const isReportManagerView = activeViewKey === 'report-manager'; // Thêm dòng này
   const pageTitle = activeView?.label || VIEW_CONFIG[DEFAULT_VIEW_KEY].label;
 
   const handleSwitchView = useCallback((nextView) => {
@@ -3165,6 +3168,14 @@ function StaffPage() {
                 </div>
               </div>
             )}
+          </section>
+        )}
+
+        {/* PHẦN QUẢN LÝ BÁO CÁO */}
+        {isReportManagerView && (
+          <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
+            <h2 className="filters-title">Quản lý Báo cáo Pin</h2>
+            <StaffReportManager />
           </section>
         )}
       </div>

@@ -1364,5 +1364,19 @@ export const authAPI = {
       throw new Error('Không lấy được access token từ Google');
     }
   },
+// Thêm vào authAPI object trong authAPI.js
+updateReportStatus: async (reportId, status) => {
+  try {
+    const formData = new FormData();
+    formData.append("ReportID", reportId);
+    formData.append("Status", status);
 
+    const response = await api.put('/api/Report/update_report_status', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error?.message || JSON.stringify(error) || 'Update report status failed');
+  }
+},
 };

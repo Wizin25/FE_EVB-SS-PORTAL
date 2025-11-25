@@ -905,45 +905,26 @@ const Vehicle = () => {
                           
                           <div className="vehicle-details">
                             <div className="detail-row">
-                              <span className="detail-label">VIN</span>
-                              <span className="detail-value">{getVehicleProperty(vehicle, 'vin')}</span>
+                              <span className="detail-labelV">VIN</span>
+                              <span className="detail-valueV">{getVehicleProperty(vehicle, 'vin')}</span>
                             </div>
                             
-                            {/* THÔNG TIN PIN CHI TIẾT - ĐÃ SỬA LỖI */}
                             <div className="detail-row">
-                              <span className="detail-label">🔋 Tên pin</span>
-                              <span className="detail-value battery-name">
-                                {batteryInfo.name}
-                              </span>
-                            </div>
-                            <div className="detail-row">
-                              <span className="detail-label">⚡ Loại pin</span>
-                              <span className="detail-value battery-type">
+                              <span className="detail-labelV">🔋 Loại pin của xe</span>
+                              <span className="detail-valueV">
                                 {batteryInfo.type}
                               </span>
                             </div>
                             <div className="detail-row">
-                              <span className="detail-label">📋 Thông số</span>
-                              <span className="detail-value battery-spec">
-                                {batteryInfo.specification}
-                              </span>
-                            </div>
-                            <div className="detail-row">
-                              <span className="detail-label">🔋 Dung lượng</span>
-                              <span className="detail-value battery-quality">
-                                {batteryInfo.quality}
-                              </span>
-                            </div>
-                            <div className="detail-row">
-                              <span className="detail-label">🔄 Trạng thái pin</span>
-                              <span className="detail-value battery-status">
+                              <span className="detail-labelV">🔄 Trạng thái pin</span>
+                              <span className="detail-valueV battery-status">
                                 {getBatteryStatusDisplay(batteryInfo.status)}
                               </span>
                             </div>
                             
                             <div className="detail-row">
-                              <span className="detail-label">Gói hiện tại</span>
-                              <span className="detail-value package-id">
+                              <span className="detail-labelV">Gói hiện tại</span>
+                              <span className="detail-valueV package-id">
                                 {getVehicleProperty(vehicle, 'package') && getVehicleProperty(vehicle, 'package') !== 'N/A' ? (
                                   <span className="has-package">📦 {packageInfo.name}</span>
                                 ) : (
@@ -952,8 +933,8 @@ const Vehicle = () => {
                               </span>
                             </div>
                             <div className="detail-row">
-                              <span className="detail-label">Ngày hết hạn gói</span>
-                              <span className="detail-value">
+                              <span className="detail-labelV">Ngày hết hạn gói</span>
+                              <span className="detail-valueV">
                                 <span className={`expired-date ${isExpiringSoon(packageInfo.expiredDate) ? 'expiring-soon' : ''} ${isExpired(packageInfo.expiredDate) ? 'expired' : ''}`}>
                                   ⏰ {formatExpiryDate(packageInfo.expiredDate)}
                                   {isExpiringSoon(packageInfo.expiredDate)}

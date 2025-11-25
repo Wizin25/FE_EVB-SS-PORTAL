@@ -669,3 +669,94 @@ body > div:first-child {
     grid-template-columns: 1fr;
   }
 }
+
+/* Thêm vào file StationScheH.css */
+
+/* Status Filter Buttons */
+.status-filter-container {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.status-filter-btn {
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.status-filter-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.status-filter-all {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border-color: #6366f1;
+}
+
+.status-filter-pending {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: white;
+  border-color: #f97316;
+}
+
+.status-filter-completed {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  border-color: #22c55e;
+}
+
+.status-filter-outline {
+  background: transparent;
+  color: inherit;
+}
+
+.status-filter-outline.status-filter-pending {
+  color: #f97316;
+  border-color: #f97316;
+}
+
+.status-filter-outline.status-filter-completed {
+  color: #22c55e;
+  border-color: #22c55e;
+}
+
+.status-filter-outline.status-filter-all {
+  color: #6366f1;
+  border-color: #6366f1;
+}
+
+/* Responsive design cho filter buttons */
+@media (max-width: 768px) {
+  .status-filter-container {
+    justify-content: center;
+  }
+  
+  .status-filter-btn {
+    padding: 10px 20px;
+    font-size: 13px;
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .status-filter-btn {
+    padding: 8px 16px;
+    font-size: 12px;
+    min-width: 100px;
+  }
+}
