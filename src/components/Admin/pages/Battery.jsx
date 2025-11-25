@@ -964,10 +964,11 @@ export default function BatteryManagementPage() {
                 {isEditingInModal ? (
                   <div className="batt-edit-form" style={{ marginTop: 12 }}>
                     <div className="form-row">
-                      <label>
+                      <label style={{ color: "#111" }}>
                         Tên pin
                         <input
                           className="input"
+                          style={{ color: "#111" }}
                           type="text"
                           value={editForm.batteryName}
                           onChange={e => setEditForm({ ...editForm, batteryName: e.target.value })}
@@ -975,10 +976,11 @@ export default function BatteryManagementPage() {
                         />
                       </label>
 
-                      <label>
+                      <label style={{ color: "#111" }}>
                         Capacity (%)
                         <input
                           className="input"
+                          style={{ color: "#111" }}
                           type="number"
                           min="0"
                           max="100"
@@ -988,10 +990,11 @@ export default function BatteryManagementPage() {
                         />
                       </label>
 
-                      <label>
+                      <label style={{ color: "#111" }}>
                         BatteryType
                         <select
                           className="input"
+                          style={{ color: "#111" }}
                           value={editForm.batteryType}
                           onChange={e => setEditForm({ ...editForm, batteryType: e.target.value })}
                         >
@@ -1001,10 +1004,11 @@ export default function BatteryManagementPage() {
                         </select>
                       </label>
 
-                      <label>
+                      <label style={{ color: "#111" }}>
                         Specification
                         <select
                           className="input"
+                          style={{ color: "#111" }}
                           value={editForm.specification}
                           onChange={e => setEditForm({ ...editForm, specification: e.target.value })}
                         >
@@ -1014,10 +1018,11 @@ export default function BatteryManagementPage() {
                         </select>
                       </label>
 
-                      <label>
+                      <label style={{ color: "#111" }}>
                         BatteryQuality (%)
                         <input
                           className="input"
+                          style={{ color: "#111" }}
                           type="number"
                           min="0"
                           max="100"
