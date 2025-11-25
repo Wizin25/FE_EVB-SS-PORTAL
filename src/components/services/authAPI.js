@@ -268,6 +268,25 @@ export const authAPI = {
       throw new Error(msg);
     }
   },
+  
+  getAllStationsOfCustomerSuitVehicle: async (vehicleId) => {
+    try {
+      const res = await api.get('/api/Station/get_all_station_of_customer_suit_vehicle', {
+        params: { vehicleId }
+      });
+      if (res?.data?.isSuccess) {
+        return res.data.data || [];
+      }
+      throw new Error(res?.data?.responseCode || 'Failed to fetch suited stations for vehicle');
+    } catch (error) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.responseCode ||
+        error?.message ||
+        JSON.stringify(error);
+      throw new Error(msg);
+    }
+  },
 
   createStation: async ({ stationName, location, image }) => {
     try {
@@ -709,7 +728,7 @@ export const authAPI = {
 
   getStationByIdForAdmin: async (stationId) => {
     try {
-      const res = await api.get('/api/Station/get_station_by_id_for_admin', {
+      const res = await api.get('/api/Station/get_station_by_id', {
         params: { stationId }
       });
       if (res?.data?.isSuccess) {
@@ -872,6 +891,22 @@ export const authAPI = {
     }
   },
 
+  addBatteryReportDirect: async (accountId, vin) => {
+    try {
+      const formData = new FormData();
+      formData.append('AccountId', accountId);
+      formData.append('VIN', vin);
+
+      const res = await api.post('/api/BatteryReport/add_battery_report_direct', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return res.data;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Tạo báo cáo pin trực tiếp thất bại';
+      throw new Error(msg);
+    }
+  },
+
 
 
   //EXCHANGE BATTERY APIs
@@ -941,6 +976,27 @@ export const authAPI = {
     return res.data; // { data: [...] } hoặc mảng
   },
 
+  getPendingExchangeByVINAndAccountId: async (vin, accountId) => {
+    if (!vin || !accountId) throw new Error('vin and accountId are required');
+    try {
+      const res = await api.get('/api/ExchangeBattery/get_pending_exchange_by_VIN_and_AccountId', {
+        params: { vin, accountId }
+      });
+      // Chuẩn hóa trả về: giả định BE bọc trong { isSuccess, data }
+      if (res?.data?.isSuccess && res?.data?.data) return res.data.data;
+      if (Array.isArray(res?.data)) return res.data;
+      return res.data || null;
+    } catch (err) {
+      const code = err?.response?.status;
+      if (code === 404 || code === 204) {
+        // Không có giao dịch pending => trả null
+        return null;
+      }
+      const msg = err?.response?.data?.message || err?.message || 'Lỗi khi lấy giao dịch đổi pin chờ xử lý theo VIN và accountId';
+      throw new Error(msg);
+    }
+  },
+
   updateExchangeStatus: async (payload) => {
     if (!payload) throw new Error('Missing payload');
 
@@ -976,6 +1032,40 @@ export const authAPI = {
       }
     );
     return res.data;
+  },
+  updateExchangeStatusV2: async ({ exchangeBatteryId, status }) => {
+    if (!exchangeBatteryId) {
+      throw new Error('Missing required field: exchangeBatteryId');
+    }
+    if (!status) {
+      throw new Error('Missing required field: status');
+    }
+
+    // Normalize fields
+    const ExchangeBatteryId = exchangeBatteryId;
+    const Status = typeof status === 'string'
+      ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
+      : status;
+
+    const formData = new FormData();
+    formData.append('ExchangeBatteryId', ExchangeBatteryId);
+    formData.append('Status', Status);
+
+    try {
+      const res = await api.put(
+        '/api/ExchangeBattery/update_exchange_battery_status',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      return res.data;
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Lỗi cập nhật trạng thái giao dịch đổi pin';
+      throw new Error(msg);
+    }
   },
 
   // Trong authAPI object, cập nhật hàm uploadToCloudinary:
