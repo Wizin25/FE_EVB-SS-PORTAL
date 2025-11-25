@@ -268,6 +268,25 @@ export const authAPI = {
       throw new Error(msg);
     }
   },
+  
+  getAllStationsOfCustomerSuitVehicle: async (vehicleId) => {
+    try {
+      const res = await api.get('/api/Station/get_all_station_of_customer_suit_vehicle', {
+        params: { vehicleId }
+      });
+      if (res?.data?.isSuccess) {
+        return res.data.data || [];
+      }
+      throw new Error(res?.data?.responseCode || 'Failed to fetch suited stations for vehicle');
+    } catch (error) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.responseCode ||
+        error?.message ||
+        JSON.stringify(error);
+      throw new Error(msg);
+    }
+  },
 
   createStation: async ({ stationName, location, image }) => {
     try {
@@ -709,7 +728,7 @@ export const authAPI = {
 
   getStationByIdForAdmin: async (stationId) => {
     try {
-      const res = await api.get('/api/Station/get_station_by_id_for_admin', {
+      const res = await api.get('/api/Station/get_station_by_id', {
         params: { stationId }
       });
       if (res?.data?.isSuccess) {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { authAPI } from "../services/authAPI";
 import { vehicleAPI } from "../services/vehicleAPI";
 import HeaderDriver from "./header";
@@ -73,6 +73,15 @@ export default function StationForUser() {
   // Reload Station
   const [isLoading, setIsLoading] = useState(false);
 
+  // ========= THÊM STATE CHO stationDetails & interval QUẢN LÝ AUTO FETCH PIN =========
+  const [stationDetails, setStationDetails] = useState({});
+  const [batteryIntervals, setBatteryIntervals] = useState({});
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  // Ref for unmount cleanup
+  const batteryIntervalsRef = useRef(batteryIntervals);
+  batteryIntervalsRef.current = batteryIntervals;
+
   // Array of images to rotate through
   const stationImages = [
     "https://www.global-imi.com/sites/default/files/shutterstock_2002470953-min%20%281%29_1.jpg",
@@ -121,10 +130,10 @@ export default function StationForUser() {
 
   useEffect(() => {
     fetchStations();
-    const interval = setInterval(() => {
-      fetchStations({ silent: true });
-    }, 2 * 60 * 1000);
-    return () => clearInterval(interval);
+    // const interval = setInterval(() => {
+    //   fetchStations({ silent: true });
+    // }, 2 * 60 * 1000);
+    // return () => clearInterval(interval);
   }, []);
 
   // Load linked vehicles for current user
@@ -163,10 +172,10 @@ export default function StationForUser() {
         );
 
         setVehicles(vehiclesWithBattery);
-        if (vehiclesWithBattery.length > 0) {
-          const vin = vprop(vehiclesWithBattery[0], 'vin');
-          setSelectedVehicleVin(vin);
-        }
+        // if (vehiclesWithBattery.length > 0) {
+        //   const vin = vprop(vehiclesWithBattery[0], 'vin');
+        //   setSelectedVehicleVin(vin);
+        // }
       } catch (e) {
         console.error('Failed to load vehicles:', e);
       }
@@ -251,7 +260,6 @@ export default function StationForUser() {
     });
   }, [stations, q, statusFilter, selectedVehicleVin, selectedVehicleBatteryType, selectedVehicleBatterySpec]);
 
-
   const totalItems = filtered.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -264,24 +272,70 @@ export default function StationForUser() {
 
   const safeLen = (arr) => (Array.isArray(arr) ? arr.length : 0);
 
-  // Function to toggle battery details visibility for a station
-  const toggleStationDetails = (stationId) => {
-    setExpandedStations(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(stationId)) {
-        newSet.delete(stationId);
-      } else {
-        newSet.add(stationId);
-      }
-      return newSet;
-    });
+  // ========= PHẦN 2: Hàm fetch chi tiết pin theo stationId =========
+  const fetchStationDetail = async (stationId) => {
+    try {
+      const res = await authAPI.getStationByIdForAdmin(stationId);
+      const data = res?.data?.data || res?.data || res;
+      setStationDetails(prev => ({
+        ...prev,
+        [stationId]: data
+      }));
+    } catch (err) {
+      console.error("Failed to fetch station detail:", err);
+    }
   };
+
+  // ========= PHẦN 3: toggle với auto-interval fetch pin =========
+  const handleToggleStationDetail = async (stationId) => {
+    const isExpanded = expandedStations.has(stationId);
+
+    // Nếu đang mở: THU GỌN và clear interval nếu có
+    if (isExpanded) {
+      setExpandedStations(prev => {
+        const s = new Set(prev);
+        s.delete(stationId);
+        return s;
+      });
+
+      if (batteryIntervals[stationId]) {
+        clearInterval(batteryIntervals[stationId]);
+        setBatteryIntervals(prev => {
+          const clone = { ...prev };
+          delete clone[stationId];
+          return clone;
+        });
+      }
+      return;
+    }
+
+    // Nếu đóng: mở, fetch detail lần đầu và setup auto fetch interval
+    await fetchStationDetail(stationId);
+
+    setExpandedStations(prev => new Set(prev).add(stationId));
+
+    const intervalId = setInterval(() => {
+      fetchStationDetail(stationId);
+    }, 15000);
+
+    setBatteryIntervals(prev => ({
+      ...prev,
+      [stationId]: intervalId
+    }));
+  };
+
+  // On UNMOUNT: clear all batteryIntervals
+  useEffect(() => {
+    return () => {
+      const _intervals = batteryIntervalsRef.current;
+      Object.values(_intervals).forEach(id => clearInterval(id));
+    };
+  }, []);
 
   // Function to handle report button click
   const handleReportClick = (station) => {
     navigate(`/report?stationId=${station.stationId}&stationName=${encodeURIComponent(station.stationName || '')}&location=${encodeURIComponent(station.location || '')}`);
   };
-
 
   // === STATE cho modal slot ===
   const [showSlotModal, setShowSlotModal] = useState(false);
@@ -333,9 +387,7 @@ export default function StationForUser() {
     window.location.href = `/booking?${qs}`;
   };
 
-
   return (
-
     <div
       className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900' : 'bg-white'}`}
       style={{ maxHeight: "calc(100vh - 120px)", overflowY: "auto" }}
@@ -464,7 +516,7 @@ export default function StationForUser() {
             <option value="Inactive">❌ Inactive</option>
           </select>
           <button className="btn" onClick={fetchStations} disabled={isLoading}>
-            {loading ? "🔄 Đang tải..." : "🔄 Reload"}
+            {isLoading ? "🔄 Đang tải..." : "🔄 Reload"}
           </button>
         </div>
 
@@ -480,9 +532,9 @@ export default function StationForUser() {
         </div>
 
         {error && <div className="station-error">❌ Lỗi: {error}</div>}
-        {loading && <div className="station-loading">⏳ Đang tải dữ liệu...</div>}
+        {isLoading && <div className="station-loading">⏳ Đang tải dữ liệu...</div>}
 
-        {!loading && !error && (
+        {!isLoading && !error && (
           totalItems === 0 ? (
             <div className="station-empty">🔍 Không tìm thấy trạm nào phù hợp.</div>
           ) : (
@@ -490,6 +542,11 @@ export default function StationForUser() {
               {currentItems.map((st, idx) => {
                 const stationUniqueId = st.stationId ?? st.StationId ?? st.id ?? idx;
                 const isExpanded = expandedStations.has(stationUniqueId);
+
+                // PHẦN 5: Luôn dùng detail và slots từ stationDetails nếu có (auto cập nhật mỗi 15s)
+                const detail = stationDetails[stationUniqueId];
+                const slots = detail?.slots || [];
+
                 return (
                   <article
                     key={stationUniqueId}
@@ -670,7 +727,6 @@ export default function StationForUser() {
 
                       <div className="summary-row" style={{
                         display: 'grid',
-                        // gridTemplateColumns: 'repeat(3, 1fr)',
                         gap: '16px',
                         marginBottom: '20px',
                         padding: '16px',
@@ -682,22 +738,6 @@ export default function StationForUser() {
                           ? '1px solid rgba(75, 85, 99, 0.3)'
                           : '1px solid rgba(226, 232, 240, 0.5)'
                       }}>
-                        {/* <div className="summary-item" style={{ textAlign: 'center' }}>
-                          <div className="summary-num" style={{
-                            fontSize: '1.8rem',
-                            fontWeight: 'bold',
-                            color: theme === 'dark' ? '#3b82f6' : '#2563eb',
-                            marginBottom: '4px'
-                          }}>
-                            🔋 {st.batteryNumber ?? 0}
-                          </div>
-                          <div className="summary-label" style={{
-                            fontSize: '0.8rem',
-                            color: theme === 'dark' ? '#94a3b8' : '#64748b'
-                          }}>
-                            Số pin đăng ký
-                          </div>
-                        </div> */}
                         <div className="summary-item" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', justifyContent: 'center' }}>
                           <div className="summary-num" style={{
                             fontSize: '1.8rem',
@@ -717,29 +757,13 @@ export default function StationForUser() {
                             Pin đang ở trạm
                           </div>
                         </div>
-                        {/* <div className="summary-item hide-mobile" style={{ textAlign: 'center' }}>
-                          <div className="summary-num" style={{
-                            fontSize: '1.8rem',
-                            fontWeight: 'bold',
-                            color: theme === 'dark' ? '#f59e0b' : '#d97706',
-                            marginBottom: '4px'
-                          }}>
-                            📊 {safeLen(st.batteryHistories)}
-                          </div>
-                          <div className="summary-label" style={{
-                            fontSize: '0.8rem',
-                            color: theme === 'dark' ? '#94a3b8' : '#64748b'
-                          }}>
-                            Lịch sử
-                          </div>
-                        </div> */}
                       </div>
 
                       {/* Batteries detail list - Đẹp trai, lung linh hơn */}
                       <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
                         <button
                           type="button"
-                          onClick={() => toggleStationDetails(stationUniqueId)}
+                          onClick={() => handleToggleStationDetail(stationUniqueId)}
                           style={{
                             padding: '10px 18px',
                             borderRadius: '9999px',
@@ -784,11 +808,13 @@ export default function StationForUser() {
                             }}
                           >
                             {/* ===== SƠ ĐỒ KHE (6×5) — slot-only ===== */}
-
                             <div className="slots-section" style={{ marginTop: 6, marginBottom: 16 }}>
-                              {Array.isArray(st.slots) && st.slots.length > 0 ? (
+                              {loadingDetails && !slots.length && (
+                                <div className="station-loading">Đang tải slot...</div>
+                              )}
+                              {Array.isArray(slots) && slots.length > 0 ? (
                                 <div className="slot-grid">
-                                  {buildSlotGrid(st.slots).map((row, rIdx) => (
+                                  {buildSlotGrid(slots).map((row, rIdx) => (
                                     <div className="slot-row liquid" key={`row-${rIdx}`}>
                                       {row.map((slot, cIdx) => {
                                         const hasBattery = !!slot?.battery;
@@ -848,8 +874,8 @@ export default function StationForUser() {
                                 <span><i className="lg lg-faulty" />Đã đặt</span>
                               </div>
                             </div>
-
-                            {(Array.isArray(st.slots) ? st.slots.map(s => s?.battery).filter(Boolean) : []).map((b) => {
+                            {(Array.isArray(slots) ? slots.map(s => s?.battery).filter(Boolean) : []).map((b) => {
+                              // (no visible UI, placeholder for mapping)
                               const bid = vprop(b, 'batteryId') || vprop(b, 'id') || vprop(b, 'BatteryId');
                               const bname = vprop(b, 'batteryName') || bid || 'N/A';
                               const btype = vprop(b, 'batteryType') || '-';
@@ -860,7 +886,6 @@ export default function StationForUser() {
                               const compatible = batteryCompatible(b);
                               const isBooked = bstatus.toLowerCase() === 'booked';
 
-                              // Smart icon and status color
                               let statusChipColor = '#22c55e', statusIcon = '🟢';
                               if (bstatus.toLowerCase() === 'active') { statusChipColor = '#22c55e'; statusIcon = '🟢'; }
                               else if (isBooked) { statusChipColor = '#f87171'; statusIcon = '🔴'; }
