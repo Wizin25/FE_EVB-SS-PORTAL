@@ -91,6 +91,30 @@ export default function StationForUser() {
   const [swapLoading, setSwapLoading] = useState(false);
   const [swapError, setSwapError] = useState("");
   const [swapSuccess, setSwapSuccess] = useState("");
+  // Popup xác nhận thành công
+  const [showSwapSuccessPopup, setShowSwapSuccessPopup] = useState(false);
+  const [redirectCountdown, setRedirectCountdown] = useState(3);
+
+
+  useEffect(() => {
+    if (showSwapSuccessPopup) {
+      setRedirectCountdown(3); // reset mỗi lần mở popup
+
+      const interval = setInterval(() => {
+        setRedirectCountdown((prev) => prev - 1);
+      }, 1000);
+
+      const timeout = setTimeout(() => {
+        setShowSwapSuccessPopup(false);
+        navigate("/stationschehistory");
+      }, 3000);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
+    }
+  }, [showSwapSuccessPopup, navigate]);
 
   // Background images fallback
   const stationImages = [
@@ -483,6 +507,7 @@ export default function StationForUser() {
       });
 
       setSwapSuccess("Đã xác nhận giao dịch đổi pin thành công.");
+      setShowSwapSuccessPopup(true); // mở popup mới
     } catch (err) {
       setSwapError(err?.message || "Không thể xác nhận giao dịch.");
     } finally {
@@ -734,9 +759,8 @@ export default function StationForUser() {
                             style={{
                               width: "100%",
                               height: "100%",
-                              background: `url(${
-                                stationImages[idx % stationImages.length]
-                              }) center/cover`
+                              background: `url(${stationImages[idx % stationImages.length]
+                                }) center/cover`
                             }}
                           />
                         )}
@@ -1021,9 +1045,8 @@ export default function StationForUser() {
                                             <button
                                               type="button"
                                               key={slot?.slotId || `slot-${rIdx}-${cIdx}`}
-                                              className={`slot-cell status-${status} ${
-                                                hasBattery ? "has-battery" : ""
-                                              }`}
+                                              className={`slot-cell status-${status} ${hasBattery ? "has-battery" : ""
+                                                }`}
                                               onClick={() =>
                                                 canOpen && openSlotModal(slot, st.stationId)
                                               }
@@ -1031,12 +1054,11 @@ export default function StationForUser() {
                                                 !hasBattery
                                                   ? slot?.status || "Trống"
                                                   : isCompatible
-                                                  ? `${name}${
-                                                      b?.capacity != null
-                                                        ? ` • ${b.capacity}%`
-                                                        : ""
+                                                    ? `${name}${b?.capacity != null
+                                                      ? ` • ${b.capacity}%`
+                                                      : ""
                                                     } • ${badge} (phù hợp)`
-                                                  : `${name} • Không phù hợp với xe`
+                                                    : `${name} • Không phù hợp với xe`
                                               }
                                               style={{
                                                 cursor: canOpen ? "pointer" : "not-allowed",
@@ -1434,7 +1456,43 @@ export default function StationForUser() {
           </div>
         </div>
       )}
+      {showSwapSuccessPopup && (
+        <div className="modal-overlay" onClick={() => setShowSwapSuccessPopup(false)}>
+          <div
+            className="modal"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 460, textAlign: "center", padding: "30px" }}
+          >
+            <h2 style={{ color: "#16a34a", marginBottom: "12px" }}>
+              🎉 Giao dịch đổi pin thành công!
+            </h2>
 
+            <p style={{ fontSize: "1rem", marginBottom: "14px" }}>
+              Hệ thống đã ghi nhận trao đổi pin cho bạn.
+            </p>
+
+            <p style={{ fontSize: "0.95rem", color: "#555", marginBottom: "20px" }}>
+              Chuyển tiếp đến trang <strong>lịch của tôi</strong> trong{" "}
+              <strong style={{ color: "#16a34a" }}>{redirectCountdown}s</strong>...
+            </p>
+
+            <button
+              className="btn"
+              onClick={() => setShowSwapSuccessPopup(false)}
+              style={{
+                padding: "10px 18px",
+                borderRadius: "8px",
+                background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                color: "#fff",
+                border: "none",
+                fontWeight: 600
+              }}
+            >
+              Đóng ngay
+            </button>
+          </div>
+        </div>
+      )}
       <Footer />
     </div>
   );
