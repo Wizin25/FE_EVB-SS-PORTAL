@@ -17,7 +17,7 @@ const VIEW_NAV = [
   { key: 'battery-report', label: 'Báo cáo pin', icon: '📝' },
   { key: 'exchange-battery', label: 'Xác nhận giao dịch', icon: '✅' },
   { key: 'station-for-staff', label: 'Quản lý trạm', icon: '🔋' },
-  { key: 'report-manager', label: 'Quản lý báo cáo', icon: '📊' }, // Thêm dòng này
+  { key: 'report-manager', label: 'Quản lý báo cáo', icon: '📊' },
 ];
 
 const VIEW_CONFIG = VIEW_NAV.reduce((acc, item) => {
@@ -207,7 +207,6 @@ function BatteryReportForm({
           </select>
         </div>
 
-
         <div className="customer-box" style={{ background: 'rgba(255,255,255,0.6)' }}>
           <div className="customer-grid">
             <div><strong>AccountId:</strong> {defaults?.accountId || 'N/A'}</div>
@@ -326,6 +325,19 @@ function StaffPage() {
   const [removingBatteryFromStation, setRemovingBatteryFromStation] = useState(false);
   const [removeBatteryError, setRemoveBatteryError] = useState('');
 
+  // === STATE MỚI CHO REPORT DETAIL POPUP ===
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [showReportDetail, setShowReportDetail] = useState(false);
+  const [updatingReportStatus, setUpdatingReportStatus] = useState(false);
+  const [fetchingAccountDetails, setFetchingAccountDetails] = useState(false);
+  const [accountDetails, setAccountDetails] = useState({});
+
+  // Fetch account details when report detail popup opens
+  useEffect(() => {
+    if (showReportDetail && selectedReport?.accountId) {
+      fetchAccountDetails(selectedReport.accountId);
+    }
+  }, [showReportDetail, selectedReport]);
 
   const filteredSortedBatteryReports = useMemo(() => {
     let list = Array.isArray(batteryReports) ? [...batteryReports] : [];
@@ -367,6 +379,103 @@ function StaffPage() {
 
   // Cache order details theo orderId
   const [orderDetails, setOrderDetails] = useState({});
+
+  // === FUNCTIONS MỚI CHO REPORT DETAIL POPUP ===
+  const handleShowReportDetail = useCallback((report) => {
+    setSelectedReport(report);
+    setShowReportDetail(true);
+  }, []);
+
+  const handleCloseReportDetail = useCallback(() => {
+    setShowReportDetail(false);
+    setSelectedReport(null);
+  }, []);
+
+  const handleUpdateReportStatus = useCallback(async (reportId, newStatus, reportName = '') => {
+    if (!reportId) {
+      messageApi.error('Không tìm thấy ID báo cáo');
+      return;
+    }
+
+    const confirmMessage = `Bạn có chắc chắn muốn cập nhật trạng thái báo cáo "${reportName}" thành "${newStatus}"?`;
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      setUpdatingReportStatus(true);
+      await authAPI.updateReportStatus(reportId, newStatus);
+      messageApi.success(`Cập nhật trạng thái thành ${newStatus}`);
+      
+      // Refresh danh sách báo cáo trong StaffReportManager
+      // Có thể thêm callback refresh từ StaffReportManager nếu cần
+      
+      // Cập nhật selectedReport nếu đang mở
+      if (selectedReport && (selectedReport.reportId === reportId || selectedReport.id === reportId)) {
+        setSelectedReport(prev => ({
+          ...prev,
+          status: newStatus
+        }));
+      }
+    } catch (error) {
+      console.error('Error updating report status:', error);
+      messageApi.error('Lỗi khi cập nhật trạng thái: ' + (error?.message || 'Lỗi không xác định'));
+    } finally {
+      setUpdatingReportStatus(false);
+    }
+  }, [selectedReport, messageApi]);
+
+  // Lấy thông tin account chi tiết bằng getCustomerByAccountId
+  const fetchAccountDetails = async (accountId) => {
+    if (!accountId) return null;
+    
+    setFetchingAccountDetails(true);
+    try {
+      // Kiểm tra xem đã có trong cache chưa
+      if (accountDetails[accountId]) {
+        return accountDetails[accountId];
+      }
+
+      // Dùng getCustomerByAccountId để lấy thông tin chi tiết
+      const response = await authAPI.getCustomerByAccountId(accountId);
+      
+      let accountInfo = {
+        accountName: 'N/A',
+        phoneNumber: 'N/A',
+        email: 'N/A'
+      };
+
+      // Xử lý response theo cấu trúc từ backend
+      if (response) {
+        // Nếu response có data property (wrapper pattern)
+        const customerData = response.data || response;
+        
+        accountInfo = {
+          accountName: customerData.name || customerData.Name || customerData.username || customerData.Username || 'N/A',
+          phoneNumber: customerData.phone || customerData.Phone || 'N/A',
+          email: customerData.email || customerData.Email || 'N/A'
+        };
+      }
+
+      // Cache lại thông tin
+      setAccountDetails(prev => ({
+        ...prev,
+        [accountId]: accountInfo
+      }));
+      
+      return accountInfo;
+    } catch (err) {
+      console.error('Error fetching account details:', err);
+      // Trả về thông tin mặc định nếu có lỗi
+      return {
+        accountName: 'Không thể tải thông tin',
+        phoneNumber: 'Không thể tải thông tin',
+        email: 'Không thể tải thông tin'
+      };
+    } finally {
+      setFetchingAccountDetails(false);
+    }
+  };
 
   // MOVE stationAssignments UP HERE - before functions that use it
   const stationAssignments = useMemo(() => {
@@ -458,7 +567,7 @@ function StaffPage() {
   const isBatteryReportView = activeViewKey === 'battery-report';
   const isExchangeBatteryView = activeViewKey === 'exchange-battery';
   const isStationInventoryView = activeViewKey === 'station-for-staff';
-  const isReportManagerView = activeViewKey === 'report-manager'; // Thêm dòng này
+  const isReportManagerView = activeViewKey === 'report-manager';
   const pageTitle = activeView?.label || VIEW_CONFIG[DEFAULT_VIEW_KEY].label;
 
   const handleSwitchView = useCallback((nextView) => {
@@ -2471,7 +2580,6 @@ function StaffPage() {
           <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
             <h2 className="filters-title">Battery Report</h2>
 
-
             {/* Add Battery Report Form */}
             <BatteryReportForm
               defaults={{
@@ -2627,9 +2735,6 @@ function StaffPage() {
         {isExchangeBatteryView && (
           <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
             <h2 className="filters-title">Xác nhận giao dịch đổi pin</h2>
-            {/* <p style={{ marginTop: 4, color: 'rgba(15,23,42,0.7)' }}>
-              Quản lý và xác nhận các giao dịch đổi pin tại trạm của bạn
-            </p>   */}
             {/* Station Selection for Exchange Panel */}
             <div style={{
               background: 'rgba(255,255,255,0.9)',
@@ -2637,17 +2742,6 @@ function StaffPage() {
               padding: '20px',
               marginBottom: '20px'
             }}>
-              {/* <h3 style={{
-                margin: '0 0 16px 0',
-                color: '#0f172a',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <span>🏢</span>
-                Chọn trạm để xem giao dịch đổi pin
-              </h3> */}
-
               <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
                 {stationAssignments.map((assignment) => (
                   <button
@@ -3259,8 +3353,257 @@ function StaffPage() {
         {isReportManagerView && (
           <section className="liquid" style={{ marginTop: 24, padding: 24, borderRadius: 24 }}>
             <h2 className="filters-title">Quản lý Báo cáo Pin</h2>
-            <StaffReportManager />
+            <StaffReportManager 
+              onShowReportDetail={handleShowReportDetail}
+              onUpdateReportStatus={handleUpdateReportStatus}
+            />
           </section>
+        )}
+
+        {/* POPUP CHI TIẾT BÁO CÁO - HIỂN THỊ Ở CẤP ĐỘ STAFFPAGE */}
+        {showReportDetail && selectedReport && (
+          <div 
+            className="report-detail-popup" 
+            onClick={handleCloseReportDetail}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10000,
+              padding: '20px'
+            }}
+          >
+            <div 
+              className="popup-content-report" 
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: 'white',
+                borderRadius: '12px',
+                padding: '20px',
+                maxWidth: '650px',
+                width: '100%',
+                maxHeight: '85vh',
+                overflowY: 'auto',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+              }}
+            >
+              <div className="popup-header" style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '20px',
+                borderBottom: '1px solid #e2e8f0',
+                paddingBottom: '16px'
+              }}>
+                <h2 style={{ margin: 0, color: '#0f172a' }}>
+                  📋 Chi tiết báo cáo
+                </h2>
+              </div>
+              
+              <div className="report-detail-content">
+                {/* Thông tin cơ bản */}
+                <div className="detail-section" style={{ marginBottom: '24px' }}>
+                  <h3 style={{ marginBottom: '16px', color: '#334155' }}>Thông tin cơ bản</h3>
+                  <div className="detail-grid" style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                    gap: '12px'
+                  }}>
+                    <div className="detail-item" style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      padding: '12px',
+                      background: '#f8fafc',
+                      borderRadius: '8px'
+                    }}>
+                      <strong style={{ color: '#475569', fontSize: '14px' }}>Report ID</strong>
+                      <span style={{ color: '#0f172a', fontWeight: '500' }}>{selectedReport.reportId || selectedReport.id}</span>
+                    </div>
+                    <div className="detail-item" style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      padding: '12px',
+                      background: '#f8fafc',
+                      borderRadius: '8px'
+                    }}>
+                      <strong style={{ color: '#475569', fontSize: '14px' }}>Tên báo cáo</strong>
+                      <span style={{ color: '#0f172a', fontWeight: '500' }}>{selectedReport.name}</span>
+                    </div>
+                    <div className="detail-item" style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      padding: '12px',
+                      background: '#f8fafc',
+                      borderRadius: '8px'
+                    }}>
+                      <strong style={{ color: '#475569', fontSize: '14px' }}>Account ID</strong>
+                      <span style={{ color: '#0f172a', fontWeight: '500' }}>{selectedReport.accountId || 'N/A'}</span>
+                    </div>
+                    <div className="detail-item" style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      padding: '12px',
+                      background: '#f8fafc',
+                      borderRadius: '8px'
+                    }}>
+                      <strong style={{ color: '#475569', fontSize: '14px' }}>Tên người báo cáo</strong>
+                      <span style={{ color: '#0f172a', fontWeight: '500' }}>
+                        {fetchingAccountDetails ? '⏳ Đang tải...' : (accountDetails[selectedReport.accountId]?.accountName || 'N/A')}
+                      </span>
+                    </div>
+                    <div className="detail-item" style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      padding: '12px',
+                      background: '#f8fafc',
+                      borderRadius: '8px'
+                    }}>
+                      <strong style={{ color: '#475569', fontSize: '14px' }}>Số điện thoại</strong>
+                      <span style={{ color: '#0f172a', fontWeight: '500' }}>
+                        {fetchingAccountDetails ? '⏳ Đang tải...' : (accountDetails[selectedReport.accountId]?.phoneNumber || 'N/A')}
+                      </span>
+                    </div>
+                    <div className="detail-item" style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      padding: '12px',
+                      background: '#f8fafc',
+                      borderRadius: '8px'
+                    }}>
+                      <strong style={{ color: '#475569', fontSize: '14px' }}>Email</strong>
+                      <span style={{ color: '#0f172a', fontWeight: '500' }}>
+                        {fetchingAccountDetails ? '⏳ Đang tải...' : (accountDetails[selectedReport.accountId]?.email || 'N/A')}
+                      </span>
+                    </div>
+                    <div className="detail-item" style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      padding: '12px',
+                      background: '#f8fafc',
+                      borderRadius: '8px'
+                    }}>
+                      <strong style={{ color: '#475569', fontSize: '14px' }}>Ngày tạo</strong>
+                      <span style={{ color: '#0f172a', fontWeight: '500' }}>{formatDate(selectedReport.startDate)}</span>
+                    </div>
+                    <div className="detail-item" style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      padding: '12px',
+                      background: '#f8fafc',
+                      borderRadius: '8px'
+                    }}>
+                      <strong style={{ color: '#475569', fontSize: '14px' }}>Ngày cập nhật</strong>
+                      <span style={{ color: '#0f172a', fontWeight: '500' }}>{formatDate(selectedReport.updateDate)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mô tả */}
+                <div className="detail-section" style={{ marginBottom: '24px' }}>
+                  <h3 style={{ marginBottom: '16px', color: '#334155' }}>Mô tả</h3>
+                  <div className="description-box" style={{
+                    padding: '16px',
+                    background: '#f8fafc',
+                    borderRadius: '8px',
+                    color: '#475569',
+                    lineHeight: 1.5
+                  }}>
+                    {selectedReport.description || 'Không có mô tả'}
+                  </div>
+                </div>
+
+                {/* Cập nhật trạng thái với nút xác nhận */}
+                <div className="detail-section" style={{ marginBottom: '24px' }}>
+                  <h3 style={{ marginBottom: '16px', color: '#334155' }}>Cập nhật trạng thái</h3>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {['Completed'].map(status => (
+                      <div key={status} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <button
+                          onClick={() => {
+                            const confirmMessage = `Bạn có chắc chắn muốn cập nhật trạng thái báo cáo "${selectedReport.name}" thành "${status}"?`;
+                            if (window.confirm(confirmMessage)) {
+                              handleUpdateReportStatus(selectedReport.reportId || selectedReport.id, status);
+                            }
+                          }}
+                          disabled={updatingReportStatus || selectedReport.status === status}
+                          style={{
+                            padding: '8px 16px',
+                            background: selectedReport.status === status ? '#22c55e' : '#64748b',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: updatingReportStatus || selectedReport.status === status ? 'not-allowed' : 'pointer',
+                            fontSize: '14px',
+                            opacity: updatingReportStatus || selectedReport.status === status ? 0.6 : 1
+                          }}
+                        >
+                          {updatingReportStatus ? '⏳ Đang xử lý...' : `${status}`}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Hình ảnh */}
+                {selectedReport.image && (
+                  <div className="detail-section" style={{ marginBottom: '24px' }}>
+                    <h3 style={{ marginBottom: '16px', color: '#334155' }}>Hình ảnh</h3>
+                    <div className="image-container" style={{
+                      display: 'flex',
+                      justifyContent: 'center'
+                    }}>
+                      <img 
+                        src={selectedReport.image} 
+                        alt={selectedReport.name}
+                        className="detail-image"
+                        style={{
+                          maxWidth: '100%',
+                          maxHeight: '400px',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.parentElement.innerHTML = '<p style="color: #6b7280; text-align: center;">Không thể tải hình Ảnh</p>';
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="popup-actions-reportS" style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '12px',
+                marginTop: '5px',
+                borderTop: '1px solid #e2e8f0',
+                paddingTop: '5px'
+              }}>
+                <button 
+                  className="btn btn-secondary"
+                  onClick={handleCloseReportDetail}
+                  style={{
+                    padding: '10px 20px',
+                    background: '#64748b',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  ✖️ Đóng
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </>

@@ -189,7 +189,7 @@ export const authAPI = {
 
   getCustomerById: async (accountId) => {
     try {
-      const response = await api.get(`/api/Account/get_account_by_id/${accountId}_for_admin`);
+      const response = await api.get(`/api/Account/get_account_by_id/${accountId}`);
       return response.data;
     } catch (error) {
       throw new Error(error?.message || JSON.stringify(error) || 'Get customer failed');
