@@ -15,7 +15,7 @@ const formatDate = (dateString) => {
   } catch { return dateString; }
 };
 
-function StaffReportManager() {
+function StaffReportManager({ onShowReportDetail, onUpdateReportStatus }) {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,12 +23,7 @@ function StaffReportManager() {
   const [currentUser, setCurrentUser] = useState(null);
   const [stationAssignments, setStationAssignments] = useState([]);
   const [selectedStationId, setSelectedStationId] = useState('');
-  const [selectedReport, setSelectedReport] = useState(null);
-  const [accountDetails, setAccountDetails] = useState({});
-  // Thêm state cho bộ lọc trạng thái
   const [statusFilter, setStatusFilter] = useState('All');
-  // State cho cập nhật trạng thái
-  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   // Fetch current user on component mount
   useEffect(() => {
@@ -177,98 +172,36 @@ function StaffReportManager() {
     }
   };
 
-  // Lấy thông tin account chi tiết
-  const fetchAccountDetails = async (accountId) => {
-    if (!accountId) return null;
-    
-    try {
-      // Kiểm tra xem đã có trong cache chưa
-      if (accountDetails[accountId]) {
-        return accountDetails[accountId];
-      }
-
-      const response = await authAPI.getCustomerByAccountId(accountId);
-      if (response) {
-        const accountInfo = {
-          accountName: response.name || 'N/A',
-          phoneNumber: response.phone || 'N/A'
-        };
-        
-        // Cache lại thông tin
-        setAccountDetails(prev => ({
-          ...prev,
-          [accountId]: accountInfo
-        }));
-        
-        return accountInfo;
-      }
-      return null;
-    } catch (err) {
-      console.error('Error fetching account details:', err);
-      return null;
-    }
-  };
-
   // Lấy chi tiết báo cáo để hiển thị popup
   const fetchReportDetail = async (report) => {
     try {
       setLoading(true);
       
-      // Lấy thông tin account chi tiết
-      const accountInfo = await fetchAccountDetails(report.accountId);
-
-      // Kết hợp thông tin vào report data
-      const enhancedReportData = {
-        ...report,
-        accountName: accountInfo?.accountName || 'N/A',
-        phoneNumber: accountInfo?.phoneNumber || 'N/A',
-        stationName: selectedStationId || 'N/A',
-      };
-
-      setSelectedReport(enhancedReportData);
+      // Gọi function từ props để hiển thị popup
+      onShowReportDetail(report);
     } catch (err) {
       console.error('Error fetching report detail:', err);
       message.error('Lỗi khi tải chi tiết báo cáo');
+      
+      // Vẫn gọi function từ props với thông tin cơ bản
+      onShowReportDetail({
+        ...report,
+        accountName: 'Lỗi khi tải thông tin',
+        phoneNumber: 'Lỗi khi tải thông tin',
+        email: 'Lỗi khi tải thông tin',
+        stationName: selectedStationId || 'N/A',
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // Đóng popup chi tiết
-  const handleCloseDetail = () => {
-    setSelectedReport(null);
-  };
-
-  // Hàm cập nhật trạng thái report
-  const handleUpdateReportStatus = async (reportId, newStatus) => {
-    if (!reportId) {
-      message.error('Không tìm thấy ID báo cáo');
-      return;
-    }
-
-    try {
-      setUpdatingStatus(true);
-      
-      // Gọi API cập nhật trạng thái mới
-      await authAPI.updateReportStatus(reportId, newStatus);
-      
-      message.success(`Cập nhật trạng thái thành ${newStatus}`);
-      
-      // Refresh danh sách
+  // Hàm cập nhật trạng thái report với xác nhận
+  const handleUpdateReportStatus = async (reportId, newStatus, reportName = '') => {
+    if (onUpdateReportStatus) {
+      await onUpdateReportStatus(reportId, newStatus, reportName);
+      // Refresh danh sách sau khi cập nhật
       handleRefresh();
-      
-      // Cập nhật selectedReport nếu đang mở
-      if (selectedReport && (selectedReport.reportId === reportId || selectedReport.id === reportId)) {
-        setSelectedReport(prev => ({
-          ...prev,
-          status: newStatus
-        }));
-      }
-    } catch (error) {
-      console.error('Error updating report status:', error);
-      message.error('Lỗi khi cập nhật trạng thái: ' + (error?.message || 'Lỗi không xác định'));
-    } finally {
-      setUpdatingStatus(false);
     }
   };
 
@@ -291,19 +224,6 @@ function StaffReportManager() {
     if (s === 'pending') return 'status-chip status-pending';
     return 'status-chip status-unknown';
   };
-
-  // Prevent body scroll when popup is open
-  useEffect(() => {
-    if (selectedReport) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [selectedReport]);
 
   return (
     <>
@@ -615,6 +535,30 @@ function StaffReportManager() {
                       >
                         📋 Chi tiết
                       </button>
+                      
+                      {/* Nút cập nhật trạng thái bên ngoài */}
+                      {report.status === 'Pending' && (
+                        <button
+                          onClick={() => handleUpdateReportStatus(
+                            report.reportId || report.id, 
+                            'Completed',
+                            report.name || 'báo cáo'
+                          )}
+                          disabled={loading}
+                          style={{
+                            padding: '8px 16px',
+                            background: '#10b981',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            fontSize: '14px',
+                            opacity: loading ? 0.6 : 1
+                          }}
+                        >
+                          ✅ Hoàn thành
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -641,223 +585,6 @@ function StaffReportManager() {
               : 'Hãy chọn một trạm để xem báo cáo.'
             }
           </p>
-        </div>
-      )}
-
-      {/* Popup chi tiết báo cáo */}
-      {selectedReport && (
-        <div 
-          className="report-detail-popup" 
-          onClick={handleCloseDetail}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px'
-          }}
-        >
-          <div 
-            className="popup-content-report" 
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: 'white',
-              borderRadius: '12px',
-              padding: '24px',
-              maxWidth: '800px',
-              width: '100%',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
-            }}
-          >
-            <div className="popup-header" style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '20px',
-              borderBottom: '1px solid #e2e8f0',
-              paddingBottom: '16px'
-            }}>
-              <h2 style={{ margin: 0, color: '#0f172a' }}>
-                📋 Chi tiết báo cáo
-              </h2>
-            </div>
-            
-            <div className="report-detail-content">
-              {/* Thông tin chi tiết */}
-              <>
-                {/* Thông tin cơ bản */}
-                <div className="detail-section" style={{ marginBottom: '24px' }}>
-                  <h3 style={{ marginBottom: '16px', color: '#334155' }}>Thông tin cơ bản</h3>
-                  <div className="detail-grid" style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                    gap: '12px'
-                  }}>
-                    <div className="detail-item" style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      padding: '12px',
-                      background: '#f8fafc',
-                      borderRadius: '8px'
-                    }}>
-                      <strong style={{ color: '#475569', fontSize: '14px' }}>Report ID</strong>
-                      <span style={{ color: '#0f172a', fontWeight: '500' }}>{selectedReport.reportId || selectedReport.id}</span>
-                    </div>
-                    <div className="detail-item" style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      padding: '12px',
-                      background: '#f8fafc',
-                      borderRadius: '8px'
-                    }}>
-                      <strong style={{ color: '#475569', fontSize: '14px' }}>Tên báo cáo</strong>
-                      <span style={{ color: '#0f172a', fontWeight: '500' }}>{selectedReport.name}</span>
-                    </div>
-                    <div className="detail-item" style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      padding: '12px',
-                      background: '#f8fafc',
-                      borderRadius: '8px'
-                    }}>
-                      <strong style={{ color: '#475569', fontSize: '14px' }}>Account ID</strong>
-                      <span style={{ color: '#0f172a', fontWeight: '500' }}>{selectedReport.accountId || 'N/A'}</span>
-                    </div>
-                    <div className="detail-item" style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      padding: '12px',
-                      background: '#f8fafc',
-                      borderRadius: '8px'
-                    }}>
-                      <strong style={{ color: '#475569', fontSize: '14px' }}>Trạng thái</strong>
-                      <span style={{ color: '#0f172a', fontWeight: '500' }}>{selectedReport.status || 'N/A'}</span>
-                    </div>
-                    <div className="detail-item" style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      padding: '12px',
-                      background: '#f8fafc',
-                      borderRadius: '8px'
-                    }}>
-                      <strong style={{ color: '#475569', fontSize: '14px' }}>Ngày tạo</strong>
-                      <span style={{ color: '#0f172a', fontWeight: '500' }}>{formatDate(selectedReport.startDate)}</span>
-                    </div>
-                    <div className="detail-item" style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      padding: '12px',
-                      background: '#f8fafc',
-                      borderRadius: '8px'
-                    }}>
-                      <strong style={{ color: '#475569', fontSize: '14px' }}>Ngày cập nhật</strong>
-                      <span style={{ color: '#0f172a', fontWeight: '500' }}>{formatDate(selectedReport.updateDate)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Mô tả */}
-                <div className="detail-section" style={{ marginBottom: '24px' }}>
-                  <h3 style={{ marginBottom: '16px', color: '#334155' }}>Mô tả</h3>
-                  <div className="description-box" style={{
-                    padding: '16px',
-                    background: '#f8fafc',
-                    borderRadius: '8px',
-                    color: '#475569',
-                    lineHeight: 1.5
-                  }}>
-                    {selectedReport.description || 'Không có mô tả'}
-                  </div>
-                </div>
-
-                {/* Cập nhật trạng thái */}
-                <div className="detail-section" style={{ marginBottom: '24px' }}>
-                  <h3 style={{ marginBottom: '16px', color: '#334155' }}>Cập nhật trạng thái</h3>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {['Completed'].map(status => (
-                      <button
-                        key={status}
-                        onClick={() => handleUpdateReportStatus(selectedReport.reportId || selectedReport.id, status)}
-                        disabled={updatingStatus || selectedReport.status === status}
-                        style={{
-                          padding: '8px 16px',
-                          background: selectedReport.status === status ? '#22c55e' : '#64748b',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: updatingStatus || selectedReport.status === status ? 'not-allowed' : 'pointer',
-                          fontSize: '14px',
-                          opacity: updatingStatus || selectedReport.status === status ? 0.6 : 1
-                        }}
-                      >
-                        {status}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Hình ảnh */}
-                {selectedReport.image && (
-                  <div className="detail-section" style={{ marginBottom: '24px' }}>
-                    <h3 style={{ marginBottom: '16px', color: '#334155' }}>Hình ảnh</h3>
-                    <div className="image-container" style={{
-                      display: 'flex',
-                      justifyContent: 'center'
-                    }}>
-                      <img 
-                        src={selectedReport.image} 
-                        alt={selectedReport.name}
-                        className="detail-image"
-                        style={{
-                          maxWidth: '100%',
-                          maxHeight: '400px',
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                        }}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.parentElement.innerHTML = '<p style="color: #6b7280; text-align: center;">Không thể tải hình ảnh</p>';
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </>
-            </div>
-
-            <div className="popup-actions-report" style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '12px',
-              marginTop: '24px',
-              borderTop: '1px solid #e2e8f0',
-              paddingTop: '20px'
-            }}>
-              <button 
-                className="btn btn-secondary"
-                onClick={handleCloseDetail}
-                style={{
-                  padding: '10px 20px',
-                  background: '#64748b',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
-              >
-                ✖️ Đóng
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </>
