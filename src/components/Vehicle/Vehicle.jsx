@@ -987,6 +987,12 @@ const Vehicle = () => {
                               </span>
                             </div>
                             <div className="detail-row">
+                              <span className="detail-labelV">⚡ Thông số</span>
+                              <span className="detail-valueV">
+                                {batteryInfo.specification}
+                              </span>
+                            </div>
+                            <div className="detail-row">
                               <span className="detail-labelV">🔄 Trạng thái pin</span>
                               <span className="detail-valueV battery-status">
                                 {getBatteryStatusDisplay(batteryInfo.status)}
