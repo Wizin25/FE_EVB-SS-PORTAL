@@ -1393,4 +1393,13 @@ updateReportStatus: async (reportId, status) => {
     throw new Error(error?.message || JSON.stringify(error) || 'Update report status failed');
   }
 },
+
+getExchangeBatteryByAccountId: async (accountId) => {
+    try {
+      const response = await api.get(`/api/ExchangeBattery/get_exchange_by_driver/${accountId}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
