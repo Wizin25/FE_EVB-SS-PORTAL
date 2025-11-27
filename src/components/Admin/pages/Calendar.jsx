@@ -486,13 +486,13 @@ function FormDetailModal({ form, onClose }) {
           }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
-                <strong>Tiêu đề:</strong>
+                <strong>Lời nhắn:</strong>
                 <div style={{ color: '#475569', marginTop: '4px' }}>{form.title || 'N/A'}</div>
               </div>
             </div>
 
             <div>
-              <strong>Mô tả:</strong>
+              <strong>Lời nhắn chi tiết:</strong>
               <div style={{
                 color: '#475569',
                 marginTop: '4px',
@@ -508,7 +508,7 @@ function FormDetailModal({ form, onClose }) {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
-                <strong>Account ID:</strong>
+                <strong>Mã khách hàng:</strong>
                 <div style={{ color: '#475569', marginTop: '4px' }}>{form.accountId || 'N/A'}</div>
               </div>
             </div>
@@ -523,7 +523,7 @@ function FormDetailModal({ form, onClose }) {
                 )}
                 {form.batteryId && (
                   <div>
-                    <strong>Battery ID:</strong>
+                    <strong>Mã pin:</strong>
                     <div style={{ color: '#475569', marginTop: '4px' }}>{form.batteryId}</div>
                   </div>
                 )}
@@ -1118,7 +1118,7 @@ function ScheduleItem({ schedule, onViewFormDetail, userRole }) {
             <strong>Form ID:</strong> {schedule.formId || 'N/A'}
           </div>
           <div>
-            <strong>Trạm ID:</strong> {schedule.stationId}
+            <strong>Mã trạm:</strong> {schedule.stationId}
           </div>
         </div>
 
@@ -1582,13 +1582,13 @@ function ScheduleItem({ schedule, onViewFormDetail, userRole }) {
 
             <table style={{ width: '100%', fontSize: 13, marginBottom: 12 }}>
               <tbody>
-                <tr><td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>AccountId</td><td>{orderDraft.accountId}</td></tr>
-                <tr><td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>ServiceType</td><td>{orderDraft.serviceType}</td></tr>
-                <tr><td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>ServiceId (FormId)</td><td>{orderDraft.serviceId}</td></tr>
-                <tr><td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>BatteryId (New)</td><td>{orderDraft.batteryId || 'N/A'}</td></tr>
-                <tr><td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>ExchangeBatteryId</td><td>{orderDraft.exchangeBatteryId}</td></tr>
+                <tr><td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>Mã khách hàng</td><td>{orderDraft.accountId}</td></tr>
+                <tr><td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>Loại dịch vụ</td><td>{orderDraft.serviceType}</td></tr>
+                <tr><td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>Mã dịch vụ</td><td>{orderDraft.serviceId}</td></tr>
+                <tr><td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>Mã pin (mới)</td><td>{orderDraft.batteryId || 'N/A'}</td></tr>
+                <tr><td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>Mã đổi pin</td><td>{orderDraft.exchangeBatteryId}</td></tr>
                 <tr>
-                  <td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>Total</td>
+                  <td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>Số tiền</td>
                   <td>
                     <input
                       type="number"
@@ -1690,15 +1690,15 @@ function ScheduleItem({ schedule, onViewFormDetail, userRole }) {
             <table style={{ width: '100%', fontSize: 13, marginBottom: 12 }}>
               <tbody>
                 <tr>
-                  <td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>ExchangeBatteryId</td>
+                  <td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>Mã đổi pin</td>
                   <td>{cashPayment.ExchangeBatteryId}</td>
                 </tr>
                 <tr>
-                  <td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>FormId</td>
+                  <td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>Mã Form</td>
                   <td>{cashPayment.FormId}</td>
                 </tr>
                 <tr>
-                  <td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>Total</td>
+                  <td style={{ fontWeight: 600, padding: '6px 6px 6px 0' }}>Số tiền</td>
                   <td>
                     <input
                       type="number"
