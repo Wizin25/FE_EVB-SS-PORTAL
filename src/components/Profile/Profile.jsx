@@ -178,49 +178,52 @@ function Profile({ theme = "light" }) {
   }, [user]);
 
   // Fetch statistics (orders count and exchange batteries count)
-  const fetchStatistics = useCallback(async () => {
-    if (!user?.accountId) return;
+const fetchStatistics = useCallback(async () => {
+  if (!user?.accountId) return;
 
-    setLoadingStats(true);
+  setLoadingStats(true);
+  try {
+    const accountId = user.accountId || user.id;
+
+    // Fetch orders count
     try {
-      const accountId = user.accountId || user.id;
-
-      // Fetch orders count
-      try {
-        const ordersResponse = await authAPI.getOrdersByAccountId(accountId);
-        if (ordersResponse?.isSuccess) {
-          const ordersList = ordersResponse.data || [];
-          setOrdersCount(ordersList.length);
-        } else {
-          setOrdersCount(0);
-        }
-      } catch (err) {
-        console.error('Error fetching orders count:', err);
+      const ordersResponse = await authAPI.getOrdersByAccountId(accountId);
+      if (ordersResponse?.isSuccess) {
+        const ordersList = ordersResponse.data || [];
+        setOrdersCount(ordersList.length);
+      } else {
         setOrdersCount(0);
       }
+    } catch (err) {
+      console.error('Error fetching orders count:', err);
+      setOrdersCount(0);
+    }
 
-      // Fetch exchange batteries count từ forms (Lịch sử Đặt lịch)
-      try {
-        const formsResponse = await formAPI.getFormsByAccountId(accountId);
-
-        if (formsResponse?.isSuccess) {
-          const formsData = formsResponse.data || [];
-          // Đếm tổng số forms có exchange batteries (có thể đếm tất cả forms hoặc chỉ những form có exchange)
-          // Tạm thời đếm tất cả forms như là số lần trao đổi pin
-          setExchangeBatteriesCount(formsData.length);
-        } else {
-          setExchangeBatteriesCount(0);
-        }
-      } catch (err) {
-        console.error('Error fetching exchange batteries count:', err);
+    // Fetch exchange batteries count - CHỈ ĐẾM STATUS "Completed"
+    try {
+      const exchangeResponse = await authAPI.getExchangeBatteryByAccountId(accountId);
+      
+      if (exchangeResponse?.isSuccess) {
+        const exchangeBatteriesList = exchangeResponse.data || [];
+        
+        const completedExchanges = exchangeBatteriesList.filter(item => 
+          item.status === 'Completed'
+        );
+        
+        setExchangeBatteriesCount(completedExchanges.length);
+      } else {
         setExchangeBatteriesCount(0);
       }
     } catch (err) {
-      console.error('Error fetching statistics:', err);
-    } finally {
-      setLoadingStats(false);
+      console.error('Error fetching exchange batteries count:', err);
+      setExchangeBatteriesCount(0);
     }
-  }, [user?.accountId]);
+  } catch (err) {
+    console.error('Error fetching statistics:', err);
+  } finally {
+    setLoadingStats(false);
+  }
+}, [user?.accountId]);
 
   // Fetch statistics when user is loaded
   useEffect(() => {
