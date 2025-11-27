@@ -378,7 +378,7 @@ export default function StationForUser() {
 
     const intervalId = setInterval(() => {
       fetchStationDetail(stationId);
-    }, 15000);
+    }, 30000);
 
     setBatteryIntervals((prev) => ({
       ...prev,
@@ -442,47 +442,51 @@ export default function StationForUser() {
   };
 
   // ================= FLOW ĐỔI PIN - HANDLERS =================
-  const openSwapModal = () => {
-    setSwapVin(selectedVehicleVin || "");
+  // -- REPLACED openSwapModal: now async and requires vehicle and auto-fetches pendingExchange
+  const openSwapModal = async () => {
+    // 1) Chưa chọn xe → cấm mở modal
+    if (!selectedVehicleVin) {
+      setSwapError("Vui lòng chọn xe trước khi đổi pin.");
+      setSwapModalOpen(true);
+      setSwapVin(""); // Không set VIN nếu chưa chọn xe (so modal content shows error)
+      setPendingExchange(null);
+      setSwapSuccess("");
+      return;
+    }
+
+    const vin = selectedVehicleVin;
+    setSwapVin(vin);
     setPendingExchange(null);
     setSwapError("");
     setSwapSuccess("");
     setSwapModalOpen(true);
-  };
 
-  const closeSwapModal = () => {
-    setSwapModalOpen(false);
-  };
-
-  const fetchPendingExchange = async () => {
-    if (!swapVin) {
-      setSwapError("Vui lòng nhập VIN hoặc chọn xe.");
-      return;
-    }
+    // 2) Tự fetch pendingExchange luôn
     if (!currentAccountId) {
       setSwapError("Không tìm thấy tài khoản hiện tại. Vui lòng đăng nhập lại.");
       return;
     }
-    setSwapLoading(true);
-    setSwapError("");
-    setSwapSuccess("");
+
     try {
-      // GỌI ĐÚNG CHỮ KÝ: (vin, accountId)
-      const res = await authAPI.getPendingExchangeByVINAndAccountId(swapVin, currentAccountId);
+      const res = await authAPI.getPendingExchangeByVINAndAccountId(vin, currentAccountId);
       const data = res?.data?.data || res?.data || res;
       if (!data) {
         setPendingExchange(null);
-        setSwapError("Không tìm thấy giao dịch đang chờ cho VIN này.");
+        setSwapError("Xe này không có giao dịch đang chờ.");
       } else {
         setPendingExchange(data);
       }
     } catch (err) {
       setSwapError(err?.message || "Không lấy được giao dịch đang chờ.");
       setPendingExchange(null);
-    } finally {
-      setSwapLoading(false);
     }
   };
+
+  const closeSwapModal = () => {
+    setSwapModalOpen(false);
+  };
+
+  // REMOVED fetchPendingExchange (no longer used from modal UI)
 
   const handleConfirmSwap = async () => {
     if (!pendingExchange) return;
@@ -682,8 +686,27 @@ export default function StationForUser() {
           </button>
 
           {/* Nút Đổi pin */}
-          <button className="btn" onClick={openSwapModal}>
-            🔄 Đổi pin
+          <button
+            className="btn"
+            onClick={openSwapModal}
+            style={{
+              background: "linear-gradient(90deg, #16a34a 0%, #15803d 100%)",
+              color: "#fff",
+              fontWeight: 600,
+              padding: "10px 22px",
+              borderRadius: "10px",
+              boxShadow: "0 2px 12px 0 rgba(22, 163, 74, 0.12)",
+              border: "none",
+              fontSize: "1.1rem",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              transition: "background 0.18s, box-shadow 0.23s"
+            }}
+            title="Đổi pin nhanh chóng cho xe của bạn"
+          >
+            <span style={{ fontSize: "1.35em", marginRight: 3 }}>🔄</span>
+            <span>Đổi pin</span>
           </button>
         </div>
 
@@ -1237,6 +1260,7 @@ export default function StationForUser() {
         <div className="modal-overlay" onClick={closeSwapModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
             <h2>🔄 Đổi pin đã đặt trước</h2>
+            {/* Only show error once */}
             {swapError && (
               <div className="station-error" style={{ marginBottom: 8 }}>
                 {swapError}
@@ -1253,39 +1277,14 @@ export default function StationForUser() {
 
             {!pendingExchange ? (
               <>
-                <label className="form-label" style={{ display: "block" }}>
-                  VIN của xe
-                  <input
-                    className="station-search"
-                    value={swapVin}
-                    onChange={(e) => setSwapVin(e.target.value)}
-                    placeholder="Nhập VIN hoặc chọn xe ở trên"
-                    style={{ marginTop: 6 }}
-                  />
-                </label>
-                <p
-                  className="helper-text"
-                  style={{ fontSize: "0.85rem", marginTop: 6 }}
-                >
-                  Hệ thống sẽ tìm giao dịch đổi pin đang chờ dựa trên VIN và tài khoản của bạn.
-                </p>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    gap: 8,
-                    marginTop: 16
-                  }}
-                >
+                {/* <p style={{ fontSize: "0.9rem", marginTop: 8 }}>
+                  {selectedVehicleVin
+                    ? "Đang kiểm tra giao dịch đang chờ..."
+                    : "Vui lòng chọn xe trước."}
+                </p> */}
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
                   <button className="btn light" onClick={closeSwapModal}>
                     Đóng
-                  </button>
-                  <button
-                    className="btn"
-                    onClick={fetchPendingExchange}
-                    disabled={swapLoading}
-                  >
-                    {swapLoading ? "Đang kiểm tra..." : "🔍 Lấy giao dịch đang chờ"}
                   </button>
                 </div>
               </>
