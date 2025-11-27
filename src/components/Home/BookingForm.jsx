@@ -272,16 +272,16 @@ export default function BookingForm() {
     setError("");
     setSuccess("");
     setPayError("");
-    if (!title || !description || !date || !stationId) {
-      setError("Vui lòng nhập đủ Title, Description, Date và chọn Station.");
+    if (!date) {
+      setError("Vui lòng chọn ngày đặt lịch");
       return;
     }
-    if (title.length < 3 || title.length > 100) {
-      setError("Tiêu đề (Title) phải từ 3 đến 100 ký tự.");
+    if (title.length > 100) {
+      setError("Lời nhắn không vượt quá 100 ký tự.");
       return;
     }
-    if (description.length < 10 || description.length > 500) {
-      setError("Mô tả (Description) phải từ 10 đến 500 ký tự.");
+    if (description.length > 500) {
+      setError("Chi tiết lời nhắn không vượt quá 500 ký tự.");
       return;
     }
     if (!vin) {
@@ -397,7 +397,7 @@ export default function BookingForm() {
 
         // Đóng modal và báo thành công
         setShowPayModal(false);
-        setSuccess("Đặt lịch thành công! Bạn sẽ thanh toán trực tiếp tại trạm khi đổi pin.");
+        setSuccess("Đặt lịch thành công! Bạn sẽ thanh toán trực tiếp tại trạm khi đổi pin. Biểu mẫu của bạn sẽ được hệ thống xem xét và xét duyệt trong 5-10 phút. Hãy kiểm tra trong 'Lịch của tôi' để biết thêm chi tiết.");
         return; // <<< DỪNG TẠI ĐÂY, KHÔNG TẠO ORDER
       }
 
@@ -498,7 +498,7 @@ export default function BookingForm() {
           backgroundRepeat: "no-repeat",
           backgroundPosition: "top right",
           backgroundSize: "100% auto",
-          
+
           transition: "opacity 0.2s"
         }}
         aria-hidden="true"
@@ -526,30 +526,19 @@ export default function BookingForm() {
           <form className="booking-form" onSubmit={handleSubmit}>
             <div className="form-row">
               <label className="form-field">
-                <span>Title</span>
-                <input className="form-input" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nhập tiêu đề 3 - 100 ký tự" />
-              </label>
-              <label className="form-field">
-                <span>Description</span>
-                <input className="form-input" type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả ngắn 10 - 15 ký tự" />
-              </label>
-            </div>
-
-            <div className="form-row">
-              <label className="form-field">
-                <span>Date & Time</span>
+                <span>Thời gian đặt lịch</span>
                 <input
                   className="form-input"
                   type="datetime-local"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                 />
-                <small style={{ color: '#888' }}>
+                <small style={{ color: 'black' }}>
                   Giờ làm việc: Sáng 7:00-12:00, Chiều 13:30-17:00
                 </small>
               </label>
               <label className="form-field">
-                <span>Station</span>
+                <span>Trạm</span>
                 <select className="form-input" value={stationId} onChange={(e) => setStationId(e.target.value)}>
                   {stations.map(st => (
                     <option key={st.stationId} value={st.stationId}>{st.stationName || st.stationId} — {st.location}</option>
@@ -621,6 +610,16 @@ export default function BookingForm() {
                 <input style={{ display: 'none' }} type="text" value={selectedBatteryName} readOnly />
               </label>
             </div>
+            <div className="form-row">
+              <label className="form-field">
+                <span>Lời nhắn</span>
+                <input className="form-input" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nhập tiêu đề 3 - 100 ký tự" />
+              </label>
+              <label className="form-field">
+                <span>Chi tiết lời nhắn</span>
+                <input className="form-input" type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả ngắn 5 - 500 ký tự" />
+              </label>
+            </div>
 
             {/* CÁCH 1: Inline chọn phương thức ngay trong form (bật INLINE_METHOD = true) */}
             {INLINE_METHOD && (
@@ -686,6 +685,24 @@ function PaymentMethodModal({ onClose, onConfirm, paying, error, paymentOptions,
   const canSubmit = () => {
     return Boolean(paymentOptions?.length) && paymentOptions.some((option) => option.value === method);
   };
+
+  // Message for PaidAtStation
+  const paidAtStationNotice =
+    method === SERVICE_TYPES.PAID_AT_STATION ? (
+      <div
+        style={{
+          fontSize: '14px',
+          color: '#3b82f6',
+          background: '#f0f9ff',
+          border: '1px solid #bae6fd',
+          borderRadius: '8px',
+          padding: '12px',
+          margin: '8px 0 12px 0'
+        }}
+      >
+        Nếu bạn chọn phương thức này, hãy chờ khoảng <b>5-10 phút</b> để hệ thống xác nhận và phê duyệt đặt lịch. Sau khi được xác nhận, bạn có thể đến trạm để tiến hành thanh toán và đổi pin.
+      </div>
+    ) : null;
 
   return (
     <div className="modal-backdrop" style={{
@@ -762,6 +779,9 @@ function PaymentMethodModal({ onClose, onConfirm, paying, error, paymentOptions,
             </select>
           </label>
 
+          {/* Show message if PaidAtStation selected */}
+          {paidAtStationNotice}
+
           {vehicleHasPackage && (
             <div style={{ fontSize: '13px', color: '#16a34a', marginBottom: '12px' }}>
               Xe này đang có gói dịch vụ nên chỉ hỗ trợ dùng gói hiện tại.
@@ -784,7 +804,7 @@ function PaymentMethodModal({ onClose, onConfirm, paying, error, paymentOptions,
         </div>
 
         <div className="modal-actions" style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
-        
+
           <button
             className="btn primary"
             disabled={paying || !canSubmit()}
